@@ -10,6 +10,8 @@ type serviceIdent uint16
 const (
 	connectionRequestService  serviceIdent = 0x0205
 	connectionResponseService              = 0x0206
+	tunnelRequestService                   = 0x0420
+	tunnelResponseService                  = 0x0421
 )
 
 func writePacketHeader(w *bytes.Buffer, service serviceIdent, payloadLength int) error {
@@ -80,6 +82,12 @@ func ReadPacket(r *bytes.Reader) (interface{}, error) {
 	switch service {
 		case connectionResponseService:
 			return readConnectionResponse(r)
+
+		case tunnelRequestService:
+			return readTunnelRequest(r)
+
+		case tunnelResponseService:
+			return readTunnelResponse(r)
 
 		default:
 			return nil, errors.New("Unknown service")

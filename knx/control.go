@@ -77,8 +77,38 @@ func readConnectionResponse(r *bytes.Reader) (*ConnectionResponse, error) {
 	err := readSequence(r, &channel, &status)
 	if err != nil { return nil, err }
 
-	info, err := readHostInfo(r)
+	host, err := readHostInfo(r)
 	if err != nil { return nil, err }
 
-	return &ConnectionResponse{channel, status, *info}, nil
+	return &ConnectionResponse{channel, status, *host}, nil
+}
+
+// Disconnect request
+type DisconnectRequest struct {
+	Channel byte
+	Status  byte
+	Host    HostInfo
+}
+
+func readDisconnectRequest(r *bytes.Reader) (*DisconnectRequest, error) {
+	var channel, status byte
+
+	err := readSequence(r, &channel, &status)
+	if err != nil { return nil, err }
+
+	host, err := readHostInfo(r)
+	if err != nil { return nil, err }
+
+	return &DisconnectRequest{channel, status, *host}, nil
+}
+
+func (req DisconnectRequest) describe() (serviceIdent, int) {
+	return disconnectRequestService, 10
+}
+
+func (req DisconnectRequest) writeTo(w *bytes.Buffer) error {
+	err := writeSequence(w, req.Channel, req.Status)
+	if err != nil { return err }
+
+	return req.Host.writeTo(w)
 }

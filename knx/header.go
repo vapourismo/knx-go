@@ -10,6 +10,7 @@ type serviceIdent uint16
 const (
 	connectionRequestService  serviceIdent = 0x0205
 	connectionResponseService              = 0x0206
+	disconnectRequestService               = 0x0209
 	tunnelRequestService                   = 0x0420
 	tunnelResponseService                  = 0x0421
 )
@@ -88,6 +89,9 @@ func ReadPacket(r *bytes.Reader) (interface{}, error) {
 
 		case tunnelResponseService:
 			return readTunnelResponse(r)
+
+		case disconnectRequestService:
+			return readDisconnectRequest(r)
 
 		default:
 			return nil, errors.New("Unknown service")

@@ -83,6 +83,35 @@ func readConnectionResponse(r *bytes.Reader) (*ConnectionResponse, error) {
 	return &ConnectionResponse{channel, status, *host}, nil
 }
 
+// Connection state request
+type ConnectionStateRequest struct {
+	Channel byte
+	Status  byte
+	Host    HostInfo
+}
+
+func (req ConnectionStateRequest) describe() (serviceIdent, int) {
+	return connectionStateRequestService, 10
+}
+
+func (req ConnectionStateRequest) writeTo(w *bytes.Buffer) error {
+	err := writeSequence(w, req.Channel, req.Status)
+	if err != nil { return err }
+
+	return req.Host.writeTo(w)
+}
+
+// Connection state response
+type ConnectionStateResponse struct {
+	Channel byte
+	Status  byte
+}
+
+func readConnectionStateResponse(r *bytes.Reader) (*ConnectionStateResponse, error) {
+	res := &ConnectionStateResponse{}
+	return res, readSequence(r, &res.Channel, &res.Status)
+}
+
 // Disconnect request
 type DisconnectRequest struct {
 	Channel byte

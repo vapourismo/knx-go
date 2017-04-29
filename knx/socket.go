@@ -78,11 +78,10 @@ func (sock *Socket) Close() error {
 // Send transmits a packet.
 func (sock *Socket) Send(payload OutgoingPayload) error {
 	buffer := bytes.NewBuffer(make([]byte, 0, 64))
-	err := WritePacket(buffer, payload)
 
+	err := WritePacket(buffer, payload)
 	if err != nil { return err }
 
 	_, err = sock.conn.Write(buffer.Bytes())
-
 	return err
 }

@@ -13,8 +13,9 @@ var (
 
 // Gateway client
 type Client struct {
-	sock    *Socket
-	Inbound <-chan []byte
+	sock     *Socket
+	Inbound  <-chan []byte
+	Outbound chan<- []byte
 }
 
 // NewClient establishes a connection to the given gateway.
@@ -26,16 +27,24 @@ func NewClient(gatewayAddr string) (*Client, error) {
 	if err != nil { return nil, err }
 
 	inbound := make(chan []byte, 10)
+	outbound := make(chan []byte, 10)
 	heartbeat := make(chan struct{}, 1)
 
 	go clientWorker(sock, channel, inbound, heartbeat)
 	go clientHeartbeat(sock, channel, heartbeat)
+	go clientSender(sock, channel, outbound)
 
-	return &Client{sock, inbound}, nil
+	return &Client{sock, inbound, outbound}, nil
+}
+
+// Send writes a tunneling request to the gateway.
+func (client *Client) Send(data []byte) {
+	client.Outbound <- data
 }
 
 // Close terminates the connection.
 func (client *Client) Close() {
+	close(client.Outbound)
 	client.sock.Close()
 }
 
@@ -87,7 +96,6 @@ func clientWorker(sock *Socket, channel byte, inbound chan<- []byte, heartbeat c
 		switch payload.(type) {
 			case *DisconnectRequest:
 				sock.Close()
-				break
 
 			case *ConnectionStateResponse:
 				res := payload.(*ConnectionStateResponse)
@@ -95,17 +103,18 @@ func clientWorker(sock *Socket, channel byte, inbound chan<- []byte, heartbeat c
 				// Make sure we only process the response if it is actually meant for us
 				if res.Channel == channel {
 					if res.Status == 0 {
+						// Inform the heartbeat worker
 						heartbeat <- struct{}{}
 					} else {
+						// Non-zero status means the connection is not intact
 						sock.Close()
-						break
 					}
 				}
 
 			case *TunnelRequest:
 				req := payload.(*TunnelRequest)
 
-				// Make sure we only process the response if it is actually meant for us
+				// Make sure we only process the request if it is actually meant for us
 				if req.Channel == channel {
 					sock.Send(&TunnelResponse{channel, req.SeqNumber, 0})
 					inbound <- req.Payload
@@ -124,6 +133,8 @@ func clientHeartbeat(sock *Socket, channel byte, heartbeat <-chan struct{}) {
 		select {
 			case <-tick:
 				if !performHeartbeat(sock, channel, heartbeat) {
+					// We close the socket so the main worker will terminate as well
+					sock.Close()
 					return
 				}
 
@@ -142,7 +153,8 @@ func clientHeartbeat(sock *Socket, channel byte, heartbeat <-chan struct{}) {
 
 func performHeartbeat(sock *Socket, channel byte, heartbeat <-chan struct{}) bool {
 	for i := 0; i < 5; i++ {
-		sock.Send(&ConnectionStateRequest{channel, 0, HostInfo{}})
+		err := sock.Send(&ConnectionStateRequest{channel, 0, HostInfo{}})
+		if err != nil { return false }
 
 		select {
 			case _, open := <-heartbeat:
@@ -153,7 +165,14 @@ func performHeartbeat(sock *Socket, channel byte, heartbeat <-chan struct{}) boo
 	}
 
 	// Gateway timed out
-	sock.Close()
 
 	return false
+}
+
+func clientSender(sock *Socket, channel byte, outbound <-chan []byte) {
+	for data := range outbound {
+		// TODO:
+		// 	- Send tunnel request
+		// 	- Wait for acknowledgement
+	}
 }

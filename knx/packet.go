@@ -75,6 +75,13 @@ func WritePacket(w *bytes.Buffer, payload OutgoingPayload) error {
 
 // ReadPacket reads a KNXnet/IP packet from the given Reader and returns an instance of the
 // corresponding payload type.
+//
+// Types can be: *ConnectionResponse
+//               *ConnectionStateResponse
+//               *DisconnectRequest
+//               *TunnelRequest
+//               *TunnelResponse
+//
 func ReadPacket(r *bytes.Reader) (interface{}, error) {
 	var service serviceIdent
 	var length int

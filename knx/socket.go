@@ -7,44 +7,13 @@ import (
 	"time"
 )
 
-func socketWorker(conn *net.UDPConn, inbound chan<- interface{}) {
-	buffer := make([]byte, 1024)
-	reader := bytes.NewReader(buffer)
-
-	for {
-		len, err := conn.Read(buffer[:1024])
-
-		if err != nil {
-			break
-		}
-
-		reader.Reset(buffer[:len])
-		payload, err := ReadPacket(reader)
-
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		inbound <- payload
-	}
-
-	close(inbound)
-}
-
 // UDP socket for KNXnet/IP packet exchange
 type Socket struct {
 	conn *net.UDPConn
+
+	// Inbound is a channel that relays incoming KNXnet/IP packets.
+	// The types of these packets are limited to those returned by ReadPacket.
 	Inbound <-chan interface{}
-}
-
-func makeSocket(conn *net.UDPConn) (*Socket, error) {
-	conn.SetDeadline(time.Time{})
-
-	inbound := make(chan interface{}, 10)
-	go socketWorker(conn, inbound)
-
-	return &Socket{conn, inbound}, nil
 }
 
 // NewClientSocket creates a new Socket which can used to exchange KNXnet/IP packets with a gateway.
@@ -84,4 +53,38 @@ func (sock *Socket) Send(payload OutgoingPayload) error {
 
 	_, err = sock.conn.Write(buffer.Bytes())
 	return err
+}
+
+func makeSocket(conn *net.UDPConn) (*Socket, error) {
+	conn.SetDeadline(time.Time{})
+
+	inbound := make(chan interface{}, 10)
+	go socketWorker(conn, inbound)
+
+	return &Socket{conn, inbound}, nil
+}
+
+func socketWorker(conn *net.UDPConn, inbound chan<- interface{}) {
+	buffer := make([]byte, 1024)
+	reader := bytes.NewReader(buffer)
+
+	for {
+		len, err := conn.Read(buffer[:1024])
+
+		if err != nil {
+			break
+		}
+
+		reader.Reset(buffer[:len])
+		payload, err := ReadPacket(reader)
+
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		inbound <- payload
+	}
+
+	close(inbound)
 }

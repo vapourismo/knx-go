@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func receiver(conn *net.UDPConn, inbound chan<- interface{}) {
+func socketWorker(conn *net.UDPConn, inbound chan<- interface{}) {
 	buffer := make([]byte, 1024)
 	reader := bytes.NewReader(buffer)
 
@@ -42,7 +42,7 @@ func makeSocket(conn *net.UDPConn) (*Socket, error) {
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan interface{}, 10)
-	go receiver(conn, inbound)
+	go socketWorker(conn, inbound)
 
 	return &Socket{conn, inbound}, nil
 }

@@ -1,13 +1,9 @@
 package knx
 
 import (
+	"io/ioutil"
 	l "log"
 )
 
-func log(args ...interface{}) {
-	l.Println(args...)
-}
-
-func logf(format string, args ...interface{}) {
-	l.Printf(format + "\n", args...)
-}
+// Logger is the target for
+var Logger = l.New(ioutil.Discard, "", l.LstdFlags)

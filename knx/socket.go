@@ -71,7 +71,7 @@ func socketWorker(conn *net.UDPConn, inbound chan<- interface{}) {
 		len, err := conn.Read(buffer[:1024])
 
 		if err != nil {
-			logf("socket[%v]: Error during read: %v", conn.RemoteAddr(), err)
+			Logger.Printf("socket[%v]: Error during read: %v", conn.RemoteAddr(), err)
 			break
 		}
 
@@ -79,7 +79,7 @@ func socketWorker(conn *net.UDPConn, inbound chan<- interface{}) {
 		payload, err := ReadPacket(reader)
 
 		if err != nil {
-			logf("socket[%v]: Error during parsing: %v", conn.RemoteAddr(), err)
+			Logger.Printf("socket[%v]: Error during parsing: %v", conn.RemoteAddr(), err)
 			continue
 		}
 

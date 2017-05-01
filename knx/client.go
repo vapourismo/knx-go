@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// These errors can occur during a connection attempt.
 var (
 	ErrConnRejected = errors.New("Gateway rejected connection")
 	ErrConnClosed   = errors.New("Socket closed before connection was established")
@@ -34,9 +35,13 @@ func NewClient(gatewayAddr string) (*Client, error) {
 	return &Client{sock, inbound, outbound}, nil
 }
 
+// Send transmits data via a tunnel request.
+func (client *Client) Send(data []byte) {
+	client.Outbound <- data
+}
+
 // Close terminates the connection.
 func (client *Client) Close() {
-	close(client.Outbound)
 	client.sock.Close()
 }
 
@@ -69,7 +74,7 @@ func attemptConnection(sock *Socket) (byte, error) {
 }
 
 func clientReceiver(sock *Socket, channel byte, inbound chan<- []byte, outbound <-chan []byte) {
-	logf("tunnel[%v]: Started main worker", sock.conn.RemoteAddr())
+	Logger.Printf("tunnel[%v]: Started main worker", sock.conn.RemoteAddr())
 
 	reaper, scythe := makeReaper()
 
@@ -79,6 +84,8 @@ func clientReceiver(sock *Socket, channel byte, inbound chan<- []byte, outbound 
 	go clientHeartbeat(sock, channel, heartbeat, scythe)
 	go clientSender(sock, channel, outbound, ack, scythe)
 
+	var seqNumber byte = 0
+
 	loop:
 	for {
 		select {
@@ -86,7 +93,8 @@ func clientReceiver(sock *Socket, channel byte, inbound chan<- []byte, outbound 
 				break loop
 
 			case payload, open := <-sock.Inbound:
-				if !open || !clientProcessPayload(sock, channel, heartbeat, ack, inbound, payload) {
+				if !open || !clientProcessPayload(sock, channel, heartbeat, ack, inbound,
+				                                  &seqNumber, payload) {
 					break loop
 				}
 		}
@@ -96,7 +104,7 @@ func clientReceiver(sock *Socket, channel byte, inbound chan<- []byte, outbound 
 	close(ack)
 	close(inbound)
 
-	logf("tunnel[%v]: Stopped main worker", sock.conn.RemoteAddr())
+	Logger.Printf("tunnel[%v]: Stopped main worker", sock.conn.RemoteAddr())
 }
 
 func clientProcessPayload(
@@ -105,12 +113,17 @@ func clientProcessPayload(
 	heartbeat chan<- *ConnectionStateResponse,
 	ack       chan<- *TunnelResponse,
 	inbound   chan<- []byte,
+	seqNumber *byte,
 	payload   interface{},
 ) bool {
 	switch payload.(type) {
 		case *DisconnectRequest:
 			req := payload.(*DisconnectRequest)
-			return req.Channel != channel
+
+			if req.Channel == channel {
+				Logger.Printf("tunnel[%v]: Received disconnect request", sock.conn.RemoteAddr())
+				return false
+			}
 
 		case *ConnectionStateResponse:
 			res := payload.(*ConnectionStateResponse)
@@ -126,7 +139,19 @@ func clientProcessPayload(
 			// Make sure we only process the request if it is meant for us
 			if req.Channel == channel {
 				sock.Send(&TunnelResponse{channel, req.SeqNumber, 0})
-				inbound <- req.Payload
+
+				if *seqNumber == req.SeqNumber {
+					Logger.Printf("tunnel[%v]: Received tunnel request: seqNumber=%v, data=%v",
+					              sock.conn.RemoteAddr(), req.SeqNumber, req.Payload)
+
+					inbound <- req.Payload
+					(*seqNumber)++
+				} else {
+					Logger.Printf(
+						"tunnel[%v]: Received out-of-sequence tunnel request: seqNumber=%v (expected  %v)",
+						sock.conn.RemoteAddr(), req.SeqNumber, *seqNumber,
+					)
+				}
 			}
 
 		case *TunnelResponse:
@@ -153,14 +178,15 @@ func clientHeartbeat(
 	heartbeat  <-chan *ConnectionStateResponse,
 	killParent scythe,
 ) {
-	logf("tunnel[%v]: Started heartbeat worker", sock.conn.RemoteAddr())
-	defer logf("tunnel[%v]: Stopped heartbeat worker", sock.conn.RemoteAddr())
+	Logger.Printf("tunnel[%v]: Started heartbeat worker", sock.conn.RemoteAddr())
+	defer Logger.Printf("tunnel[%v]: Stopped heartbeat worker", sock.conn.RemoteAddr())
 
 	tick := time.Tick(time.Second * 20)
 
 	for {
 		select {
 			case <-tick:
+				Logger.Printf("tunnel[%v]: Starting heartbeat cycle", sock.conn.RemoteAddr())
 				err := clientPerformHeartbeat(sock, channel, heartbeat)
 
 				switch err {
@@ -170,7 +196,8 @@ func clientHeartbeat(
 
 					// Gateway died or closed the connection
 					case errHeartbeatTimeout, errHeartbeatRejected:
-						logf("tunnel[%v]: Error during heartbeat: %v", sock.conn.RemoteAddr(), err)
+						Logger.Printf("tunnel[%v]: Error during heartbeat: %v",
+						              sock.conn.RemoteAddr(), err)
 
 						// Tell main worker to shutdown
 						killParent()
@@ -179,10 +206,12 @@ func clientHeartbeat(
 
 					// Nothing
 					case nil:
+						Logger.Printf("tunnel[%v]: Heartbeat succeeded", sock.conn.RemoteAddr())
 
 					// Unknown error
 					default:
-						logf("tunnel[%v]: Error during heartbeat: %v", sock.conn.RemoteAddr(), err)
+						Logger.Printf("tunnel[%v]: Error during heartbeat: %v",
+						              sock.conn.RemoteAddr(), err)
 				}
 
 			case _, open := <-heartbeat:
@@ -194,7 +223,8 @@ func clientHeartbeat(
 					// Main worker has terminated
 					return
 				} else {
-					logf("tunnel[%v]: Encountered out of cycle heartbeat", sock.conn.RemoteAddr())
+					Logger.Printf("tunnel[%v]: Encountered out of cycle heartbeat",
+					              sock.conn.RemoteAddr())
 				}
 		}
 	}
@@ -248,8 +278,8 @@ func clientSender(
 	ack        <-chan *TunnelResponse,
 	killParent scythe,
 ) {
-	logf("tunnel[%v]: Started send worker", sock.conn.RemoteAddr())
-	defer logf("tunnel[%v]: Stopped send worker", sock.conn.RemoteAddr())
+	Logger.Printf("tunnel[%v]: Started send worker", sock.conn.RemoteAddr())
+	defer Logger.Printf("tunnel[%v]: Stopped send worker", sock.conn.RemoteAddr())
 
 	var seqNumber byte = 0
 
@@ -261,6 +291,9 @@ func clientSender(
 					return
 				}
 
+				Logger.Printf("tunnel[%v]: Sending tunnel request: seqNumber=%v, data=%v",
+				              sock.conn.RemoteAddr(), seqNumber, data)
+
 				err := clientPerformSend(sock, &TunnelRequest{channel, seqNumber, data}, ack)
 				seqNumber++
 
@@ -271,7 +304,8 @@ func clientSender(
 
 					// Gateway timed out
 					case errSendTimeout:
-						logf("tunnel[%v]: Error during send: %v", sock.conn.RemoteAddr(), err)
+						Logger.Printf("tunnel[%v]: Error during send: %v",
+						              sock.conn.RemoteAddr(), err)
 
 						// Tell main worker to shut down
 						killParent()
@@ -280,10 +314,12 @@ func clientSender(
 
 					// Nothing
 					case nil:
+						Logger.Printf("tunnel[%v]: Send succeeded", sock.conn.RemoteAddr())
 
 					// Other errors
 					default:
-						logf("tunnel[%v]: Error during send: %v", sock.conn.RemoteAddr(), err)
+						Logger.Printf("tunnel[%v]: Error during send: %v",
+						              sock.conn.RemoteAddr(), err)
 				}
 
 			case _, open := <-ack:
@@ -293,8 +329,8 @@ func clientSender(
 					// Main worker has terminated
 					return
 				} else {
-					logf("tunnel[%v]: Encountered out of cycle tunnel response",
-					     sock.conn.RemoteAddr())
+					Logger.Printf("tunnel[%v]: Encountered out of cycle tunnel response",
+					              sock.conn.RemoteAddr())
 				}
 		}
 	}

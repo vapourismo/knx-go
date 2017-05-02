@@ -13,9 +13,6 @@ type Socket struct {
 	// Inbound relays incoming KNXnet/IP packets.
 	// The types of these packets are limited to those returned by ReadPacket.
 	Inbound <-chan interface{}
-
-	// Outbound relays outgoing KNXnet/IP packets to the gateway or router.
-	Outbound chan<- OutgoingPayload
 }
 
 // NewClientSocket creates a new Socket which can used to exchange KNXnet/IP packets with a gateway.
@@ -38,7 +35,7 @@ func NewRoutingSocket(multicastAddress string) (*Socket, error) {
 	conn, err := net.ListenMulticastUDP("udp4", nil, addr)
 	if err != nil { return nil, err }
 
-	return makeSocket(conn, addr), nil
+	return makeSocket(conn, nil), nil
 }
 
 // Close shuts the socket down. This will indirectly terminate the associated workers.
@@ -46,36 +43,50 @@ func (sock *Socket) Close() error {
 	return sock.conn.Close()
 }
 
+// Send transmits a KNXnet/IP packet
+func (sock *Socket) Send(payload OutgoingPayload) error {
+	buffer := &bytes.Buffer{}
+
+	// Packet serialization
+	err := WritePacket(buffer, payload)
+	if err != nil { return err }
+
+	// Transmission of the buffer contents
+	_, err = sock.conn.Write(buffer.Bytes())
+	if err != nil { return err }
+
+	return nil
+}
+
 // makeSocket configures the UDPConn and launches the receiver and sender workers.
 func makeSocket(conn *net.UDPConn, addr *net.UDPAddr) *Socket {
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan interface{})
-	go socketReceiver(conn, inbound)
+	go socketReceiver(conn, addr, inbound)
 
-	outbound := make(chan OutgoingPayload)
-	go socketSender(conn, outbound)
-
-	return &Socket{conn, inbound, outbound}
-}
-
-// isSameUDPAddr tests the given UDPAddrs for equality.
-func isSameUDPAddr(a, b *net.UDPAddr) bool {
-	return bytes.Equal(a.IP, b.IP) && a.Port == b.Port
+	return &Socket{conn, inbound}
 }
 
 // socketReceiver is the receiver worker for Socket.
-func socketReceiver(conn *net.UDPConn, inbound chan<- interface{}) {
+func socketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interface{}) {
 	Logger.Printf("Socket[%v]: Started receiver", conn.RemoteAddr())
 
 	buffer := [1024]byte{}
 	reader := bytes.NewReader(buffer[:])
 
 	for {
-		len, _, err := conn.ReadFromUDP(buffer[:])
+		len, sender, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
 			Logger.Printf("Socket[%v]: Error during read: %v", conn.RemoteAddr(), err)
 			break
+		}
+
+		// Validate sender origin if necessary
+		if addr != nil && (!bytes.Equal(addr.IP, sender.IP) || addr.Port != sender.Port) {
+			Logger.Printf("Socket[%v]: Origin validation failed: %v (expected %v)",
+			              conn.RemoteAddr(), sender, addr)
+			continue
 		}
 
 		Logger.Printf("Socket[%v]: Received: %v", conn.RemoteAddr(), buffer[:len])
@@ -95,33 +106,4 @@ func socketReceiver(conn *net.UDPConn, inbound chan<- interface{}) {
 
 	close(inbound)
 	Logger.Printf("Socket[%v]: Stopped receiver", conn.RemoteAddr())
-}
-
-// socketSender is the sender worker for Socket.
-func socketSender(conn *net.UDPConn, outbound <-chan OutgoingPayload) {
-	Logger.Printf("Socket[%v]: Started sender", conn.RemoteAddr())
-
-	buffer := &bytes.Buffer{}
-
-	for payload := range outbound {
-		Logger.Printf("Socket[%v]: Outbound: %+v", conn.RemoteAddr(), payload)
-
-		buffer.Reset()
-
-		err := WritePacket(buffer, payload)
-		if err != nil {
-			Logger.Printf("Socket[%v]: Error during packet generation: %v", conn.RemoteAddr(), err)
-			continue
-		}
-
-		_, err = conn.Write(buffer.Bytes())
-		if err != nil {
-			Logger.Printf("Socket[%v]: Error during write: %v", conn.RemoteAddr(), err)
-			break
-		}
-
-		Logger.Printf("Socket[%v]: Sending: %v", conn.RemoteAddr(), buffer.Bytes())
-	}
-
-	Logger.Printf("Socket[%v]: Stopped sender", conn.RemoteAddr())
 }

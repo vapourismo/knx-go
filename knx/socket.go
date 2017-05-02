@@ -83,7 +83,7 @@ func socketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interfa
 		}
 
 		// Validate sender origin if necessary
-		if addr != nil && (!bytes.Equal(addr.IP, sender.IP) || addr.Port != sender.Port) {
+		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
 			Logger.Printf("Socket[%v]: Origin validation failed: %v (expected %v)",
 			              conn.RemoteAddr(), sender, addr)
 			continue

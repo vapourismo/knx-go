@@ -3,17 +3,16 @@ package knx
 import (
 	"errors"
 	"time"
+	"context"
 )
 
 //
 type Client struct {
-	sock *Socket
+	sock    *Socket
+	reaper  context.CancelFunc
 
 	//
 	Inbound <-chan []byte
-
-	//
-	Outbound chan<- []byte
 }
 
 //
@@ -29,34 +28,43 @@ func NewClient(gatewayAddress string) (*Client, error) {
 		return nil, err
 	}
 
-	sock.Outbound <- &ConnectionRequest{}
+	req := &ConnectionRequest{}
 
-	resChan := clientReceiveConnectionResponse(sock)
+	err = sock.Send(req)
+	if err != nil {
+		return nil, err
+	}
 
+	resChan := awaitConnectionResponse(sock)
+
+	// Connection cycle
 	for i := 0; i < 5; i++ {
 		select {
-			case res := <-resChan:
-				if res.Status == 0 {
-					// Connection is established.
+		case res := <-resChan:
+			if res.Status == 0 {
+				// Connection is established.
 
-					Logger.Printf("Client[%v]: Connection has been established on channel %v",
-					              sock.conn.RemoteAddr(), res.Channel)
+				Logger.Printf("Client[%v]: Connection has been established on channel %v",
+				              sock.conn.RemoteAddr(), res.Channel)
 
-					return clientLaunch(sock, res.Channel), nil
-				} else {
-					// Connection attempt was rejected.
+				return makeClient(sock, res.Channel), nil
+			} else {
+				// Connection attempt was rejected.
 
-					Logger.Printf("Client[%v]: Connection attempt was rejected",
-					              sock.conn.RemoteAddr())
+				Logger.Printf("Client[%v]: Connection attempt was rejected",
+				              sock.conn.RemoteAddr())
 
-					sock.Close()
-					return nil, ErrConnRejected
-				}
+				sock.Close()
+				return nil, ErrConnRejected
+			}
 
-			case <-time.After(time.Second):
-				// Resend the connection request, if we haven't received a response from the gateway
-				// after 1 second.
-				sock.Outbound <- &ConnectionRequest{}
+		case <-time.After(time.Second):
+			// Resend the connection request, if we haven't received a response from the gateway
+			// after 1 second.
+			err := sock.Send(req)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -67,7 +75,13 @@ func NewClient(gatewayAddress string) (*Client, error) {
 }
 
 //
-func clientReceiveConnectionResponse(sock *Socket) <-chan *ConnectionResponse {
+func (client *Client) Close() {
+	client.reaper()
+	client.sock.Close()
+}
+
+//
+func awaitConnectionResponse(sock *Socket) <-chan *ConnectionResponse {
 	resChan := make(chan *ConnectionResponse)
 
 	go func() {
@@ -84,9 +98,125 @@ func clientReceiveConnectionResponse(sock *Socket) <-chan *ConnectionResponse {
 }
 
 //
-func clientLaunch(sock *Socket, channel byte) *Client {
-	inbound := make(chan []byte)
-	outbound := make(chan []byte)
+func makeClient(sock *Socket, channel byte) *Client {
+	ctx, reaper := context.WithCancel(context.Background())
 
-	return &Client{sock, inbound, outbound}
+	inbound := make(chan []byte)
+	go clientInboundWorker(ctx, reaper, sock, channel, inbound)
+
+	return &Client{sock, reaper, inbound}
+}
+
+//
+func clientInboundWorker(
+	ctx     context.Context,
+	reaper  context.CancelFunc,
+	sock    *Socket,
+	channel byte,
+	inbound chan<- []byte,
+) {
+	Logger.Printf("Client[%v]: Started inbound worker", sock.conn.RemoteAddr())
+	defer Logger.Printf("Client[%v]: Stopped inbound worker", sock.conn.RemoteAddr())
+
+	defer close(inbound)
+
+	heartbeatTrigger := make(chan struct{})
+	stateResChan := make(chan *ConnectionStateResponse)
+	go clientHeartbeatWorker(ctx, reaper, sock, channel, heartbeatTrigger, stateResChan)
+
+	for {
+		select {
+		// Goroutine exit has been requested
+		case <-ctx.Done():
+			return
+
+		// 10 seconds without communication, time for a heartbeat
+		case <-time.After(10 * time.Second):
+			Logger.Printf("Client[%v]: Triggering heartbeat", sock.conn.RemoteAddr())
+			heartbeatTrigger <- struct{}{}
+
+		// Incoming packets
+		case payload, open := <-sock.Inbound:
+			// If the socket inbound channel is closed, this goroutine has no purpose.
+			if !open {
+				Logger.Printf("Client[%v]: Inbound channel has been closed", sock.conn.RemoteAddr())
+				reaper()
+				return
+			}
+
+			switch payload.(type) {
+			case *ConnectionStateResponse:
+				res := payload.(*ConnectionStateResponse)
+
+				if res.Channel == channel {
+					stateResChan <- res
+				}
+			}
+		}
+	}
+}
+
+//
+func clientHeartbeatWorker(
+	ctx     context.Context,
+	reaper  context.CancelFunc,
+	sock    *Socket,
+	channel byte,
+	trigger <-chan struct{},
+	resChan <-chan *ConnectionStateResponse,
+) {
+	Logger.Printf("Client[%v]: Started heartbeat worker", sock.conn.RemoteAddr())
+	defer Logger.Printf("Client[%v]: Stopped heartbeat worker", sock.conn.RemoteAddr())
+
+	for {
+		select {
+		// Gorouting has been asked to exit
+		case <-ctx.Done():
+			return
+
+		// Inbound worker has triggered a heartbeat
+		case <-trigger:
+			req := &ConnectionStateRequest{channel, 0, HostInfo{}}
+
+			err := sock.Send(req)
+			if err != nil {
+				Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
+				              sock.conn.RemoteAddr(), err)
+				reaper()
+				return
+			}
+
+			// Heartbeat cycle
+			heartbeatLoop:
+			for i := 0; i < 5; i++ {
+				select {
+				case <-ctx.Done():
+					return
+
+				case res := <-resChan:
+					if res.Status == 0 {
+						Logger.Printf("Client[%v]: Heartbeat successful", sock.conn.RemoteAddr())
+						break heartbeatLoop
+					} else {
+						Logger.Printf("Client[%v]: Gateway rejected heartbeat",
+						              sock.conn.RemoteAddr())
+						reaper()
+						return
+					}
+
+				case <-time.After(time.Second):
+					err := sock.Send(req)
+					if err != nil {
+						Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
+						              sock.conn.RemoteAddr(), err)
+						reaper()
+						return
+					}
+				}
+			}
+
+		case <-resChan:
+			// Discard any connection state response that appears out-of-cycle
+		}
+	}
 }

@@ -26,7 +26,7 @@ func NewClientSocket(gatewayAddress string) (*Socket, error) {
 	conn, err := net.DialUDP("udp4", nil, addr)
 	if err != nil { return nil, err }
 
-	return makeSocket(conn, addr)
+	return makeSocket(conn, addr), nil
 }
 
 // NewRoutingSocket creates a new Socket which can be used to exchange KNXnet/IP packets with a
@@ -38,7 +38,7 @@ func NewRoutingSocket(multicastAddress string) (*Socket, error) {
 	conn, err := net.ListenMulticastUDP("udp4", nil, addr)
 	if err != nil { return nil, err }
 
-	return makeSocket(conn, addr)
+	return makeSocket(conn, addr), nil
 }
 
 // Close shuts the socket down. This will indirectly terminate the associated workers.
@@ -47,7 +47,7 @@ func (sock *Socket) Close() error {
 }
 
 // makeSocket configures the UDPConn and launches the receiver and sender workers.
-func makeSocket(conn *net.UDPConn, addr *net.UDPAddr) (*Socket, error) {
+func makeSocket(conn *net.UDPConn, addr *net.UDPAddr) *Socket {
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan interface{})
@@ -56,7 +56,7 @@ func makeSocket(conn *net.UDPConn, addr *net.UDPAddr) (*Socket, error) {
 	outbound := make(chan OutgoingPayload)
 	go socketSender(conn, addr, outbound)
 
-	return &Socket{conn, inbound, outbound}, nil
+	return &Socket{conn, inbound, outbound}
 }
 
 // isSameUDPAddr tests the given UDPAddrs for equality.

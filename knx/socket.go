@@ -54,7 +54,7 @@ func makeSocket(conn *net.UDPConn, addr *net.UDPAddr) *Socket {
 	go socketReceiver(conn, inbound)
 
 	outbound := make(chan OutgoingPayload)
-	go socketSender(conn, addr, outbound)
+	go socketSender(conn, outbound)
 
 	return &Socket{conn, inbound, outbound}
 }
@@ -98,7 +98,7 @@ func socketReceiver(conn *net.UDPConn, inbound chan<- interface{}) {
 }
 
 // socketSender is the sender worker for Socket.
-func socketSender(conn *net.UDPConn, addr *net.UDPAddr, outbound <-chan OutgoingPayload) {
+func socketSender(conn *net.UDPConn, outbound <-chan OutgoingPayload) {
 	Logger.Printf("socket[%v]: Started sender", conn.RemoteAddr())
 
 	buffer := &bytes.Buffer{}
@@ -114,7 +114,7 @@ func socketSender(conn *net.UDPConn, addr *net.UDPAddr, outbound <-chan Outgoing
 			continue
 		}
 
-		_, err = conn.WriteToUDP(buffer.Bytes(), addr)
+		_, err = conn.Write(buffer.Bytes())
 		if err != nil {
 			Logger.Printf("socket[%v]: Error during write: %v", conn.RemoteAddr(), err)
 			break

@@ -51,7 +51,7 @@ func makeSocket(conn *net.UDPConn, addr *net.UDPAddr) *Socket {
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan interface{})
-	go socketReceiver(conn, addr, inbound)
+	go socketReceiver(conn, inbound)
 
 	outbound := make(chan OutgoingPayload)
 	go socketSender(conn, addr, outbound)
@@ -65,33 +65,30 @@ func isSameUDPAddr(a, b *net.UDPAddr) bool {
 }
 
 // socketReceiver is the receiver worker for Socket.
-func socketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interface{}) {
+func socketReceiver(conn *net.UDPConn, inbound chan<- interface{}) {
 	Logger.Printf("socket[%v]: Started receiver", conn.RemoteAddr())
 
 	buffer := [1024]byte{}
 	reader := bytes.NewReader(buffer[:])
 
 	for {
-		len, sender, err := conn.ReadFromUDP(buffer[:])
+		len, _, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
 			Logger.Printf("socket[%v]: Error during read: %v", conn.RemoteAddr(), err)
 			break
-		} else if !isSameUDPAddr(sender, addr) {
-			Logger.Printf("socket[%v]: Packet from invalid sender: %+v", conn.RemoteAddr(), sender)
-			continue
 		}
+
+		Logger.Printf("socket[%v]: Received: %v", conn.RemoteAddr(), buffer[:len])
 
 		reader.Reset(buffer[:len])
 
 		payload, err := ReadPacket(reader)
 		if err != nil {
-			Logger.Printf("socket[%v]: Error during packet parsing: %v\n" +
-			              "            Buffer was: %v",
-			              conn.RemoteAddr(), err, buffer[:len])
+			Logger.Printf("socket[%v]: Error during packet parsing: %v", conn.RemoteAddr(), err)
 			continue
 		}
 
-		Logger.Printf("socket[%v]: Received: %+v", conn.RemoteAddr(), payload)
+		Logger.Printf("socket[%v]: Inbound: %+v", conn.RemoteAddr(), payload)
 
 		inbound <- payload
 	}
@@ -107,6 +104,8 @@ func socketSender(conn *net.UDPConn, addr *net.UDPAddr, outbound <-chan Outgoing
 	buffer := &bytes.Buffer{}
 
 	for payload := range outbound {
+		Logger.Printf("socket[%v]: Outbound: %+v", conn.RemoteAddr(), payload)
+
 		buffer.Reset()
 
 		err := WritePacket(buffer, payload)
@@ -115,13 +114,13 @@ func socketSender(conn *net.UDPConn, addr *net.UDPAddr, outbound <-chan Outgoing
 			continue
 		}
 
-		Logger.Printf("socket[%v]: Sending: %+v", conn.RemoteAddr(), payload)
-
 		_, err = conn.WriteToUDP(buffer.Bytes(), addr)
 		if err != nil {
 			Logger.Printf("socket[%v]: Error during write: %v", conn.RemoteAddr(), err)
 			break
 		}
+
+		Logger.Printf("socket[%v]: Sending: %v", conn.RemoteAddr(), buffer.Bytes())
 	}
 
 	Logger.Printf("socket[%v]: Stopped sender", conn.RemoteAddr())

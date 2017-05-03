@@ -41,7 +41,7 @@ func NewClient(gatewayAddress string) (*Client, error) {
 	resChan := awaitConnectionResponse(sock)
 
 	// Connection cycle
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 20; i++ {
 		select {
 		case res := <-resChan:
 			if res.Status == 0 {
@@ -61,7 +61,7 @@ func NewClient(gatewayAddress string) (*Client, error) {
 				return nil, ErrConnRejected
 			}
 
-		case <-time.After(time.Second):
+		case <-time.After(500 * time.Millisecond):
 			// Resend the connection request, if we haven't received a response from the gateway
 			// after 1 second.
 			err := sock.Send(req)
@@ -83,6 +83,7 @@ func (client *Client) Close() {
 	client.sock.Close()
 }
 
+//
 var (
 	ErrSendClosed   = errors.New("Outbound worker has terminated")
 	ErrSendRejected = errors.New("Gateway rejected tunnel request")
@@ -102,7 +103,7 @@ func (client *Client) Send(data []byte) error {
 		return err
 	}
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 20; i++ {
 		select {
 		case status, open := <-client.ack:
 			if !open {
@@ -115,7 +116,7 @@ func (client *Client) Send(data []byte) error {
 				return ErrSendRejected
 			}
 
-		case <-time.After(time.Second):
+		case <-time.After(500 * time.Millisecond):
 			err := client.sock.Send(req)
 			if err != nil {
 				return err
@@ -205,6 +206,20 @@ func clientInboundWorker(
 			}
 
 			switch payload.(type) {
+			case *ConnectionResponse:
+				res := payload.(*ConnectionResponse)
+
+				if res.Channel != channel {
+					sock.Send(&DisconnectRequest{res.Channel, 0, res.Host})
+				}
+
+			case *DisconnectRequest:
+				req := payload.(*DisconnectRequest)
+
+				if req.Channel == channel {
+					return
+				}
+
 			case *ConnectionStateResponse:
 				res := payload.(*ConnectionStateResponse)
 
@@ -231,9 +246,6 @@ func clientInboundWorker(
 
 					// Relay to user if it fits the sequence
 					if req.SeqNumber == incomingSeqNumber {
-						Logger.Printf("Client[%v]: Inbound tunnel request: %v",
-						              sock.conn.RemoteAddr(), req.Payload)
-
 						select {
 						case <-ctx.Done():
 							return
@@ -346,7 +358,7 @@ func clientHeartbeatWorker(
 			}
 
 			// Heartbeat cycle
-			for i := 0; i < 5; i++ {
+			for i := 0; i < 20; i++ {
 				select {
 				case <-ctx.Done():
 					return
@@ -361,7 +373,7 @@ func clientHeartbeatWorker(
 						return
 					}
 
-				case <-time.After(time.Second):
+				case <-time.After(500 * time.Millisecond):
 					err := sock.Send(req)
 					if err != nil {
 						Logger.Printf("Client[%v]: Error while sending heartbeat: %v",

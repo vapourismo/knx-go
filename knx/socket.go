@@ -51,9 +51,13 @@ func (sock *Socket) Send(payload OutgoingPayload) error {
 	err := WritePacket(buffer, payload)
 	if err != nil { return err }
 
+	Logger.Printf("Socket[%v]: Outbound: %#v", sock.conn.RemoteAddr(), payload)
+
 	// Transmission of the buffer contents
 	_, err = sock.conn.Write(buffer.Bytes())
 	if err != nil { return err }
+
+	// Logger.Printf("Socket[%v]: Sent: %v", sock.conn.RemoteAddr(), buffer.Bytes())
 
 	return nil
 }
@@ -89,7 +93,7 @@ func socketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interfa
 			continue
 		}
 
-		Logger.Printf("Socket[%v]: Received: %v", conn.RemoteAddr(), buffer[:len])
+		// Logger.Printf("Socket[%v]: Received: %v", conn.RemoteAddr(), buffer[:len])
 
 		reader.Reset(buffer[:len])
 
@@ -99,7 +103,7 @@ func socketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interfa
 			continue
 		}
 
-		Logger.Printf("Socket[%v]: Inbound: %+v", conn.RemoteAddr(), payload)
+		Logger.Printf("Socket[%v]: Inbound: %#v", conn.RemoteAddr(), payload)
 
 		inbound <- payload
 	}

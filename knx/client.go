@@ -133,7 +133,13 @@ func clientInboundWorker(
 		// 10 seconds without communication, time for a heartbeat
 		case <-time.After(10 * time.Second):
 			Logger.Printf("Client[%v]: Triggering heartbeat", sock.conn.RemoteAddr())
-			heartbeatTrigger <- struct{}{}
+
+			select {
+			case <-ctx.Done():
+				return
+
+			case heartbeatTrigger <- struct{}{}:
+			}
 
 		// Incoming packets
 		case payload, open := <-sock.Inbound:
@@ -168,6 +174,10 @@ func clientHeartbeatWorker(
 	Logger.Printf("Client[%v]: Started heartbeat worker", sock.conn.RemoteAddr())
 	defer Logger.Printf("Client[%v]: Stopped heartbeat worker", sock.conn.RemoteAddr())
 
+	// Make sure we tell the others to exit
+	defer reaper()
+
+	outerLoop:
 	for {
 		select {
 		// Gorouting has been asked to exit
@@ -182,12 +192,10 @@ func clientHeartbeatWorker(
 			if err != nil {
 				Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
 				              sock.conn.RemoteAddr(), err)
-				reaper()
 				return
 			}
 
 			// Heartbeat cycle
-			heartbeatLoop:
 			for i := 0; i < 5; i++ {
 				select {
 				case <-ctx.Done():
@@ -196,11 +204,10 @@ func clientHeartbeatWorker(
 				case res := <-resChan:
 					if res.Status == 0 {
 						Logger.Printf("Client[%v]: Heartbeat successful", sock.conn.RemoteAddr())
-						break heartbeatLoop
+						continue outerLoop
 					} else {
 						Logger.Printf("Client[%v]: Gateway rejected heartbeat",
 						              sock.conn.RemoteAddr())
-						reaper()
 						return
 					}
 
@@ -209,11 +216,15 @@ func clientHeartbeatWorker(
 					if err != nil {
 						Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
 						              sock.conn.RemoteAddr(), err)
-						reaper()
 						return
 					}
 				}
 			}
+
+			// We get here, if the gateway did not respond
+
+			Logger.Printf("Client[%v]: Gateway timed out during heartbeat", sock.conn.RemoteAddr())
+			return
 
 		case <-resChan:
 			// Discard any connection state response that appears out-of-cycle

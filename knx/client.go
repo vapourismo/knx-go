@@ -187,7 +187,7 @@ func clientInboundWorker(
 			return
 
 		// 10 seconds without communication, time for a heartbeat
-		case <-time.After(10 * time.Second):
+		case <-time.After(5 * time.Second):
 			Logger.Printf("Client[%v]: Triggering heartbeat", sock.conn.RemoteAddr())
 
 			select {

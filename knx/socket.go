@@ -51,7 +51,7 @@ func (sock *Socket) Send(payload OutgoingPayload) error {
 	err := WritePacket(buffer, payload)
 	if err != nil { return err }
 
-	Logger.Printf("Socket[%v]: Outbound: %#v", sock.conn.RemoteAddr(), payload)
+	Logger.Printf("Socket[%v]: Outbound: %T %+v", sock.conn.RemoteAddr(), payload, payload)
 
 	// Transmission of the buffer contents
 	_, err = sock.conn.Write(buffer.Bytes())
@@ -103,7 +103,7 @@ func socketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interfa
 			continue
 		}
 
-		Logger.Printf("Socket[%v]: Inbound: %#v", conn.RemoteAddr(), payload)
+		Logger.Printf("Socket[%v]: Inbound: %T %+v", conn.RemoteAddr(), payload, payload)
 
 		inbound <- payload
 	}

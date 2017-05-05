@@ -65,18 +65,37 @@ func (req ConnectionRequest) writeTo(w *bytes.Buffer) error {
 	return err
 }
 
+//
+type ConnResStatus uint8
+
+// Connection response status codes
+var (
+	ConnResOk                ConnResStatus = 0x00
+	ConnResUnsupportedType   ConnResStatus = 0x22
+	ConnResUnsupportedOption ConnResStatus = 0x23
+	ConnResBusy              ConnResStatus = 0x24
+)
+
 // Connection response
 type ConnectionResponse struct {
-	Channel byte
-	Status  byte
+	Channel uint8
+	Status  ConnResStatus
 	Host    HostInfo
 }
 
 func readConnectionResponse(r *bytes.Reader) (*ConnectionResponse, error) {
-	var channel, status byte
+	var channel uint8
+	var status ConnResStatus
 
 	err := readSequence(r, &channel, &status)
 	if err != nil { return nil, err }
+
+	switch status {
+		case ConnResOk, ConnResUnsupportedType, ConnResUnsupportedOption, ConnResBusy:
+
+		default:
+			return nil, fmt.Errorf("Invalid value for ConnectionResponse.Status: %#x", status)
+	}
 
 	host, err := readHostInfo(r)
 	if err != nil { return nil, err }
@@ -132,7 +151,7 @@ func readConnectionStateResponse(r *bytes.Reader) (*ConnectionStateResponse, err
 		return res, nil
 
 	default:
-		return nil, fmt.Errorf("Invalid value for ConnState.Status: %#x", res.Status)
+		return nil, fmt.Errorf("Invalid value for ConnectionStateResponse.Status: %#x", res.Status)
 	}
 }
 

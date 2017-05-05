@@ -2,6 +2,7 @@ package knx
 
 import (
 	"bytes"
+	"fmt"
 	"errors"
 )
 
@@ -101,15 +102,38 @@ func (req ConnectionStateRequest) writeTo(w *bytes.Buffer) error {
 	return req.Host.writeTo(w)
 }
 
+//
+type ConnState uint8
+
+//
+var (
+	ConnStateNormal    ConnState = 0x00
+	ConnStateInactive  ConnState = 0x21
+	ConnStateDataError ConnState = 0x26
+	ConnStateKNXError  ConnState = 0x27
+)
+
 // Connection state response
 type ConnectionStateResponse struct {
-	Channel byte
-	Status  byte
+	Channel uint8
+	Status  ConnState
 }
 
 func readConnectionStateResponse(r *bytes.Reader) (*ConnectionStateResponse, error) {
 	res := &ConnectionStateResponse{}
-	return res, readSequence(r, &res.Channel, &res.Status)
+
+	err := readSequence(r, &res.Channel, &res.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	switch res.Status {
+	case ConnStateNormal, ConnStateInactive, ConnStateDataError, ConnStateKNXError:
+		return res, nil
+
+	default:
+		return nil, fmt.Errorf("Invalid value for ConnState.Status: %#x", res.Status)
+	}
 }
 
 // Disconnect request

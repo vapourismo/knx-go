@@ -8,7 +8,7 @@ import (
 
 //
 type Client struct {
-	sock    *Socket
+	sock    Socket
 	channel byte
 	reaper  context.CancelFunc
 	seq     <-chan byte
@@ -47,15 +47,15 @@ func NewClient(gatewayAddress string) (*Client, error) {
 			if res.Status == 0 {
 				// Connection is established.
 
-				Logger.Printf("Client[%v]: Connection has been established on channel %v",
-				              sock.conn.RemoteAddr(), res.Channel)
+				// Logger.Printf("Client[%v]: Connection has been established on channel %v",
+				//               sock.conn.RemoteAddr(), res.Channel)
 
 				return makeClient(sock, res.Channel), nil
 			} else {
 				// Connection attempt was rejected.
 
-				Logger.Printf("Client[%v]: Connection attempt was rejected",
-				              sock.conn.RemoteAddr())
+				// Logger.Printf("Client[%v]: Connection attempt was rejected",
+				//               sock.conn.RemoteAddr())
 
 				sock.Close()
 				return nil, ErrConnRejected
@@ -71,7 +71,7 @@ func NewClient(gatewayAddress string) (*Client, error) {
 		}
 	}
 
-	Logger.Printf("Client[%v]: Connection attempts timed out", sock.conn.RemoteAddr())
+	// Logger.Printf("Client[%v]: Connection attempts timed out", sock.conn.RemoteAddr())
 
 	sock.Close()
 	return nil, ErrConnTimeout
@@ -128,11 +128,11 @@ func (client *Client) Send(data []byte) error {
 }
 
 //
-func awaitConnectionResponse(sock *Socket) <-chan *ConnectionResponse {
+func awaitConnectionResponse(sock Socket) <-chan *ConnectionResponse {
 	resChan := make(chan *ConnectionResponse)
 
 	go func() {
-		for payload := range sock.Inbound {
+		for payload := range sock.Inbound() {
 			res, ok := payload.(*ConnectionResponse)
 			if ok {
 				resChan <- res
@@ -145,7 +145,7 @@ func awaitConnectionResponse(sock *Socket) <-chan *ConnectionResponse {
 }
 
 //
-func makeClient(sock *Socket, channel byte) *Client {
+func makeClient(sock Socket, channel byte) *Client {
 	ctx, reaper := context.WithCancel(context.Background())
 
 	seq := make(chan byte)
@@ -163,13 +163,13 @@ func makeClient(sock *Socket, channel byte) *Client {
 func clientInboundWorker(
 	ctx     context.Context,
 	reaper  context.CancelFunc,
-	sock    *Socket,
+	sock    Socket,
 	channel byte,
 	tunRes  chan<- *TunnelResponse,
 	inbound chan<- []byte,
 ) {
-	Logger.Printf("Client[%v]: Started inbound worker", sock.conn.RemoteAddr())
-	defer Logger.Printf("Client[%v]: Stopped inbound worker", sock.conn.RemoteAddr())
+	// Logger.Printf("Client[%v]: Started inbound worker", sock.conn.RemoteAddr())
+	// defer Logger.Printf("Client[%v]: Stopped inbound worker", sock.conn.RemoteAddr())
 
 	defer close(inbound)
 	defer reaper()
@@ -188,7 +188,7 @@ func clientInboundWorker(
 
 		// 10 seconds without communication, time for a heartbeat
 		case <-time.After(5 * time.Second):
-			Logger.Printf("Client[%v]: Triggering heartbeat", sock.conn.RemoteAddr())
+			// Logger.Printf("Client[%v]: Triggering heartbeat", sock.conn.RemoteAddr())
 
 			select {
 			case <-ctx.Done():
@@ -198,10 +198,10 @@ func clientInboundWorker(
 			}
 
 		// Incoming packets
-		case payload, open := <-sock.Inbound:
+		case payload, open := <-sock.Inbound():
 			// If the socket inbound channel is closed, this goroutine has no purpose.
 			if !open {
-				Logger.Printf("Client[%v]: Inbound channel has been closed", sock.conn.RemoteAddr())
+				// Logger.Printf("Client[%v]: Inbound channel has been closed", sock.conn.RemoteAddr())
 				return
 			}
 
@@ -239,8 +239,8 @@ func clientInboundWorker(
 					// Acknowledge tunnel request
 					err := sock.Send(&TunnelResponse{channel, req.SeqNumber, 0})
 					if err != nil {
-						Logger.Printf("Client[%v]: Error while sending tunnel response: %v",
-						              sock.conn.RemoteAddr(), err)
+						// Logger.Printf("Client[%v]: Error while sending tunnel response: %v",
+						//               sock.conn.RemoteAddr(), err)
 						return
 					}
 
@@ -328,13 +328,13 @@ func clientOutboundWorker(
 func clientHeartbeatWorker(
 	ctx     context.Context,
 	reaper  context.CancelFunc,
-	sock    *Socket,
+	sock    Socket,
 	channel byte,
 	trigger <-chan struct{},
 	resChan <-chan *ConnectionStateResponse, // Really? Why not just 'byte'?
 ) {
-	Logger.Printf("Client[%v]: Started heartbeat worker", sock.conn.RemoteAddr())
-	defer Logger.Printf("Client[%v]: Stopped heartbeat worker", sock.conn.RemoteAddr())
+	// Logger.Printf("Client[%v]: Started heartbeat worker", sock.conn.RemoteAddr())
+	// defer Logger.Printf("Client[%v]: Stopped heartbeat worker", sock.conn.RemoteAddr())
 
 	// Make sure we tell the others to exit
 	defer reaper()
@@ -352,8 +352,8 @@ func clientHeartbeatWorker(
 
 			err := sock.Send(req)
 			if err != nil {
-				Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
-				              sock.conn.RemoteAddr(), err)
+				// Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
+				//               sock.conn.RemoteAddr(), err)
 				return
 			}
 
@@ -365,19 +365,19 @@ func clientHeartbeatWorker(
 
 				case res := <-resChan:
 					if res.Status == 0 {
-						Logger.Printf("Client[%v]: Heartbeat successful", sock.conn.RemoteAddr())
+						// Logger.Printf("Client[%v]: Heartbeat successful", sock.conn.RemoteAddr())
 						continue outerLoop
 					} else {
-						Logger.Printf("Client[%v]: Gateway rejected heartbeat",
-						              sock.conn.RemoteAddr())
+						// Logger.Printf("Client[%v]: Gateway rejected heartbeat",
+						//               sock.conn.RemoteAddr())
 						return
 					}
 
 				case <-time.After(500 * time.Millisecond):
 					err := sock.Send(req)
 					if err != nil {
-						Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
-						              sock.conn.RemoteAddr(), err)
+						// Logger.Printf("Client[%v]: Error while sending heartbeat: %v",
+						//               sock.conn.RemoteAddr(), err)
 						return
 					}
 				}
@@ -385,7 +385,7 @@ func clientHeartbeatWorker(
 
 			// We get here, if the gateway did not respond
 
-			Logger.Printf("Client[%v]: Gateway timed out during heartbeat", sock.conn.RemoteAddr())
+			// Logger.Printf("Client[%v]: Gateway timed out during heartbeat", sock.conn.RemoteAddr())
 			return
 
 		case <-resChan:

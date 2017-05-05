@@ -137,6 +137,25 @@ func newDummySocket() *dummySocket {
 }
 
 //
+func (sock *dummySocket) gatewaySend(payload interface{}) error {
+	sock.mu.Lock()
+	defer sock.mu.Unlock()
+
+	if !sock.open {
+		return errors.New("Socket is closed")
+	}
+
+	sock.in <- payload
+
+	return nil
+}
+
+//
+func (sock *dummySocket) gatewayInbound() <-chan OutgoingPayload {
+	return sock.out
+}
+
+//
 func (sock *dummySocket) Send(payload OutgoingPayload) error {
 	sock.mu.Lock()
 	defer sock.mu.Unlock()
@@ -165,6 +184,9 @@ func (sock *dummySocket) Close() error {
 	}
 
 	sock.open = false
+
+	close(sock.out)
+	close(sock.in)
 
 	return nil
 }

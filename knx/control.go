@@ -65,16 +65,36 @@ func (req ConnectionRequest) writeTo(w *bytes.Buffer) error {
 	return err
 }
 
-//
+// ConnResStatus is the type of status code carried in a connection response.
 type ConnResStatus uint8
 
-// Connection response status codes
+// Potential connection response status codes.
 var (
 	ConnResOk                ConnResStatus = 0x00
 	ConnResUnsupportedType   ConnResStatus = 0x22
 	ConnResUnsupportedOption ConnResStatus = 0x23
 	ConnResBusy              ConnResStatus = 0x24
 )
+
+// String describes the status code.
+func (status ConnResStatus) String() string {
+	switch status {
+	case ConnResOk:
+		return "Connection established"
+
+	case ConnResUnsupportedType:
+		return "Requested connection type is unsupported"
+
+	case ConnResUnsupportedOption:
+		return "One of the requested options is unsupported"
+
+	case ConnResBusy:
+		return "No data channel is available"
+
+	default:
+		return fmt.Sprintf("Unknown status code %#x", status)
+	}
+}
 
 // Connection response
 type ConnectionResponse struct {

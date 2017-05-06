@@ -9,6 +9,7 @@ import (
 func TestRequestConnection(t *testing.T) {
 	ctx := context.Background()
 
+	// Connection attempts on a closed socket must result in an error.
 	t.Run("ClosedSocket", func (t *testing.T) {
 		sock := newDummySocket()
 		sock.Close()
@@ -19,6 +20,7 @@ func TestRequestConnection(t *testing.T) {
 		}
 	})
 
+	// The gateway responds to the connection request.
 	t.Run("ConnectionOk", func (t *testing.T) {
 		sock := newDummySocket()
 
@@ -51,6 +53,7 @@ func TestRequestConnection(t *testing.T) {
 		})
 	})
 
+	// The gateway doesn't exist or doesn't respond to the connection request.
 	t.Run("ConnectionTimeout", func (t *testing.T) {
 		sock := newDummySocket()
 
@@ -78,6 +81,7 @@ func TestRequestConnection(t *testing.T) {
 		})
 	})
 
+	// The gateway is only busy for the first attempt.
 	t.Run("ConnectionMultipleBusy", func (t *testing.T) {
 		sock := newDummySocket()
 

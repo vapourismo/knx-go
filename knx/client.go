@@ -3,44 +3,59 @@ package knx
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 )
 
-func requestConnection(ctx context.Context, sock Socket) (uint8, error) {
+// requestConnection sends a connection request every 500ms through the socket until the provided
+// context gets canceled, or a response is received. A response that renders the gateway as busy
+// will not stop requestConnection.
+func requestConnection(ctx context.Context, sock Socket) (channel uint8, err error) {
 	req := &ConnectionRequest{}
 
-	err := sock.Send(req)
+	// Send the initial request.
+	err = sock.Send(req)
 	if err != nil {
-		return 0, err
+		return
 	}
 
+	// Create a resend timer.
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
+	// Cycle until a request gets a response.
 	for {
 		select {
+		// Termination has been requested.
 		case <-ctx.Done():
 			return 0, ctx.Err()
 
+		// Resend timer triggered.
 		case <-ticker.C:
-			err := sock.Send(req)
+			err = sock.Send(req)
 			if err != nil {
-				return 0, err
+				return
 			}
 
+		// A message has been received or the channel has been closed.
 		case msg, open := <-sock.Inbound():
 			if !open {
 				return 0, errors.New("Inbound channel has been closed")
 			}
 
+			// We're only interested in connection responses.
 			if res, ok := msg.(*ConnectionResponse); ok {
 				switch res.Status {
+				// Conection has been established.
 				case ConnResOk:
 					return res.Channel, nil
 
-				case ConnResUnsupportedOption, ConnResUnsupportedType:
-					return 0, fmt.Errorf("Connection rejected with status: %v", res.Status)
+				// The gateway is busy, but we don't stop yet.
+				case ConnResBusy:
+					continue
+
+				// Connection request has been denied.
+				default:
+					return 0, res.Status
 				}
 			}
 		}

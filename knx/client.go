@@ -62,6 +62,71 @@ func requestConnection(ctx context.Context, sock Socket) (channel uint8, err err
 	}
 }
 
+//
+type connHandle struct {
+	ctx     context.Context
+	sock    Socket
+	channel uint8
+}
+
+//
+func (conn connHandle) serveInbound(inbound chan<- []byte) {
+	var seqNumber uint8 = 0
+
+	for {
+		select {
+		// Termination has been requested.
+		case <-conn.ctx.Done():
+			return
+
+		// A message has been received or the channel is closed.
+		case msg, open := <-conn.sock.Inbound():
+			if !open {
+				return
+			}
+
+			// Determine what to do with the message.
+			switch msg.(type) {
+			case *TunnelRequest:
+				req := msg.(*TunnelRequest)
+				err := conn.handleTunnelRequest(req, &seqNumber, inbound)
+				if err != nil {
+					Logger.Printf("Error while handling tunnel request %v: %v", req, err)
+				}
+			}
+		}
+	}
+}
+
+//
+func (conn connHandle) handleTunnelRequest(
+	req       *TunnelRequest,
+	seqNumber *uint8,
+	inbound   chan<- []byte,
+) error {
+	// Validate the request channel.
+	if req.Channel != conn.channel {
+		return errors.New("Invalid communication channel in tunnel request")
+	}
+
+	// Is the sequence number what we expected?
+	if req.SeqNumber == *seqNumber {
+		*seqNumber++
+		go conn.pushData(req.Payload, inbound)
+	}
+
+	// Send the acknowledgement.
+	return conn.sock.Send(&TunnelResponse{conn.channel, req.SeqNumber, 0})
+}
+
+//
+func (conn connHandle) pushData(data []byte, inbound chan<- []byte) {
+	select {
+	case <-conn.ctx.Done():
+	case inbound <- data:
+	}
+}
+
 // //
 // type Client struct {
 // 	sock    Socket

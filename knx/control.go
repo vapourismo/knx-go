@@ -96,6 +96,11 @@ func (status ConnResStatus) String() string {
 	}
 }
 
+// Error implements the error Error method.
+func (status ConnResStatus) Error() string {
+	return status.String()
+}
+
 // Connection response
 type ConnectionResponse struct {
 	Channel uint8

@@ -125,15 +125,22 @@ func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- inte
 
 //
 type dummySocket struct {
-	mu   sync.Mutex
-	open bool
+	mu      sync.Mutex
+	outOpen bool
+	inOpen  bool
 
-	out  chan OutgoingPayload
-	in   chan interface{}
+	out     chan OutgoingPayload
+	in      chan interface{}
 }
 
-func newDummySocket() *dummySocket {
-	return &dummySocket{sync.Mutex{}, true, make(chan OutgoingPayload), make(chan interface{})}
+func makeDummySocket() *dummySocket {
+	return &dummySocket{
+		sync.Mutex{},
+		true,
+		true,
+		make(chan OutgoingPayload, 10),
+		make(chan interface{}, 10),
+	}
 }
 
 //
@@ -141,7 +148,7 @@ func (sock *dummySocket) gatewaySend(payload interface{}) error {
 	sock.mu.Lock()
 	defer sock.mu.Unlock()
 
-	if !sock.open {
+	if !sock.inOpen {
 		return errors.New("Socket is closed")
 	}
 
@@ -156,11 +163,33 @@ func (sock *dummySocket) gatewayInbound() <-chan OutgoingPayload {
 }
 
 //
+func (sock *dummySocket) closeOut() {
+	sock.mu.Lock()
+	defer sock.mu.Unlock()
+
+	if sock.outOpen {
+		close(sock.out)
+		sock.outOpen = false
+	}
+}
+
+//
+func (sock *dummySocket) closeIn() {
+	sock.mu.Lock()
+	defer sock.mu.Unlock()
+
+	if sock.inOpen {
+		close(sock.in)
+		sock.inOpen = false
+	}
+}
+
+//
 func (sock *dummySocket) Send(payload OutgoingPayload) error {
 	sock.mu.Lock()
 	defer sock.mu.Unlock()
 
-	if !sock.open {
+	if !sock.outOpen {
 		return errors.New("Socket is closed")
 	}
 
@@ -179,14 +208,15 @@ func (sock *dummySocket) Close() error {
 	sock.mu.Lock()
 	defer sock.mu.Unlock()
 
-	if !sock.open {
-		return errors.New("Socket already closed")
+	if sock.outOpen {
+		close(sock.out)
+		sock.outOpen = false
 	}
 
-	sock.open = false
-
-	close(sock.out)
-	close(sock.in)
+	if sock.inOpen {
+		close(sock.in)
+		sock.inOpen = false
+	}
 
 	return nil
 }

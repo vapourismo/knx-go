@@ -157,6 +157,31 @@ var (
 	ConnStateKNXError  ConnState = 0x27
 )
 
+//
+func (state ConnState) String() string {
+	switch state {
+	case ConnStateNormal:
+		return "Connection is intact"
+
+	case ConnStateInactive:
+		return "Connection is inactive"
+
+	case ConnStateDataError:
+		return "Gateway encountered a data error"
+
+	case ConnStateKNXError:
+		return "Gateway encountered a KNX error"
+
+	default:
+		return fmt.Sprintf("Unknown connection state %#x", state)
+	}
+}
+
+//
+func (state ConnState) Error() string {
+	return state.String()
+}
+
 // Connection state response
 type ConnectionStateResponse struct {
 	Channel uint8

@@ -169,6 +169,227 @@ func TestRequestConnection(t *testing.T) {
 	})
 }
 
+func TestConnHandle_requestConnectionState(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("Ok", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		const channel uint8 = 1
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			msg := gw.receive()
+			if req, ok := msg.(*ConnectionStateRequest); ok {
+				if req.Channel != channel {
+					t.Error("Mismatching channels")
+				}
+
+				if req.Status != 0 {
+					t.Error("Invalid request status")
+				}
+
+				gw.send(&ConnectionStateResponse{req.Channel, 0})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
+			}
+		})
+
+		heartbeat := make(chan ConnState)
+
+		t.Run("Worker", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			msg := <-sock.Inbound()
+			if res, ok := msg.(*ConnectionStateResponse); ok {
+				if res.Channel != channel {
+					t.Fatal("Mismatching channels")
+				}
+
+				heartbeat <- res.Status
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			t.Parallel()
+
+			conn := connHandle{ctx, sock, channel}
+
+			err := conn.requestConnectionState(heartbeat)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	})
+
+	t.Run("Inactive", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		const channel uint8 = 1
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			msg := gw.receive()
+			if req, ok := msg.(*ConnectionStateRequest); ok {
+				if req.Channel != channel {
+					t.Error("Mismatching channels")
+				}
+
+				if req.Status != 0 {
+					t.Error("Invalid request status")
+				}
+
+				gw.send(&ConnectionStateResponse{req.Channel, ConnStateInactive})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
+			}
+		})
+
+		heartbeat := make(chan ConnState)
+
+		t.Run("Worker", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			msg := <-sock.Inbound()
+			if res, ok := msg.(*ConnectionStateResponse); ok {
+				if res.Channel != channel {
+					t.Fatal("Mismatching channels")
+				}
+
+				heartbeat <- res.Status
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			t.Parallel()
+
+			conn := connHandle{ctx, sock, channel}
+
+			err := conn.requestConnectionState(heartbeat)
+			if err != ConnStateInactive {
+				t.Fatalf("Expected error %v, got %v", ConnStateInactive, err)
+			}
+		})
+	})
+
+	t.Run("Delayed", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		const channel uint8 = 1
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			gw.ignore()
+
+			msg := gw.receive()
+			if req, ok := msg.(*ConnectionStateRequest); ok {
+				if req.Channel != channel {
+					t.Error("Mismatching channels")
+				}
+
+				if req.Status != 0 {
+					t.Error("Invalid request status")
+				}
+
+				gw.send(&ConnectionStateResponse{req.Channel, 0})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
+			}
+		})
+
+		heartbeat := make(chan ConnState)
+
+		t.Run("Worker", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			msg := <-sock.Inbound()
+			if res, ok := msg.(*ConnectionStateResponse); ok {
+				if res.Channel != channel {
+					t.Fatal("Mismatching channels")
+				}
+
+				heartbeat <- res.Status
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			t.Parallel()
+
+			conn := connHandle{ctx, sock, channel}
+
+			err := conn.requestConnectionState(heartbeat)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	})
+
+	t.Run("Timeout", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			for range sock.gatewayInbound() {}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			conn := connHandle{ctx, sock, 1}
+
+			err := conn.requestConnectionState(make(chan ConnState))
+			if err == nil {
+				t.Fatalf("Request should have failed")
+			}
+		})
+	})
+
+	t.Run("Cancellation", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			for range sock.gatewayInbound() {}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(ctx)
+			time.AfterFunc(time.Second, cancel)
+
+			conn := connHandle{ctx, sock, 1}
+
+			err := conn.requestConnectionState(make(chan ConnState))
+			if err != ctx.Err() {
+				t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
+			}
+		})
+	})
+}
+
 func TestConnHandle_handleTunnelRequest(t *testing.T) {
 	ctx := context.Background()
 
@@ -313,17 +534,4 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			t.Error("Sequence number was changed by an invalid tunnel request")
 		}
 	})
-}
-
-func TestConnHandle_pushData(t *testing.T) {
-	conn := connHandle{context.Background(), makeDummySocket(), 1}
-	defer conn.sock.Close()
-
-	inbound := make(chan []byte, 1)
-	conn.pushData([]byte{}, inbound)
-
-	_, open := <-inbound
-	if !open {
-		t.Fatal("Channel is closed")
-	}
 }

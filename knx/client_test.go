@@ -229,12 +229,10 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			case <-ctx.Done():
 				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
 
-			case msg, open := <-inbound:
+			case _, open := <-inbound:
 				if !open {
 					t.Fatal("Inbound channel was closed")
 				}
-
-				t.Logf("%#v", msg)
 			}
 		})
 	})

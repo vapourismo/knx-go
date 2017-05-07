@@ -27,19 +27,13 @@ func TestRequestConnection(t *testing.T) {
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
 
-			select {
-			case <-ctx.Done():
-				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
+			gw := gatewayHelper{ctx, sock, t}
 
-			case msg := <-sock.gatewayInbound():
-				if req, ok := msg.(*ConnectionRequest); ok {
-					err := sock.gatewaySend(&ConnectionResponse{1, ConnResOk, req.Control})
-					if err != nil {
-						t.Fatalf("While sending connection response: %v", nil)
-					}
-				} else {
-					t.Fatalf("Unexpected incoming message type: %T", msg)
-				}
+			msg := gw.receive()
+			if req, ok := msg.(*ConnectionRequest); ok {
+				gw.send(&ConnectionResponse{1, ConnResOk, req.Control})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 		})
 
@@ -93,12 +87,8 @@ func TestRequestConnection(t *testing.T) {
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
 
-			select {
-			case <-ctx.Done():
-				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
-
-			case <-sock.gatewayInbound():
-			}
+			gw := gatewayHelper{ctx, sock, t}
+			gw.ignore()
 		})
 
 		t.Run("Client", func (t *testing.T) {
@@ -122,34 +112,20 @@ func TestRequestConnection(t *testing.T) {
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
 
-			select {
-			case <-ctx.Done():
-				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
+			gw := gatewayHelper{ctx, sock, t}
 
-			case msg := <-sock.gatewayInbound():
-				if req, ok := msg.(*ConnectionRequest); ok {
-					err := sock.gatewaySend(&ConnectionResponse{0, ConnResBusy, req.Control})
-					if err != nil {
-						t.Fatalf("While sending connection response: %v", nil)
-					}
-				} else {
-					t.Fatalf("Unexpected incoming message type: %T", msg)
-				}
+			msg := gw.receive()
+			if req, ok := msg.(*ConnectionRequest); ok {
+				gw.send(&ConnectionResponse{0, ConnResBusy, req.Control})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 
-			select {
-			case <-ctx.Done():
-				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
-
-			case msg := <-sock.gatewayInbound():
-				if req, ok := msg.(*ConnectionRequest); ok {
-					err := sock.gatewaySend(&ConnectionResponse{1, ConnResOk, req.Control})
-					if err != nil {
-						t.Fatalf("While sending connection response: %v", nil)
-					}
-				} else {
-					t.Fatalf("Unexpected incoming message type: %T", msg)
-				}
+			msg = gw.receive()
+			if req, ok := msg.(*ConnectionRequest); ok {
+				gw.send(&ConnectionResponse{1, ConnResOk, req.Control})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 		})
 
@@ -171,22 +147,13 @@ func TestRequestConnection(t *testing.T) {
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
 
-			select {
-			case <-ctx.Done():
-				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
+			gw := gatewayHelper{ctx, sock, t}
 
-			case msg := <-sock.gatewayInbound():
-				if req, ok := msg.(*ConnectionRequest); ok {
-					err := sock.gatewaySend(&ConnectionResponse{0,
-						ConnResUnsupportedType,
-						req.Control,
-					})
-					if err != nil {
-						t.Fatalf("While sending connection response: %v", nil)
-					}
-				} else {
-					t.Fatalf("Unexpected incoming message type: %T", msg)
-				}
+			msg := gw.receive()
+			if req, ok := msg.(*ConnectionRequest); ok {
+				gw.send(&ConnectionResponse{0, ConnResUnsupportedType, req.Control})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 		})
 
@@ -205,6 +172,7 @@ func TestRequestConnection(t *testing.T) {
 func TestConnHandle_handleTunnelRequest(t *testing.T) {
 	ctx := context.Background()
 
+	// Proper tunnel request from gateway.
 	t.Run("Ok", func (t *testing.T) {
 		sock := makeDummySocket()
 		inbound := make(chan []byte)
@@ -217,26 +185,23 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
 
-			select {
-			case <-ctx.Done():
-				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
+			gw := gatewayHelper{ctx, sock, t}
 
-			case msg := <-sock.gatewayInbound():
-				if res, ok := msg.(*TunnelResponse); ok {
-					if res.Channel != channel {
-						t.Error("Mismatching channels")
-					}
-
-					if res.SeqNumber != seqNumber {
-						t.Error("Mismatching sequence numbers")
-					}
-
-					if res.Status != 0 {
-						t.Error("Invalid response status")
-					}
-				} else {
-					t.Fatalf("Unexpected incoming message type: %T", msg)
+			msg := gw.receive()
+			if res, ok := msg.(*TunnelResponse); ok {
+				if res.Channel != channel {
+					t.Error("Mismatching channels")
 				}
+
+				if res.SeqNumber != seqNumber {
+					t.Error("Mismatching sequence numbers")
+				}
+
+				if res.Status != 0 {
+					t.Error("Invalid response status")
+				}
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 		})
 
@@ -272,6 +237,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		})
 	})
 
+	// Out-of-sequence tunnel request from the gateway.
 	t.Run("OutOfSequence", func (t *testing.T) {
 		sock := makeDummySocket()
 		inbound := make(chan []byte)
@@ -284,26 +250,23 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
 
-			select {
-			case <-ctx.Done():
-				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
+			gw := gatewayHelper{ctx, sock, t}
 
-			case msg := <-sock.gatewayInbound():
-				if res, ok := msg.(*TunnelResponse); ok {
-					if res.Channel != channel {
-						t.Error("Mismatching channels")
-					}
-
-					if res.SeqNumber != seqNumber {
-						t.Error("Mismatching sequence numbers")
-					}
-
-					if res.Status != 0 {
-						t.Error("Invalid response status")
-					}
-				} else {
-					t.Fatalf("Unexpected incoming message type: %T", msg)
+			msg := gw.receive()
+			if res, ok := msg.(*TunnelResponse); ok {
+				if res.Channel != channel {
+					t.Error("Mismatching channels")
 				}
+
+				if res.SeqNumber != seqNumber {
+					t.Error("Mismatching sequence numbers")
+				}
+
+				if res.Status != 0 {
+					t.Error("Invalid response status")
+				}
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 		})
 
@@ -319,12 +282,13 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if seqNo != 0 {
+			if seqNo != seqNumber - 1 {
 				t.Error("Sequence number was changed by an out-of-sequence tunnel request")
 			}
 		})
 	})
 
+	// Tunnel request on incorrect channel.
 	t.Run("WrongChannel", func (t *testing.T) {
 		sock := makeDummySocket()
 		inbound := make(chan []byte)
@@ -340,7 +304,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		req := &TunnelRequest{channel, seqNumber, []byte{}}
 		err := handle.handleTunnelRequest(req, &seqNo, inbound)
 		if err == nil {
-			t.Fatal("Tunnel request with wrong channel has been accepted")
+			t.Fatal("Tunnel request with wrong channel has been successful")
 		}
 
 		if seqNo != 0 {

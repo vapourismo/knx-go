@@ -62,14 +62,13 @@ func requestConnection(ctx context.Context, sock Socket) (channel uint8, err err
 	}
 }
 
-//
 type connHandle struct {
 	ctx     context.Context
 	sock    Socket
 	channel uint8
 }
 
-//
+// serveInbound processes incoming packets.
 func (conn connHandle) serveInbound(inbound chan<- []byte) {
 	var seqNumber uint8 = 0
 
@@ -98,7 +97,8 @@ func (conn connHandle) serveInbound(inbound chan<- []byte) {
 	}
 }
 
-//
+// handleTunnelRequest validates the request, pushes the data to the client and acknowledges the
+// request for the gateway.
 func (conn connHandle) handleTunnelRequest(
 	req       *TunnelRequest,
 	seqNumber *uint8,

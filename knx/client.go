@@ -119,7 +119,8 @@ func (conn connHandle) handleTunnelRequest(
 	return conn.sock.Send(&TunnelResponse{conn.channel, req.SeqNumber, 0})
 }
 
-//
+// pushData transmits the given data to the inbound channel if the internal Context of connHandle is
+// not done yet.
 func (conn connHandle) pushData(data []byte, inbound chan<- []byte) {
 	select {
 	case <-conn.ctx.Done():

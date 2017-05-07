@@ -229,10 +229,12 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			case <-ctx.Done():
 				t.Fatalf("While waiting for inbound packet: %v", ctx.Err())
 
-			case _, open := <-inbound:
+			case msg, open := <-inbound:
 				if !open {
 					t.Fatal("Inbound channel was closed")
 				}
+
+				t.Logf("%#v", msg)
 			}
 		})
 	})
@@ -291,6 +293,8 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 	// Tunnel request on incorrect channel.
 	t.Run("WrongChannel", func (t *testing.T) {
 		sock := makeDummySocket()
+		defer sock.Close()
+
 		inbound := make(chan []byte)
 
 		const (
@@ -311,4 +315,17 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			t.Error("Sequence number was changed by an invalid tunnel request")
 		}
 	})
+}
+
+func TestConnHandle_pushData(t *testing.T) {
+	conn := connHandle{context.Background(), makeDummySocket(), 1}
+	defer conn.sock.Close()
+
+	inbound := make(chan []byte, 1)
+	conn.pushData([]byte{}, inbound)
+
+	_, open := <-inbound
+	if !open {
+		t.Fatal("Channel is closed")
+	}
 }

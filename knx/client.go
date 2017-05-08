@@ -6,10 +6,52 @@ import (
 	"time"
 )
 
+// ClientConfig allows you to configure the client's behavior.
+type ClientConfig struct {
+	// ResendInterval is how long to wait for a response, until the request is resend. A interval
+	// <= 0 can't be used. The default value will be used instead.
+	ResendInterval time.Duration
+
+	// HeartbeatDelay specifies the time which has to elapse without any incoming communication,
+	// until a heartbeat is triggered. A delay <= 0 will result in the use of a default value.
+	HeartbeatDelay time.Duration
+
+	// HeartbeatTimeout specifies how long to wait for a connection state response. A timeout <= 0
+	// will not be accepted. Instead, the default value will be used.
+	HeartbeatTimeout time.Duration
+}
+
+var (
+	defResendInterval   = 500 * time.Millisecond
+	defHeartbeatDelay   = 10 * time.Second
+	defHeartbeatTimeout = 10 * time.Second
+)
+
+// checkClientConfig makes sure that the configuration is actually usable.
+func checkClientConfig(config ClientConfig) ClientConfig {
+	if config.ResendInterval <= 0 {
+		config.ResendInterval = defResendInterval
+	}
+
+	if config.HeartbeatDelay <= 0 {
+		config.HeartbeatDelay = defHeartbeatDelay
+	}
+
+	if config.HeartbeatTimeout <= 0 {
+		config.HeartbeatTimeout = defHeartbeatTimeout
+	}
+
+	return config
+}
+
 // requestConnection sends a connection request every 500ms through the socket until the provided
 // context gets canceled, or a response is received. A response that renders the gateway as busy
 // will not stop requestConnection.
-func requestConnection(ctx context.Context, sock Socket) (channel uint8, err error) {
+func requestConnection(
+	ctx    context.Context,
+	sock   Socket,
+	config ClientConfig,
+) (channel uint8, err error) {
 	req := &ConnectionRequest{}
 
 	// Send the initial request.
@@ -19,7 +61,7 @@ func requestConnection(ctx context.Context, sock Socket) (channel uint8, err err
 	}
 
 	// Create a resend timer.
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(config.ResendInterval)
 	defer ticker.Stop()
 
 	// Cycle until a request gets a response.
@@ -65,11 +107,12 @@ func requestConnection(ctx context.Context, sock Socket) (channel uint8, err err
 type connHandle struct {
 	ctx     context.Context
 	sock    Socket
+	config  ClientConfig
 	channel uint8
 }
 
 // requestConnectionState periodically sends a connection state request to the gateway until it has
-// received a response, the context is done, or 10s have passed.
+// received a response, the context is done, or HeartbeatDelay has passed.
 func (conn connHandle) requestConnectionState(
 	heartbeat <-chan ConnState,
 ) error {
@@ -82,11 +125,11 @@ func (conn connHandle) requestConnectionState(
 	}
 
 	// Start the resend timer.
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(conn.config.ResendInterval)
 	defer ticker.Stop()
 
 	// Start the timeout timer.
-	timeout := time.After(10 * time.Second)
+	timeout := time.After(conn.config.HeartbeatTimeout)
 
 	for {
 		select {
@@ -205,8 +248,8 @@ func (conn connHandle) serveInbound(
 		case <-heartbeatErr:
 			return
 
-		// There were no incoming packets for 10s.
-		case <-time.After(10 * time.Second):
+		// There were no incoming packets for some time.
+		case <-time.After(conn.config.HeartbeatDelay):
 			go conn.triggerHeartbeat(trigger)
 
 		// A message has been received or the channel is closed.

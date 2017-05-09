@@ -13,10 +13,10 @@ func TestRequestConnection(t *testing.T) {
 
 	// Socket was closed before anything could be done.
 	t.Run("Closed", func (t *testing.T) {
-		sock := makeDummySocket()
-		sock.Close()
+		conn := connHandle{makeDummySocket(), clientConfig, 0}
+		conn.sock.Close()
 
-		_, err := requestConnection(ctx, sock, clientConfig)
+		err := conn.requestConnection(ctx)
 		if err == nil {
 			t.Fatal("Success on closed socket")
 		}
@@ -26,6 +26,8 @@ func TestRequestConnection(t *testing.T) {
 	t.Run("Ok", func (t *testing.T) {
 		sock := makeDummySocket()
 
+		const channel uint8 = 1
+
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
 
@@ -33,7 +35,7 @@ func TestRequestConnection(t *testing.T) {
 
 			msg := gw.receive()
 			if req, ok := msg.(*ConnectionRequest); ok {
-				gw.send(&ConnectionResponse{1, ConnResOk, req.Control})
+				gw.send(&ConnectionResponse{channel, ConnResOk, req.Control})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -43,9 +45,15 @@ func TestRequestConnection(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			_, err := requestConnection(ctx, sock, clientConfig)
+			conn := connHandle{sock, clientConfig, 0}
+
+			err := conn.requestConnection(ctx)
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			if conn.channel != channel {
+				t.Error("Mismatchning channel")
 			}
 		})
 	})
@@ -60,7 +68,9 @@ func TestRequestConnection(t *testing.T) {
 			sock.closeOut()
 		}()
 
-		_, err := requestConnection(ctx, sock, clientConfig)
+		conn := connHandle{sock, clientConfig, 0}
+
+		err := conn.requestConnection(ctx)
 		if err == nil {
 			t.Fatal("Success on closed socket")
 		}
@@ -76,7 +86,9 @@ func TestRequestConnection(t *testing.T) {
 			sock.closeIn()
 		}()
 
-		_, err := requestConnection(ctx, sock, clientConfig)
+		conn := connHandle{sock, clientConfig, 0}
+
+		err := conn.requestConnection(ctx)
 		if err == nil {
 			t.Fatal("Success on closed socket")
 		}
@@ -100,7 +112,9 @@ func TestRequestConnection(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, 200 * time.Millisecond)
 			defer cancel()
 
-			_, err := requestConnection(ctx, sock, clientConfig)
+			conn := connHandle{sock, clientConfig, 0}
+
+			err := conn.requestConnection(ctx)
 			if err != ctx.Err() {
 				t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 			}
@@ -135,7 +149,9 @@ func TestRequestConnection(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			_, err := requestConnection(ctx, sock, clientConfig)
+			conn := connHandle{sock, clientConfig, 0}
+
+			err := conn.requestConnection(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -163,7 +179,9 @@ func TestRequestConnection(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			_, err := requestConnection(ctx, sock, clientConfig)
+			conn := connHandle{sock, clientConfig, 0}
+
+			err := conn.requestConnection(ctx)
 			if err != ConnResUnsupportedType {
 				t.Fatalf("Expected error %v, got %v", ConnResUnsupportedType, err)
 			}

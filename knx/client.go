@@ -44,24 +44,26 @@ func checkClientConfig(config ClientConfig) ClientConfig {
 	return config
 }
 
+type connHandle struct {
+	sock    Socket
+	config  ClientConfig
+	channel uint8
+}
+
 // requestConnection sends a connection request every 500ms through the socket until the provided
 // context gets canceled, or a response is received. A response that renders the gateway as busy
 // will not stop requestConnection.
-func requestConnection(
-	ctx    context.Context,
-	sock   Socket,
-	config ClientConfig,
-) (channel uint8, err error) {
+func (conn *connHandle) requestConnection(ctx context.Context) error {
 	req := &ConnectionRequest{}
 
 	// Send the initial request.
-	err = sock.Send(req)
+	err := conn.sock.Send(req)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Create a resend timer.
-	ticker := time.NewTicker(config.ResendInterval)
+	ticker := time.NewTicker(conn.config.ResendInterval)
 	defer ticker.Stop()
 
 	// Cycle until a request gets a response.
@@ -69,19 +71,19 @@ func requestConnection(
 		select {
 		// Termination has been requested.
 		case <-ctx.Done():
-			return 0, ctx.Err()
+			return ctx.Err()
 
 		// Resend timer triggered.
 		case <-ticker.C:
-			err = sock.Send(req)
+			err := conn.sock.Send(req)
 			if err != nil {
-				return
+				return err
 			}
 
 		// A message has been received or the channel has been closed.
-		case msg, open := <-sock.Inbound():
+		case msg, open := <-conn.sock.Inbound():
 			if !open {
-				return 0, errors.New("Inbound channel has been closed")
+				return errors.New("Inbound channel has been closed")
 			}
 
 			// We're only interested in connection responses.
@@ -89,7 +91,8 @@ func requestConnection(
 				switch res.Status {
 				// Conection has been established.
 				case ConnResOk:
-					return res.Channel, nil
+					conn.channel = res.Channel
+					return nil
 
 				// The gateway is busy, but we don't stop yet.
 				case ConnResBusy:
@@ -97,17 +100,11 @@ func requestConnection(
 
 				// Connection request has been denied.
 				default:
-					return 0, res.Status
+					return res.Status
 				}
 			}
 		}
 	}
-}
-
-type connHandle struct {
-	sock    Socket
-	config  ClientConfig
-	channel uint8
 }
 
 // requestConnectionState periodically sends a connection state request to the gateway until it has

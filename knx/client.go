@@ -157,12 +157,15 @@ func (conn connHandle) performHeartbeat(
 	timeout   chan<- struct{},
 ) {
 	// Setup a child context which will time out with the given heartbeat timeout.
-	ctx, cancel := context.WithTimeout(ctx, conn.config.HeartbeatTimeout)
+	childCtx, cancel := context.WithTimeout(ctx, conn.config.HeartbeatTimeout)
 	defer cancel()
 
-	err := conn.requestConnectionState(ctx, heartbeat)
+	err := conn.requestConnectionState(childCtx, heartbeat)
 	if err != nil {
-		timeout <- struct{}{}
+		select {
+		case <-ctx.Done():
+		case timeout <- struct{}{}:
+		}
 	}
 }
 

@@ -140,16 +140,23 @@ func makeDummySocket() *dummySocket {
 
 //
 func (sock *dummySocket) gatewaySend(payload interface{}) error {
-	sock.mu.Lock()
-	defer sock.mu.Unlock()
+	for {
+		sock.mu.Lock()
 
-	if !sock.inOpen {
-		return errors.New("Socket is closed")
+		if !sock.inOpen {
+			sock.mu.Unlock()
+			return errors.New("Socket is closed")
+		}
+
+		select {
+			case sock.in <- payload:
+				sock.mu.Unlock()
+				return nil
+
+			default:
+				sock.mu.Unlock()
+		}
 	}
-
-	sock.in <- payload
-
-	return nil
 }
 
 //
@@ -181,16 +188,23 @@ func (sock *dummySocket) closeIn() {
 
 //
 func (sock *dummySocket) Send(payload OutgoingPayload) error {
-	sock.mu.Lock()
-	defer sock.mu.Unlock()
+	for {
+		sock.mu.Lock()
 
-	if !sock.outOpen {
-		return errors.New("Socket is closed")
+		if !sock.outOpen {
+			sock.mu.Unlock()
+			return errors.New("Socket is closed")
+		}
+
+		select {
+			case sock.out <- payload:
+				sock.mu.Unlock()
+				return nil
+
+			default:
+				sock.mu.Unlock()
+		}
 	}
-
-	sock.out <- payload
-
-	return nil
 }
 
 //

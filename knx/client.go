@@ -8,6 +8,9 @@ import (
 
 // ClientConfig allows you to configure the client's behavior.
 type ClientConfig struct {
+	// ConnectionTimeout determines how long to wait for a connection response.
+	ConnectionTimeout time.Duration
+
 	// ResendInterval is how long to wait for a response, until the request is resend. A interval
 	// <= 0 can't be used. The default value will be used instead.
 	ResendInterval time.Duration
@@ -21,24 +24,37 @@ type ClientConfig struct {
 	HeartbeatTimeout time.Duration
 }
 
+// Default configuration elements
 var (
-	defResendInterval   = 500 * time.Millisecond
-	defHeartbeatDelay   = 10 * time.Second
-	defHeartbeatTimeout = 10 * time.Second
+	defaultConnectionTimeout = 10 * time.Second
+	defaultResendInterval    = 500 * time.Millisecond
+	defaultHeartbeatDelay    = 10 * time.Second
+	defaultHeartbeatTimeout  = 10 * time.Second
+
+	DefaultClientConfig = ClientConfig{
+		defaultConnectionTimeout,
+		defaultResendInterval,
+		defaultHeartbeatDelay,
+		defaultHeartbeatTimeout,
+	}
 )
 
 // checkClientConfig makes sure that the configuration is actually usable.
 func checkClientConfig(config ClientConfig) ClientConfig {
+	if config.ConnectionTimeout <= 0 {
+		config.ConnectionTimeout = defaultConnectionTimeout
+	}
+
 	if config.ResendInterval <= 0 {
-		config.ResendInterval = defResendInterval
+		config.ResendInterval = defaultResendInterval
 	}
 
 	if config.HeartbeatDelay <= 0 {
-		config.HeartbeatDelay = defHeartbeatDelay
+		config.HeartbeatDelay = defaultHeartbeatDelay
 	}
 
 	if config.HeartbeatTimeout <= 0 {
-		config.HeartbeatTimeout = defHeartbeatTimeout
+		config.HeartbeatTimeout = defaultHeartbeatTimeout
 	}
 
 	return config

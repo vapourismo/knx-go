@@ -6,7 +6,12 @@ import (
 	"time"
 )
 
-var clientConfig = ClientConfig{defResendInterval, 2 * time.Second, 2 * time.Second}
+var clientConfig = ClientConfig{
+	2 * time.Second,
+	defaultResendInterval,
+	2 * time.Second,
+	2 * time.Second,
+}
 
 func TestRequestConnection(t *testing.T) {
 	ctx := context.Background()

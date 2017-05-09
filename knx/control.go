@@ -92,7 +92,7 @@ func (status ConnResStatus) String() string {
 		return "No data channel is available"
 
 	default:
-		return fmt.Sprintf("Unknown status code %#x", status)
+		return fmt.Sprintf("Unknown status code %#x", uint8(status))
 	}
 }
 
@@ -173,7 +173,7 @@ func (state ConnState) String() string {
 		return "Gateway encountered a KNX error"
 
 	default:
-		return fmt.Sprintf("Unknown connection state %#x", state)
+		return fmt.Sprintf("Unknown connection state %#x", uint8(state))
 	}
 }
 

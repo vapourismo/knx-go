@@ -23,7 +23,63 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 
 		err := conn.requestConnection(ctx)
 		if err == nil {
-			t.Fatal("Success on closed socket")
+			t.Fatal("Should not succeed")
+		}
+	})
+
+	// Socket is closed before first resend.
+	t.Run("OutboundClosedBeforeResend", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+			gw.ignore()
+
+			sock.closeOut()
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			conn := connHandle{sock, clientConfig, 0}
+
+			err := conn.requestConnection(ctx)
+			if err == nil {
+				t.Fatal("Should not succeed")
+			}
+		})
+	})
+
+	// Inbound channel is closed.
+	t.Run("InboundClosed", func (t *testing.T) {
+		sock := makeDummySocket()
+		sock.closeIn()
+		defer sock.Close()
+
+		conn := connHandle{sock, clientConfig, 0}
+
+		err := conn.requestConnection(ctx)
+		if err == nil {
+			t.Fatal("Should not succeed")
+		}
+	})
+
+	// Context is done.
+	t.Run("ContextDone", func (t *testing.T) {
+		sock := makeDummySocket()
+		defer sock.Close()
+
+		conn := connHandle{sock, clientConfig, 0}
+
+		ctx, cancel := context.WithCancel(ctx)
+		cancel()
+
+		err := conn.requestConnection(ctx)
+		if err != ctx.Err() {
+			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
 	})
 
@@ -58,76 +114,13 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 			}
 
 			if conn.channel != channel {
-				t.Error("Mismatchning channel")
-			}
-		})
-	})
-
-	// The gateway doesn't exist or doesn't respond to the connection request.
-	t.Run("CloseBeforeResend", func (t *testing.T) {
-		sock := makeDummySocket()
-		defer sock.Close()
-
-		go func() {
-			time.Sleep(200 * time.Millisecond)
-			sock.closeOut()
-		}()
-
-		conn := connHandle{sock, clientConfig, 0}
-
-		err := conn.requestConnection(ctx)
-		if err == nil {
-			t.Fatal("Success on closed socket")
-		}
-	})
-
-	// The gateway doesn't exist or doesn't respond to the connection request.
-	t.Run("CloseBeforeInbound", func (t *testing.T) {
-		sock := makeDummySocket()
-		defer sock.Close()
-
-		go func() {
-			time.Sleep(200 * time.Millisecond)
-			sock.closeIn()
-		}()
-
-		conn := connHandle{sock, clientConfig, 0}
-
-		err := conn.requestConnection(ctx)
-		if err == nil {
-			t.Fatal("Success on closed socket")
-		}
-	})
-
-	// The gateway doesn't exist or doesn't respond to the connection request.
-	t.Run("Timeout", func (t *testing.T) {
-		sock := makeDummySocket()
-
-		t.Run("Gateway", func (t *testing.T) {
-			t.Parallel()
-
-			gw := gatewayHelper{ctx, sock, t}
-			gw.ignore()
-		})
-
-		t.Run("Client", func (t *testing.T) {
-			defer sock.Close()
-			t.Parallel()
-
-			ctx, cancel := context.WithTimeout(ctx, 200 * time.Millisecond)
-			defer cancel()
-
-			conn := connHandle{sock, clientConfig, 0}
-
-			err := conn.requestConnection(ctx)
-			if err != ctx.Err() {
-				t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
+				t.Error("Mismatching channel")
 			}
 		})
 	})
 
 	// The gateway is only busy for the first attempt.
-	t.Run("MultipleBusy", func (t *testing.T) {
+	t.Run("Busy", func (t *testing.T) {
 		sock := makeDummySocket()
 
 		t.Run("Gateway", func (t *testing.T) {
@@ -154,7 +147,10 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			conn := connHandle{sock, clientConfig, 0}
+			config := DefaultClientConfig
+			config.ResendInterval = 1
+
+			conn := connHandle{sock, config, 0}
 
 			err := conn.requestConnection(ctx)
 			if err != nil {

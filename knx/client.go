@@ -128,18 +128,11 @@ func (conn connHandle) requestConnectionState(
 	ticker := time.NewTicker(conn.config.ResendInterval)
 	defer ticker.Stop()
 
-	// Start the timeout timer.
-	timeout := time.After(conn.config.HeartbeatTimeout)
-
 	for {
 		select {
 		// Termination has been requested.
 		case <-conn.ctx.Done():
 			return conn.ctx.Err()
-
-		// Request timed out.
-		case <-timeout:
-			return errors.New("Connection state request has been ignored")
 
 		// Resend timer fired.
 		case <-ticker.C:
@@ -160,35 +153,28 @@ func (conn connHandle) requestConnectionState(
 	}
 }
 
-// pushHeartbeatError transmits a heartbeat error if the internal Context is not done yet.
-func (conn connHandle) pushHeartbeatError(heartbeatErr chan<- error, err error) {
-	select {
-	case <-conn.ctx.Done():
-	case heartbeatErr <- err:
+// performHeartbeat uses requestConnectionState to determine if the gateway is still alive.
+func (conn connHandle) performHeartbeat(heartbeat <-chan ConnState, timeout chan<- struct{}) {
+	// Setup a child context which will time out with the given heartbeat timeout.
+	ctx, cancel := context.WithTimeout(conn.ctx, conn.config.HeartbeatTimeout)
+	defer cancel()
+
+	// Since conn is copied, we can savely overwrite its internal context.
+	conn.ctx = ctx
+
+	err := conn.requestConnectionState(heartbeat)
+	if err != nil {
+		timeout <- struct{}{}
 	}
 }
 
-// serveHeartbeat processes heartbeat requests.
-func (conn connHandle) serveHeartbeat(
-	trigger      <-chan struct{},
-	heartbeat    <-chan ConnState,
-	heartbeatErr chan<- error,
-) {
-	for {
-		select {
-		// Termination has been requested.
-		case <-conn.ctx.Done():
-			return
-
-		// Heartbeat check has triggered.
-		case <-trigger:
-			err := conn.requestConnectionState(heartbeat)
-			if err != nil {
-				go conn.pushHeartbeatError(heartbeatErr, err)
-				return
-			}
-		}
-	}
+// triggerHeartbeat launches the heartbeat goroutine and returns the channel to which the goroutine
+// will write to when the heartbeat fails. In case the heartbeat succeeds nothing will be written to
+// the channel.
+func (conn connHandle) triggerHeartbeat(heartbeat <-chan ConnState) <-chan struct{} {
+	timeout := make(chan struct{})
+	go conn.performHeartbeat(heartbeat, timeout)
+	return timeout
 }
 
 // pushData transmits the given data to the inbound channel if the internal Context is not done yet.
@@ -221,22 +207,15 @@ func (conn connHandle) handleTunnelRequest(
 	return conn.sock.Send(&TunnelResponse{conn.channel, req.SeqNumber, 0})
 }
 
-//
-func (conn connHandle) triggerHeartbeat(trigger chan<- struct{}) {
-	select {
-	case <-conn.ctx.Done():
-	case trigger <- struct{}{}:
-	}
-}
-
 // serveInbound processes incoming packets.
 func (conn connHandle) serveInbound(
 	heartbeatErr <-chan error,
 	inbound      chan<- []byte,
-	trigger      chan<- struct{},
-	heartbeat    chan<- ConnState,
 ) {
+	heartbeat := make(chan ConnState)
+
 	var seqNumber uint8 = 0
+	var timeout <-chan struct{}
 
 	for {
 		select {
@@ -245,12 +224,12 @@ func (conn connHandle) serveInbound(
 			return
 
 		// Heartbeat worker has signaled an error.
-		case <-heartbeatErr:
+		case <-timeout:
 			return
 
 		// There were no incoming packets for some time.
 		case <-time.After(conn.config.HeartbeatDelay):
-			go conn.triggerHeartbeat(trigger)
+			timeout = conn.triggerHeartbeat(heartbeat)
 
 		// A message has been received or the channel is closed.
 		case msg, open := <-conn.sock.Inbound():

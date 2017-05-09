@@ -357,6 +357,9 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
+			ctx, cancel := context.WithTimeout(ctx, clientConfig.HeartbeatTimeout)
+			defer cancel()
+
 			conn := connHandle{ctx, sock, clientConfig, 1}
 
 			err := conn.requestConnectionState(make(chan ConnState))

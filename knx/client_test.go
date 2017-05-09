@@ -221,9 +221,9 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 		t.Run("Client", func (t *testing.T) {
 			t.Parallel()
 
-			conn := connHandle{ctx, sock, clientConfig, channel}
+			conn := connHandle{sock, clientConfig, channel}
 
-			err := conn.requestConnectionState(heartbeat)
+			err := conn.requestConnectionState(ctx, heartbeat)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -277,9 +277,9 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 		t.Run("Client", func (t *testing.T) {
 			t.Parallel()
 
-			conn := connHandle{ctx, sock, clientConfig, channel}
+			conn := connHandle{sock, clientConfig, channel}
 
-			err := conn.requestConnectionState(heartbeat)
+			err := conn.requestConnectionState(ctx, heartbeat)
 			if err != ConnStateInactive {
 				t.Fatalf("Expected error %v, got %v", ConnStateInactive, err)
 			}
@@ -335,9 +335,9 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 		t.Run("Client", func (t *testing.T) {
 			t.Parallel()
 
-			conn := connHandle{ctx, sock, clientConfig, channel}
+			conn := connHandle{sock, clientConfig, channel}
 
-			err := conn.requestConnectionState(heartbeat)
+			err := conn.requestConnectionState(ctx, heartbeat)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -360,9 +360,9 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, clientConfig.HeartbeatTimeout)
 			defer cancel()
 
-			conn := connHandle{ctx, sock, clientConfig, 1}
+			conn := connHandle{sock, clientConfig, 1}
 
-			err := conn.requestConnectionState(make(chan ConnState))
+			err := conn.requestConnectionState(ctx, make(chan ConnState))
 			if err == nil {
 				t.Fatalf("Request should have failed")
 			}
@@ -385,9 +385,9 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			ctx, cancel := context.WithCancel(ctx)
 			time.AfterFunc(time.Second, cancel)
 
-			conn := connHandle{ctx, sock, clientConfig, 1}
+			conn := connHandle{sock, clientConfig, 1}
 
-			err := conn.requestConnectionState(make(chan ConnState))
+			err := conn.requestConnectionState(ctx, make(chan ConnState))
 			if err != ctx.Err() {
 				t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 			}
@@ -435,10 +435,10 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			t.Parallel()
 
 			var seqNo uint8 = seqNumber
-			handle := &connHandle{ctx, sock, clientConfig, 1}
+			handle := &connHandle{sock, clientConfig, 1}
 
 			req := &TunnelRequest{channel, seqNumber, []byte{}}
-			err := handle.handleTunnelRequest(req, &seqNo, inbound)
+			err := handle.handleTunnelRequest(ctx, req, &seqNo, inbound)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -500,10 +500,10 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			t.Parallel()
 
 			var seqNo uint8 = seqNumber - 1
-			handle := &connHandle{ctx, sock, clientConfig, channel}
+			handle := &connHandle{sock, clientConfig, channel}
 
 			req := &TunnelRequest{channel, seqNumber, []byte{}}
-			err := handle.handleTunnelRequest(req, &seqNo, inbound)
+			err := handle.handleTunnelRequest(ctx, req, &seqNo, inbound)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -527,10 +527,10 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		)
 
 		var seqNo uint8 = 0
-		handle := &connHandle{ctx, sock, clientConfig, channel + 1}
+		handle := &connHandle{sock, clientConfig, channel + 1}
 
 		req := &TunnelRequest{channel, seqNumber, []byte{}}
-		err := handle.handleTunnelRequest(req, &seqNo, inbound)
+		err := handle.handleTunnelRequest(ctx, req, &seqNo, inbound)
 		if err == nil {
 			t.Fatal("Tunnel request with wrong channel has been successful")
 		}

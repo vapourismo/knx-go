@@ -105,7 +105,6 @@ func requestConnection(
 }
 
 type connHandle struct {
-	ctx     context.Context
 	sock    Socket
 	config  ClientConfig
 	channel uint8
@@ -114,6 +113,7 @@ type connHandle struct {
 // requestConnectionState periodically sends a connection state request to the gateway until it has
 // received a response, the context is done, or HeartbeatDelay has passed.
 func (conn connHandle) requestConnectionState(
+	ctx       context.Context,
 	heartbeat <-chan ConnState,
 ) error {
 	req := &ConnectionStateRequest{conn.channel, 0, HostInfo{}}
@@ -131,8 +131,8 @@ func (conn connHandle) requestConnectionState(
 	for {
 		select {
 		// Termination has been requested.
-		case <-conn.ctx.Done():
-			return conn.ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 
 		// Resend timer fired.
 		case <-ticker.C:
@@ -154,15 +154,16 @@ func (conn connHandle) requestConnectionState(
 }
 
 // performHeartbeat uses requestConnectionState to determine if the gateway is still alive.
-func (conn connHandle) performHeartbeat(heartbeat <-chan ConnState, timeout chan<- struct{}) {
+func (conn connHandle) performHeartbeat(
+	ctx       context.Context,
+	heartbeat <-chan ConnState,
+	timeout   chan<- struct{},
+) {
 	// Setup a child context which will time out with the given heartbeat timeout.
-	ctx, cancel := context.WithTimeout(conn.ctx, conn.config.HeartbeatTimeout)
+	ctx, cancel := context.WithTimeout(ctx, conn.config.HeartbeatTimeout)
 	defer cancel()
 
-	// Since conn is copied, we can savely overwrite its internal context.
-	conn.ctx = ctx
-
-	err := conn.requestConnectionState(heartbeat)
+	err := conn.requestConnectionState(ctx, heartbeat)
 	if err != nil {
 		timeout <- struct{}{}
 	}
@@ -171,16 +172,19 @@ func (conn connHandle) performHeartbeat(heartbeat <-chan ConnState, timeout chan
 // triggerHeartbeat launches the heartbeat goroutine and returns the channel to which the goroutine
 // will write to when the heartbeat fails. In case the heartbeat succeeds nothing will be written to
 // the channel.
-func (conn connHandle) triggerHeartbeat(heartbeat <-chan ConnState) <-chan struct{} {
+func (conn connHandle) triggerHeartbeat(
+	ctx context.Context,
+	heartbeat <-chan ConnState,
+) <-chan struct{} {
 	timeout := make(chan struct{})
-	go conn.performHeartbeat(heartbeat, timeout)
+	go conn.performHeartbeat(ctx, heartbeat, timeout)
 	return timeout
 }
 
 // pushData transmits the given data to the inbound channel if the internal Context is not done yet.
-func (conn connHandle) pushData(data []byte, inbound chan<- []byte) {
+func (conn connHandle) pushData(ctx context.Context, data []byte, inbound chan<- []byte) {
 	select {
-	case <-conn.ctx.Done():
+	case <-ctx.Done():
 	case inbound <- data:
 	}
 }
@@ -188,6 +192,7 @@ func (conn connHandle) pushData(data []byte, inbound chan<- []byte) {
 // handleTunnelRequest validates the request, pushes the data to the client and acknowledges the
 // request for the gateway.
 func (conn connHandle) handleTunnelRequest(
+	ctx       context.Context,
 	req       *TunnelRequest,
 	seqNumber *uint8,
 	inbound   chan<- []byte,
@@ -200,7 +205,7 @@ func (conn connHandle) handleTunnelRequest(
 	// Is the sequence number what we expected?
 	if req.SeqNumber == *seqNumber {
 		*seqNumber++
-		go conn.pushData(req.Payload, inbound)
+		go conn.pushData(ctx, req.Payload, inbound)
 	}
 
 	// Send the acknowledgement.
@@ -209,6 +214,7 @@ func (conn connHandle) handleTunnelRequest(
 
 // serveInbound processes incoming packets.
 func (conn connHandle) serveInbound(
+	ctx          context.Context,
 	heartbeatErr <-chan error,
 	inbound      chan<- []byte,
 ) {
@@ -220,7 +226,7 @@ func (conn connHandle) serveInbound(
 	for {
 		select {
 		// Termination has been requested.
-		case <-conn.ctx.Done():
+		case <-ctx.Done():
 			return
 
 		// Heartbeat worker has signaled an error.
@@ -229,7 +235,7 @@ func (conn connHandle) serveInbound(
 
 		// There were no incoming packets for some time.
 		case <-time.After(conn.config.HeartbeatDelay):
-			timeout = conn.triggerHeartbeat(heartbeat)
+			timeout = conn.triggerHeartbeat(ctx, heartbeat)
 
 		// A message has been received or the channel is closed.
 		case msg, open := <-conn.sock.Inbound():
@@ -241,7 +247,7 @@ func (conn connHandle) serveInbound(
 			switch msg.(type) {
 			case *TunnelRequest:
 				req := msg.(*TunnelRequest)
-				err := conn.handleTunnelRequest(req, &seqNumber, inbound)
+				err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)
 				if err != nil {
 					Logger.Printf("Error while handling tunnel request %v: %v", req, err)
 				}

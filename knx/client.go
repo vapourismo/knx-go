@@ -164,6 +164,8 @@ func (conn connHandle) performHeartbeat(
 	// Request the connction state.
 	err := conn.requestConnectionState(childCtx, heartbeat)
 	if err != nil {
+		Logger.Printf("Error while requesting connection state: %v", err)
+
 		// Write to timeout as an indication that the heartbeat has failed.
 		select {
 		case <-ctx.Done():

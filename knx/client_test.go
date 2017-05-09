@@ -13,7 +13,7 @@ var clientConfig = ClientConfig{
 	2 * time.Second,
 }
 
-func TestRequestConnection(t *testing.T) {
+func TestConnHandle_RequestConnection(t *testing.T) {
 	ctx := context.Background()
 
 	// Socket was closed before anything could be done.

@@ -17,7 +17,7 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 	ctx := context.Background()
 
 	// Socket was closed before anything could be done.
-	t.Run("Closed", func (t *testing.T) {
+	t.Run("SendFails", func (t *testing.T) {
 		conn := connHandle{makeDummySocket(), clientConfig, 0}
 		conn.sock.Close()
 
@@ -27,8 +27,24 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 		}
 	})
 
+	// Context is done.
+	t.Run("CancelledContext", func (t *testing.T) {
+		sock := makeDummySocket()
+		defer sock.Close()
+
+		conn := connHandle{sock, clientConfig, 0}
+
+		ctx, cancel := context.WithCancel(ctx)
+		cancel()
+
+		err := conn.requestConnection(ctx)
+		if err != ctx.Err() {
+			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
+		}
+	})
+
 	// Socket is closed before first resend.
-	t.Run("OutboundClosedBeforeResend", func (t *testing.T) {
+	t.Run("ResendFails", func (t *testing.T) {
 		sock := makeDummySocket()
 
 		t.Run("Gateway", func (t *testing.T) {
@@ -44,11 +60,55 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			conn := connHandle{sock, clientConfig, 0}
+			config := DefaultClientConfig
+			config.ResendInterval = 1
+
+			conn := connHandle{sock, config, 0}
 
 			err := conn.requestConnection(ctx)
 			if err == nil {
 				t.Fatal("Should not succeed")
+			}
+		})
+	})
+
+	// The gateway responds to the connection request.
+	t.Run("Resend", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		const channel uint8 = 1
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			gw.ignore()
+
+			msg := gw.receive()
+			if req, ok := msg.(*ConnectionRequest); ok {
+				gw.send(&ConnectionResponse{channel, ConnResOk, req.Control})
+			} else {
+				t.Fatalf("Unexpected incoming message type: %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			config := DefaultClientConfig
+			config.ResendInterval = 1
+
+			conn := connHandle{sock, clientConfig, 0}
+
+			err := conn.requestConnection(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if conn.channel != channel {
+				t.Error("Mismatching channel")
 			}
 		})
 	})
@@ -64,22 +124,6 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 		err := conn.requestConnection(ctx)
 		if err == nil {
 			t.Fatal("Should not succeed")
-		}
-	})
-
-	// Context is done.
-	t.Run("ContextDone", func (t *testing.T) {
-		sock := makeDummySocket()
-		defer sock.Close()
-
-		conn := connHandle{sock, clientConfig, 0}
-
-		ctx, cancel := context.WithCancel(ctx)
-		cancel()
-
-		err := conn.requestConnection(ctx)
-		if err != ctx.Err() {
-			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
 	})
 

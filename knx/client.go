@@ -232,10 +232,12 @@ func (conn connHandle) serveInbound(
 		select {
 		// Termination has been requested.
 		case <-ctx.Done():
+			Logger.Printf("Exiting inbound server due to context error: %v", ctx.Err())
 			return
 
 		// Heartbeat worker has signaled an error.
 		case <-timeout:
+			Logger.Println("Exiting inbound server due to heartbeat timeout")
 			return
 
 		// There were no incoming packets for some time.
@@ -245,6 +247,7 @@ func (conn connHandle) serveInbound(
 		// A message has been received or the channel is closed.
 		case msg, open := <-conn.sock.Inbound():
 			if !open {
+				Logger.Println("Exiting inbound server due to closed socket's inbound channel")
 				return
 			}
 

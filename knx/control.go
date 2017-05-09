@@ -69,7 +69,7 @@ func (req ConnectionRequest) writeTo(w *bytes.Buffer) error {
 type ConnResStatus uint8
 
 // Potential connection response status codes.
-var (
+const (
 	ConnResOk                ConnResStatus = 0x00
 	ConnResUnsupportedType   ConnResStatus = 0x22
 	ConnResUnsupportedOption ConnResStatus = 0x23
@@ -143,7 +143,7 @@ func (req ConnectionStateRequest) writeTo(w *bytes.Buffer) error {
 type ConnState uint8
 
 //
-var (
+const (
 	ConnStateNormal    ConnState = 0x00
 	ConnStateInactive  ConnState = 0x21
 	ConnStateDataError ConnState = 0x26

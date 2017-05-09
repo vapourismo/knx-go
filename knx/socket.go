@@ -62,13 +62,11 @@ func (sock *udpSocket) Send(payload OutgoingPayload) error {
 	err := WritePacket(buffer, payload)
 	if err != nil { return err }
 
-	Logger.Printf("udpSocket[%v]: <- %T %+v", sock.conn.RemoteAddr(), payload, payload)
+	log(sock.conn, "udpSocket", "<- %T %+v", payload, payload)
 
 	// Transmission of the buffer contents
 	_, err = sock.conn.Write(buffer.Bytes())
 	if err != nil { return err }
-
-	// Logger.Printf("udpSocket[%v]: Sent: %v", sock.conn.RemoteAddr(), buffer.Bytes())
 
 	return nil
 }
@@ -85,8 +83,8 @@ func (sock *udpSocket) Close() error {
 
 // udpSocketReceiver is the receiver worker for udpSocket.
 func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interface{}) {
-	Logger.Printf("udpSocket[%v]: Started receiver", conn.RemoteAddr())
-	defer Logger.Printf("udpSocket[%v]: Stopped receiver", conn.RemoteAddr())
+	log(conn, "udpSocket", "Started receiver")
+	defer log(conn, "udpSocket", "Stopped receiver")
 
 	defer close(inbound)
 
@@ -96,28 +94,25 @@ func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- inte
 	for {
 		len, sender, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
-			Logger.Printf("udpSocket[%v]: Error during read: %v", conn.RemoteAddr(), err)
+			log(conn, "udpSocket", "Error during read: %v", err)
 			return
 		}
 
 		// Validate sender origin if necessary
 		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
-			Logger.Printf("udpSocket[%v]: Origin validation failed: %v (expected %v)",
-			              conn.RemoteAddr(), sender, addr)
+			log(conn, "udpSocket", "Origin validation failed: %v (expected %v)", sender, addr)
 			continue
 		}
-
-		// Logger.Printf("udpSocket[%v]: Received: %v", conn.RemoteAddr(), buffer[:len])
 
 		reader.Reset(buffer[:len])
 
 		payload, err := ReadPacket(reader)
 		if err != nil {
-			Logger.Printf("udpSocket[%v]: Error during packet parsing: %v", conn.RemoteAddr(), err)
+			log(conn, "udpSocket", "Error during packet parsing: %v", err)
 			continue
 		}
 
-		Logger.Printf("udpSocket[%v]: -> %T %+v", conn.RemoteAddr(), payload, payload)
+		log(conn, "udpSocket", "-> %T %+v", payload, payload)
 
 		inbound <- payload
 	}

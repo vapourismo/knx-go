@@ -44,6 +44,7 @@ func checkClientConfig(config ClientConfig) ClientConfig {
 	return config
 }
 
+// connHandle is a handle for the client connection.
 type connHandle struct {
 	sock    Socket
 	config  ClientConfig
@@ -160,8 +161,10 @@ func (conn connHandle) performHeartbeat(
 	childCtx, cancel := context.WithTimeout(ctx, conn.config.HeartbeatTimeout)
 	defer cancel()
 
+	// Request the connction state.
 	err := conn.requestConnectionState(childCtx, heartbeat)
 	if err != nil {
+		// Write to timeout as an indication that the heartbeat has failed.
 		select {
 		case <-ctx.Done():
 		case timeout <- struct{}{}:

@@ -115,13 +115,6 @@ func readConnectionResponse(r *bytes.Reader) (*ConnectionResponse, error) {
 	err := readSequence(r, &channel, &status)
 	if err != nil { return nil, err }
 
-	switch status {
-		case ConnResOk, ConnResUnsupportedType, ConnResUnsupportedOption, ConnResBusy:
-
-		default:
-			return nil, fmt.Errorf("Invalid value for ConnectionResponse.Status: %#x", status)
-	}
-
 	host, err := readHostInfo(r)
 	if err != nil { return nil, err }
 
@@ -196,13 +189,7 @@ func readConnectionStateResponse(r *bytes.Reader) (*ConnectionStateResponse, err
 		return nil, err
 	}
 
-	switch res.Status {
-	case ConnStateNormal, ConnStateInactive, ConnStateDataError, ConnStateKNXError:
-		return res, nil
-
-	default:
-		return nil, fmt.Errorf("Invalid value for ConnectionStateResponse.Status: %#x", res.Status)
-	}
+	return res, nil
 }
 
 // Disconnect request

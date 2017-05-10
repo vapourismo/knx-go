@@ -358,7 +358,8 @@ func (conn *connHandle) serveInbound(
 		// A message has been received or the channel is closed.
 		case msg, open := <-conn.sock.Inbound():
 			if !open {
-				log(conn, "connHandle", "Exiting inbound server due to closed socket's inbound channel")
+				log(conn, "connHandle",
+				    "Exiting inbound server due to closed socket's inbound channel")
 				return
 			}
 
@@ -382,7 +383,8 @@ func (conn *connHandle) serveInbound(
 				res := msg.(*ConnectionStateResponse)
 				err := conn.handleConnectionStateResponse(ctx, res, heartbeat)
 				if err != nil {
-					log(conn, "connHandle", "Error while handling connection state response: %v", err)
+					log(conn, "connHandle",
+					    "Error while handling connection state response: %v", err)
 				}
 			}
 		}

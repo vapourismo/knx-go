@@ -3,6 +3,8 @@ package knx
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"time"
 )
 
@@ -171,6 +173,59 @@ func (conn *connHandle) requestConnectionState(
 	}
 }
 
+//
+func (conn *connHandle) requestTunnel(
+	ctx       context.Context,
+	seqNumber uint8,
+	data      []byte,
+	ack       <-chan *TunnelResponse,
+) error {
+	req := &TunnelRequest{conn.channel, seqNumber, data}
+
+	// Send initial request.
+	err := conn.sock.Send(req)
+	if err != nil {
+		return err
+	}
+
+	// Start the resend timer.
+	ticker := time.NewTicker(conn.config.ResendInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		// Termination has been requested.
+		case <-ctx.Done():
+			return ctx.Err()
+
+		// Resend timer fired.
+		case <-ticker.C:
+			err := conn.sock.Send(req)
+			if err != nil {
+				return err
+			}
+
+		// Received a tunnel response.
+		case res, open := <-ack:
+			if !open {
+				return errors.New("Ack channel is closed")
+			}
+
+			// Ignore mismatching sequence numbers.
+			if res.SeqNumber != seqNumber {
+				continue
+			}
+
+			// Check if the response confirms the tunnel request.
+			if res.Status == 0 {
+				return nil
+			} else {
+				return fmt.Errorf("Tunnel request has been rejected with status %#x", res.Status)
+			}
+		}
+	}
+}
+
 // performHeartbeat uses requestConnectionState to determine if the gateway is still alive.
 func (conn *connHandle) performHeartbeat(
 	ctx       context.Context,
@@ -224,6 +279,29 @@ func (conn *connHandle) handleTunnelRequest(
 	return conn.sock.Send(&TunnelResponse{conn.channel, req.SeqNumber, 0})
 }
 
+//
+func (conn *connHandle) handleTunnelResponse(
+	ctx context.Context,
+	res *TunnelResponse,
+	ack chan<- *TunnelResponse,
+) error {
+	// Validate the request channel.
+	if res.Channel != conn.channel {
+		return errors.New("Invalid communication channel in connection state response")
+	}
+
+	// Send to client.
+	go func () {
+		select {
+		case <-ctx.Done():
+		case <-time.After(conn.config.ResendInterval):
+		case ack <- res:
+		}
+	}()
+
+	return nil
+}
+
 // handleConnectionStateResponse validates the response and sends it to the heartbeat routine, if
 // there is a waiting one.
 func (conn *connHandle) handleConnectionStateResponse(
@@ -250,10 +328,10 @@ func (conn *connHandle) handleConnectionStateResponse(
 
 // serveInbound processes incoming packets.
 func (conn *connHandle) serveInbound(
-	ctx     context.Context,
-	inbound chan<- []byte,
+	ctx      context.Context,
+	inbound  chan<- []byte,
+	ack      chan<- *TunnelResponse,
 ) {
-
 	defer close(inbound)
 
 	heartbeat := make(chan ConnState)
@@ -293,6 +371,13 @@ func (conn *connHandle) serveInbound(
 					log(conn, "connHandle", "Error while handling tunnel request %v: %v", req, err)
 				}
 
+			case *TunnelResponse:
+				res := msg.(*TunnelResponse)
+				err := conn.handleTunnelResponse(ctx, res, ack)
+				if err != nil {
+					log(conn, "connHandle", "Error while handling tunnel response %v: %v", res, err)
+				}
+
 			case *ConnectionStateResponse:
 				res := msg.(*ConnectionStateResponse)
 				err := conn.handleConnectionStateResponse(ctx, res, heartbeat)
@@ -306,10 +391,16 @@ func (conn *connHandle) serveInbound(
 
 //
 type Client struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
+	ctx       context.Context
+	cancel    context.CancelFunc
 
-	Inbound <-chan []byte
+	conn      *connHandle
+
+	cond      *sync.Cond
+	seqNumber uint8
+	ack       <-chan *TunnelResponse
+
+	Inbound   <-chan []byte
 }
 
 //
@@ -319,25 +410,51 @@ func NewClient(gatewayAddr string, config ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
-	connHandle := connHandle{sock, checkClientConfig(config), 0}
+	conn := &connHandle{sock, checkClientConfig(config), 0}
 
 	connectCtx, cancelConnect := context.WithTimeout(context.Background(), config.ConnectionTimeout)
 	defer cancelConnect()
 
-	err = connHandle.requestConnection(connectCtx)
+	err = conn.requestConnection(connectCtx)
 	if err != nil {
 		return nil, err
 	}
 
 	inbound := make(chan []byte)
+	ack := make(chan *TunnelResponse)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go connHandle.serveInbound(ctx, inbound)
+	go conn.serveInbound(ctx, inbound, ack)
 
-	return &Client{ctx, cancel, inbound}, nil
+	return &Client{
+		ctx,
+		cancel,
+		conn,
+		sync.NewCond(&sync.Mutex{}),
+		0,
+		ack,
+		inbound,
+	}, nil
 }
 
 //
-func (client Client) Close() {
+func (client *Client) Close() {
 	client.cancel()
+}
+
+//
+func (client *Client) Send(data []byte) error {
+	client.cond.L.Lock()
+	defer client.cond.L.Unlock()
+
+	ctx, cancel := context.WithTimeout(client.ctx, client.conn.config.HeartbeatTimeout)
+	defer cancel()
+
+	err := client.conn.requestTunnel(ctx, client.seqNumber, data, client.ack)
+	if err != nil {
+		return err
+	}
+
+	client.seqNumber++
+	return nil
 }

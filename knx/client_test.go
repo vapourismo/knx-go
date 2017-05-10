@@ -3,22 +3,14 @@ package knx
 import (
 	"context"
 	"testing"
-	"time"
 )
-
-var clientConfig = ClientConfig{
-	2 * time.Second,
-	defaultResendInterval,
-	2 * time.Second,
-	2 * time.Second,
-}
 
 func TestConnHandle_RequestConnection(t *testing.T) {
 	ctx := context.Background()
 
 	// Socket was closed before anything could be done.
 	t.Run("SendFails", func (t *testing.T) {
-		conn := connHandle{makeDummySocket(), clientConfig, 0}
+		conn := connHandle{makeDummySocket(), DefaultClientConfig, 0}
 		conn.sock.Close()
 
 		err := conn.requestConnection(ctx)
@@ -32,7 +24,7 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 		sock := makeDummySocket()
 		defer sock.Close()
 
-		conn := connHandle{sock, clientConfig, 0}
+		conn := connHandle{sock, DefaultClientConfig, 0}
 
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
@@ -119,7 +111,7 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 		sock.closeIn()
 		defer sock.Close()
 
-		conn := connHandle{sock, clientConfig, 0}
+		conn := connHandle{sock, DefaultClientConfig, 0}
 
 		err := conn.requestConnection(ctx)
 		if err == nil {
@@ -150,7 +142,7 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			conn := connHandle{sock, clientConfig, 0}
+			conn := connHandle{sock, DefaultClientConfig, 0}
 
 			err := conn.requestConnection(ctx)
 			if err != nil {
@@ -224,7 +216,7 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			conn := connHandle{sock, clientConfig, 0}
+			conn := connHandle{sock, DefaultClientConfig, 0}
 
 			err := conn.requestConnection(ctx)
 			if err != ConnResUnsupportedType {
@@ -241,7 +233,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 		sock := makeDummySocket()
 		sock.Close()
 
-		conn := connHandle{sock, clientConfig, 1}
+		conn := connHandle{sock, DefaultClientConfig, 1}
 
 		err := conn.requestConnectionState(ctx, make(chan ConnState))
 		if err == nil {
@@ -253,7 +245,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 		sock := makeDummySocket()
 		defer sock.Close()
 
-		conn := connHandle{sock, clientConfig, 1}
+		conn := connHandle{sock, DefaultClientConfig, 1}
 
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
@@ -343,7 +335,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 		heartbeat := make(chan ConnState)
 		close(heartbeat)
 
-		conn := connHandle{sock, clientConfig, 1}
+		conn := connHandle{sock, DefaultClientConfig, 1}
 
 		err := conn.requestConnectionState(ctx, heartbeat)
 		if err == nil {
@@ -382,7 +374,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			conn := connHandle{sock, clientConfig, channel}
+			conn := connHandle{sock, DefaultClientConfig, channel}
 
 			err := conn.requestConnectionState(ctx, heartbeat)
 			if err != nil {
@@ -422,7 +414,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			defer sock.Close()
 			t.Parallel()
 
-			conn := connHandle{sock, clientConfig, channel}
+			conn := connHandle{sock, DefaultClientConfig, channel}
 
 			err := conn.requestConnectionState(ctx, heartbeat)
 			if err != ConnStateInactive {
@@ -441,7 +433,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 
 		var seqNumber uint8 = 0
 
-		conn := connHandle{sock, clientConfig, 1}
+		conn := connHandle{sock, DefaultClientConfig, 1}
 		req := &TunnelRequest{2, 0, []byte{}}
 
 		err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan []byte))
@@ -487,7 +479,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 
 			var seqNumber uint8 = sendSeqNumber + 1
 
-			conn := connHandle{sock, clientConfig, channel}
+			conn := connHandle{sock, DefaultClientConfig, channel}
 			req := &TunnelRequest{channel, sendSeqNumber, []byte{}}
 
 			err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan []byte))
@@ -539,7 +531,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 
 			var seqNumber uint8 = sendSeqNumber
 
-			conn := connHandle{sock, clientConfig, channel}
+			conn := connHandle{sock, DefaultClientConfig, channel}
 			req := &TunnelRequest{channel, sendSeqNumber, []byte{}}
 
 			err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)

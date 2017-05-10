@@ -100,7 +100,7 @@ func TestConnHandle_RequestConnection(t *testing.T) {
 			config := DefaultClientConfig
 			config.ResendInterval = 1
 
-			conn := connHandle{sock, clientConfig, 0}
+			conn := connHandle{sock, config, 0}
 
 			err := conn.requestConnection(ctx)
 			if err != nil {

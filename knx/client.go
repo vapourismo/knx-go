@@ -388,9 +388,9 @@ type Client struct {
 
 	mu        sync.Mutex
 	seqNumber uint8
-	ack       <-chan *TunnelResponse
+	ack       chan *TunnelResponse
 
-	Inbound   <-chan []byte
+	inbound   chan []byte
 }
 
 //
@@ -410,11 +410,7 @@ func NewClient(gatewayAddr string, config ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
-	inbound := make(chan []byte)
-	ack := make(chan *TunnelResponse)
-
 	ctx, cancel := context.WithCancel(context.Background())
-	go conn.serveInbound(ctx, inbound, ack)
 
 	return &Client{
 		ctx,
@@ -422,14 +418,24 @@ func NewClient(gatewayAddr string, config ClientConfig) (*Client, error) {
 		conn,
 		sync.Mutex{},
 		0,
-		ack,
-		inbound,
+		make(chan *TunnelResponse),
+		make(chan []byte),
 	}, nil
+}
+
+//
+func (client *Client) Serve() error {
+	return client.conn.serveInbound(client.ctx, client.inbound, client.ack)
 }
 
 //
 func (client *Client) Close() {
 	client.cancel()
+}
+
+//
+func (client *Client) Inbound() <-chan []byte {
+	return client.inbound
 }
 
 //

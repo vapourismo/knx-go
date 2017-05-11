@@ -270,7 +270,8 @@ func (conn *connHandle) handleTunnelRequest(
 	return conn.sock.Send(&TunnelResponse{conn.channel, req.SeqNumber, 0})
 }
 
-//
+// handleTunnelResponse validates the response and relays it to a sender that is awaiting an
+// acknowledgement.
 func (conn *connHandle) handleTunnelResponse(
 	ctx context.Context,
 	res *TunnelResponse,

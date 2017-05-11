@@ -805,3 +805,55 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		})
 	})
 }
+
+func TestConnHandle_handleTunnelResponse(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("InvalidChannel", func (t *testing.T) {
+		sock := makeDummySocket()
+		defer sock.Close()
+
+		conn := connHandle{sock, DefaultClientConfig, 1}
+
+		res := &TunnelResponse{2, 0, 0}
+		err := conn.handleTunnelResponse(ctx, res, make(chan *TunnelResponse))
+		if err == nil {
+			t.Fatal("Should not succeed")
+		}
+	})
+
+	t.Run("Ok", func (t *testing.T) {
+		sock := makeDummySocket()
+		ack := make(chan *TunnelResponse)
+
+		t.Run("Worker", func (t *testing.T) {
+			t.Parallel()
+
+			conn := connHandle{sock, DefaultClientConfig, 1}
+
+			res := &TunnelResponse{1, 0, 0}
+			err := conn.handleTunnelResponse(ctx, res, ack)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			t.Parallel()
+
+			res := <-ack
+
+			if res.Channel != 1 {
+				t.Error("Mismatching channel")
+			}
+
+			if res.SeqNumber != 0 {
+				t.Error("Mismatching sequence number")
+			}
+
+			if res.Status != 0 {
+				t.Error("Non-zero status")
+			}
+		})
+	})
+}

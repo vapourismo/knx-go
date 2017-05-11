@@ -424,6 +424,260 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 	})
 }
 
+func TestConnHandle_requestTunnel(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("SendFails", func (t *testing.T) {
+		sock := makeDummySocket()
+		sock.Close()
+
+		conn := connHandle{sock, DefaultClientConfig, 1}
+
+		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelResponse))
+		if err == nil {
+			t.Fatal("Should not succeed")
+		}
+	})
+
+	t.Run("ContextCancelled", func (t *testing.T) {
+		sock := makeDummySocket()
+		defer sock.Close()
+
+		conn := connHandle{sock, DefaultClientConfig, 1}
+
+		ctx, cancel := context.WithCancel(ctx)
+		cancel()
+
+		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelResponse))
+		if err != ctx.Err() {
+			t.Fatal("Expected %v, got %v", ctx.Err(), err)
+		}
+	})
+
+	t.Run("ResendFails", func (t *testing.T) {
+		sock := makeDummySocket()
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			gw.ignore()
+			sock.closeOut()
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			config := DefaultClientConfig
+			config.ResendInterval = 1
+
+			conn := connHandle{sock, config, 1}
+
+			err := conn.requestTunnel(ctx, 1, []byte{}, make(chan *TunnelResponse))
+			if err == nil {
+				t.Fatal("Should not succeed")
+			}
+		})
+	})
+
+	t.Run("Resend", func (t *testing.T) {
+		sock := makeDummySocket()
+		ack := make(chan *TunnelResponse)
+
+		const (
+			channel uint8 = 1
+			seqNumber uint8 = 0
+		)
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			gw.ignore()
+
+			msg := gw.receive()
+			if req, ok := msg.(*TunnelRequest); ok {
+				if req.Channel != channel {
+					t.Error("Mismatching channel")
+				}
+
+				if req.SeqNumber != seqNumber {
+					t.Error("Mismatching sequence number")
+				}
+
+				ack <- &TunnelResponse{req.Channel, req.SeqNumber, 0}
+			} else {
+				t.Fatalf("Unexpected type %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			config := DefaultClientConfig
+			config.ResendInterval = 1
+
+			conn := connHandle{sock, config, channel}
+
+			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	})
+
+	t.Run("ClosedAckChannel", func (t *testing.T) {
+		sock := makeDummySocket()
+		defer sock.Close()
+
+		ack := make(chan *TunnelResponse)
+		close(ack)
+
+		conn := connHandle{sock, DefaultClientConfig, 1}
+
+		err := conn.requestTunnel(ctx, 0, []byte{}, ack)
+		if err == nil {
+			t.Fatal("Should not succeed")
+		}
+	})
+
+	t.Run("InvalidSeqNumber", func (t *testing.T) {
+		sock := makeDummySocket()
+		ack := make(chan *TunnelResponse)
+
+		ctx, cancel := context.WithCancel(ctx)
+
+		const (
+			channel uint8 = 1
+			seqNumber uint8 = 0
+		)
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			msg := gw.receive()
+			if req, ok := msg.(*TunnelRequest); ok {
+				if req.Channel != channel {
+					t.Error("Mismatching channel")
+				}
+
+				if req.SeqNumber != seqNumber {
+					t.Error("Mismatching sequence number")
+				}
+
+				ack <- &TunnelResponse{req.Channel, req.SeqNumber + 10, 0}
+				cancel()
+			} else {
+				t.Fatalf("Unexpected type %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			conn := connHandle{sock, DefaultClientConfig, channel}
+
+			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			if err != ctx.Err() {
+				t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
+			}
+		})
+	})
+
+	t.Run("BadStatus", func (t *testing.T) {
+		sock := makeDummySocket()
+		ack := make(chan *TunnelResponse)
+
+		const (
+			channel uint8 = 1
+			seqNumber uint8 = 0
+		)
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			msg := gw.receive()
+			if req, ok := msg.(*TunnelRequest); ok {
+				if req.Channel != channel {
+					t.Error("Mismatching channel")
+				}
+
+				if req.SeqNumber != seqNumber {
+					t.Error("Mismatching sequence number")
+				}
+
+				ack <- &TunnelResponse{req.Channel, req.SeqNumber, 1}
+			} else {
+				t.Fatalf("Unexpected type %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			conn := connHandle{sock, DefaultClientConfig, channel}
+
+			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			if err == nil {
+				t.Fatal("Should not succeed")
+			}
+		})
+	})
+
+	t.Run("Ok", func (t *testing.T) {
+		sock := makeDummySocket()
+		ack := make(chan *TunnelResponse)
+
+		const (
+			channel uint8 = 1
+			seqNumber uint8 = 0
+		)
+
+		t.Run("Gateway", func (t *testing.T) {
+			t.Parallel()
+
+			gw := gatewayHelper{ctx, sock, t}
+
+			msg := gw.receive()
+			if req, ok := msg.(*TunnelRequest); ok {
+				if req.Channel != channel {
+					t.Error("Mismatching channel")
+				}
+
+				if req.SeqNumber != seqNumber {
+					t.Error("Mismatching sequence number")
+				}
+
+				ack <- &TunnelResponse{req.Channel, req.SeqNumber, 0}
+			} else {
+				t.Fatalf("Unexpected type %T", msg)
+			}
+		})
+
+		t.Run("Client", func (t *testing.T) {
+			defer sock.Close()
+			t.Parallel()
+
+			conn := connHandle{sock, DefaultClientConfig, channel}
+
+			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	})
+}
+
 func TestConnHandle_handleTunnelRequest(t *testing.T) {
 	ctx := context.Background()
 

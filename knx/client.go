@@ -322,7 +322,7 @@ func (conn *connHandle) serveInbound(
 	ctx      context.Context,
 	inbound  chan<- []byte,
 	ack      chan<- *TunnelResponse,
-) {
+) error {
 	defer close(inbound)
 
 	heartbeat := make(chan ConnState)
@@ -334,13 +334,11 @@ func (conn *connHandle) serveInbound(
 		select {
 		// Termination has been requested.
 		case <-ctx.Done():
-			log(conn, "connHandle", "Exiting inbound server due to context error: %v", ctx.Err())
-			return
+			return ctx.Err()
 
 		// Heartbeat worker signals a result.
 		case <-timeout:
-			log(conn, "connHandle", "Exiting inbound server due to heartbeat timeout")
-			return
+			return errors.New("Heartbeat did not succeed")
 
 		// There were no incoming packets for some time.
 		case <-time.After(conn.config.HeartbeatDelay):
@@ -349,9 +347,7 @@ func (conn *connHandle) serveInbound(
 		// A message has been received or the channel is closed.
 		case msg, open := <-conn.sock.Inbound():
 			if !open {
-				log(conn, "connHandle",
-				    "Exiting inbound server due to closed socket's inbound channel")
-				return
+				return errors.New("Socket's inbound channel is closed")
 			}
 
 			// Determine what to do with the message.

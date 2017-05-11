@@ -10,9 +10,6 @@ import (
 
 // ClientConfig allows you to configure the client's behavior.
 type ClientConfig struct {
-	// ConnectionTimeout determines how long to wait for a connection response.
-	ConnectionTimeout time.Duration
-
 	// ResendInterval is how long to wait for a response, until the request is resend. A interval
 	// <= 0 can't be used. The default value will be used instead.
 	ResendInterval time.Duration
@@ -21,20 +18,18 @@ type ClientConfig struct {
 	// until a heartbeat is triggered. A delay <= 0 will result in the use of a default value.
 	HeartbeatDelay time.Duration
 
-	// HeartbeatTimeout specifies how long to wait for a connection state response. A timeout <= 0
-	// will not be accepted. Instead, the default value will be used.
-	HeartbeatTimeout time.Duration
+	// ResponseTimeout specifies how long to wait for a response. A timeout <= 0 will not be
+	// accepted. Instead, the default value will be used.
+	ResponseTimeout time.Duration
 }
 
 // Default configuration elements
 var (
-	defaultConnectionTimeout = 10 * time.Second
 	defaultResendInterval    = 500 * time.Millisecond
 	defaultHeartbeatDelay    = 10 * time.Second
 	defaultHeartbeatTimeout  = 10 * time.Second
 
 	DefaultClientConfig = ClientConfig{
-		defaultConnectionTimeout,
 		defaultResendInterval,
 		defaultHeartbeatDelay,
 		defaultHeartbeatTimeout,
@@ -43,10 +38,6 @@ var (
 
 // checkClientConfig makes sure that the configuration is actually usable.
 func checkClientConfig(config ClientConfig) ClientConfig {
-	if config.ConnectionTimeout <= 0 {
-		config.ConnectionTimeout = defaultConnectionTimeout
-	}
-
 	if config.ResendInterval <= 0 {
 		config.ResendInterval = defaultResendInterval
 	}
@@ -55,8 +46,8 @@ func checkClientConfig(config ClientConfig) ClientConfig {
 		config.HeartbeatDelay = defaultHeartbeatDelay
 	}
 
-	if config.HeartbeatTimeout <= 0 {
-		config.HeartbeatTimeout = defaultHeartbeatTimeout
+	if config.ResponseTimeout <= 0 {
+		config.ResponseTimeout = defaultHeartbeatTimeout
 	}
 
 	return config
@@ -233,7 +224,7 @@ func (conn *connHandle) performHeartbeat(
 	timeout   chan<- struct{},
 ) {
 	// Setup a child context which will time out with the given heartbeat timeout.
-	childCtx, cancel := context.WithTimeout(ctx, conn.config.HeartbeatTimeout)
+	childCtx, cancel := context.WithTimeout(ctx, conn.config.ResponseTimeout)
 	defer cancel()
 
 	// Request the connction state.
@@ -414,7 +405,7 @@ func NewClient(gatewayAddr string, config ClientConfig) (*Client, error) {
 
 	conn := &connHandle{sock, checkClientConfig(config), 0}
 
-	connectCtx, cancelConnect := context.WithTimeout(context.Background(), config.ConnectionTimeout)
+	connectCtx, cancelConnect := context.WithTimeout(context.Background(), config.ResponseTimeout)
 	defer cancelConnect()
 
 	err = conn.requestConnection(connectCtx)
@@ -449,7 +440,7 @@ func (client *Client) Send(data []byte) error {
 	client.cond.L.Lock()
 	defer client.cond.L.Unlock()
 
-	ctx, cancel := context.WithTimeout(client.ctx, client.conn.config.HeartbeatTimeout)
+	ctx, cancel := context.WithTimeout(client.ctx, client.conn.config.ResponseTimeout)
 	defer cancel()
 
 	err := client.conn.requestTunnel(ctx, client.seqNumber, data, client.ack)

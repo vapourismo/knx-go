@@ -379,7 +379,7 @@ func (conn *connHandle) serveInbound(
 	}
 }
 
-//
+// Client represents the client endpoint in a connection with a gateway.
 type Client struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -393,23 +393,28 @@ type Client struct {
 	inbound   chan []byte
 }
 
-//
-func NewClient(gatewayAddr string, config ClientConfig) (*Client, error) {
+// Connect establishes a connection with a gateway.
+func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
+	// Create socket which will be used for communication.
 	sock, err := NewClientSocket(gatewayAddr)
 	if err != nil {
 		return nil, err
 	}
 
+	// Initialize the connection handle.
 	conn := &connHandle{sock, checkClientConfig(config), 0}
 
+	// Prepare a context, so that the connection request cannot run forever.
 	connectCtx, cancelConnect := context.WithTimeout(context.Background(), config.ResponseTimeout)
 	defer cancelConnect()
 
+	// Connect to the gateway.
 	err = conn.requestConnection(connectCtx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Prepare a context for the inbound server.
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Client{
@@ -423,34 +428,39 @@ func NewClient(gatewayAddr string, config ClientConfig) (*Client, error) {
 	}, nil
 }
 
-//
+// Serve starts the internal connection server, which is needed to process incoming packets.
 func (client *Client) Serve() error {
 	return client.conn.serveInbound(client.ctx, client.inbound, client.ack)
 }
 
-//
+// Close will terminate the connection.
 func (client *Client) Close() {
 	client.cancel()
 }
 
-//
+// Inbound retrieves the channel which transmits incoming data.
 func (client *Client) Inbound() <-chan []byte {
 	return client.inbound
 }
 
-//
+// Send relays a tunnel request to the gateway with the given contents.
 func (client *Client) Send(data []byte) error {
+	// Establish a lock so that nobody else can modify the sequence number.
 	client.mu.Lock()
 	defer client.mu.Unlock()
 
+	// Prepare a context, so that we won't wait forever for a tunnel response.
 	ctx, cancel := context.WithTimeout(client.ctx, client.conn.config.ResponseTimeout)
 	defer cancel()
 
+	// Send the tunnel reqest.
 	err := client.conn.requestTunnel(ctx, client.seqNumber, data, client.ack)
 	if err != nil {
 		return err
 	}
 
+	// We are able to increase the sequence number of success.
 	client.seqNumber++
+
 	return nil
 }

@@ -385,7 +385,7 @@ type Client struct {
 
 	conn      *connHandle
 
-	cond      *sync.Cond
+	mu        sync.Mutex
 	seqNumber uint8
 	ack       <-chan *TunnelResponse
 
@@ -419,7 +419,7 @@ func NewClient(gatewayAddr string, config ClientConfig) (*Client, error) {
 		ctx,
 		cancel,
 		conn,
-		sync.NewCond(&sync.Mutex{}),
+		sync.Mutex{},
 		0,
 		ack,
 		inbound,
@@ -433,8 +433,8 @@ func (client *Client) Close() {
 
 //
 func (client *Client) Send(data []byte) error {
-	client.cond.L.Lock()
-	defer client.cond.L.Unlock()
+	client.mu.Lock()
+	defer client.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(client.ctx, client.conn.config.ResponseTimeout)
 	defer cancel()

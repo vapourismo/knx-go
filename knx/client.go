@@ -323,6 +323,7 @@ func (conn *connHandle) serveInbound(
 	inbound  chan<- []byte,
 	ack      chan<- *TunnelResponse,
 ) error {
+	defer close(ack)
 	defer close(inbound)
 
 	heartbeat := make(chan ConnState)

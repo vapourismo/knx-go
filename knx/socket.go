@@ -86,10 +86,11 @@ func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- inte
 
 	defer close(inbound)
 
-	buffer := [1024]byte{}
-	reader := bytes.NewReader(buffer[:])
+	reader := bytes.NewReader(nil)
 
 	for {
+		buffer := [1024]byte{}
+
 		len, sender, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
 			log(conn, "udpSocket", "Error during read: %v", err)

@@ -70,8 +70,13 @@ func ReadTPDU(data []byte) (*TPDU, error) {
 
 		info := APCI((data[0] & 3) << 2 | (data[1] >> 6) & 3)
 
-		appData := make([]byte, len(data) - 1)
-		copy(appData, data[1:])
+		var appData []byte
+		if len(data) > 2 {
+			appData = make([]byte, len(data) - 2)
+			copy(appData, data[2:])
+		} else {
+			appData = []byte{data[1] & 63}
+		}
 
 		return &TPDU{packetType, seqNumber, 0, info, appData}, nil
 	}

@@ -8,6 +8,7 @@ import (
 // A TPCI is the transport-layer protocol control information (TPCI).
 type TPCI uint8
 
+// 
 const (
 	UnnumberedDataPacket    TPCI = 0
 	NumberedDataPacket      TPCI = 1
@@ -18,6 +19,7 @@ const (
 // An APCI is the application-layer protocol control information (APCI).
 type APCI uint8
 
+// 
 const (
 	GroupValueRead         APCI = 0
 	GroupValueResponse     APCI = 1
@@ -46,6 +48,7 @@ type TPDU struct {
 	Data       []byte
 }
 
+// 
 var (
 	ErrTransportUnitTooShort = errors.New("Given TPDU is too short")
 )
@@ -86,7 +89,6 @@ func ReadTPDU(data []byte) (*TPDU, error) {
 
 // WriteTo writes the TPDU structure to the given Writer.
 func (tpdu TPDU) WriteTo(w io.Writer) (err error) {
-
 	buffer := []byte{
 		byte(tpdu.PacketType & 3) << 6 | byte(tpdu.SeqNumber & 15) << 2,
 	}

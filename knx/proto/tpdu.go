@@ -8,7 +8,7 @@ import (
 // A TPCI is the transport-layer protocol control information (TPCI).
 type TPCI uint8
 
-// 
+//
 const (
 	UnnumberedDataPacket    TPCI = 0
 	NumberedDataPacket      TPCI = 1
@@ -19,7 +19,7 @@ const (
 // An APCI is the application-layer protocol control information (APCI).
 type APCI uint8
 
-// 
+//
 const (
 	GroupValueRead         APCI = 0
 	GroupValueResponse     APCI = 1
@@ -48,7 +48,7 @@ type TPDU struct {
 	Data       []byte
 }
 
-// 
+//
 var (
 	ErrTransportUnitTooShort = errors.New("Given TPDU is too short")
 )

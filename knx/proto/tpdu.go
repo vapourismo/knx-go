@@ -4,22 +4,24 @@ import (
 	"errors"
 )
 
-// A TransportData is the transport-layer protocol data unit (TPDU) within a L_Data frame.
-type TransportData []byte
+// A TPDU is the transport-layer protocol data unit within a L_Data frame.
+type TPDU []byte
 
 var (
 	ErrTransportDataTooShort = errors.New("Given TPDU is too short")
+	ErrTransportNotData      = errors.New("TPCI does not indicate a data packet")
+	ErrTransportNotControl   = errors.New("TPCI does not indicate a control packet")
 )
 
-// CheckTransportData validates the length of the given slice.
-func CheckTransportData(data []byte) (TransportData, error) {
+// CheckTPDU validates the length of the given slice.
+func CheckTPDU(data []byte) (TPDU, error) {
 	if len(data) < 1 {
 		return nil, ErrTransportDataTooShort
 	}
 
-	tpdu := TransportData(data)
+	tpdu := TPDU(data)
 
-	switch tpdu.ControlInfo() {
+	switch tpdu.PacketType() {
 	case UnnumberedDataPacket, NumberedDataPacket:
 		if len(data) < 2 {
 			return nil, ErrTransportDataTooShort
@@ -29,32 +31,32 @@ func CheckTransportData(data []byte) (TransportData, error) {
 	return tpdu, nil
 }
 
-// A TransportControlInfo is the transport-layer protocol control information (TPCI).
-type TransportControlInfo uint8
+// A TPCI is the transport-layer protocol control information (TPCI).
+type TPCI uint8
 
 const (
-	UnnumberedDataPacket    TransportControlInfo = 0
-	NumberedDataPacket      TransportControlInfo = 1
-	UnnumberedControlPacket TransportControlInfo = 2
-	NumberedControlPacket   TransportControlInfo = 3
+	UnnumberedDataPacket    TPCI = 0
+	NumberedDataPacket      TPCI = 1
+	UnnumberedControlPacket TPCI = 2
+	NumberedControlPacket   TPCI = 3
 )
 
-// ControlInfo returns the type of packet in the TPDU.
-func (tpdu TransportData) ControlInfo() TransportControlInfo {
-	return TransportControlInfo((tpdu[0] >> 6) & 3)
+// PacketType returns the type of packet in the TPDU.
+func (tpdu TPDU) PacketType() TPCI {
+	return TPCI((tpdu[0] >> 6) & 3)
 }
 
 // SeqNumber retrieves the sequence number.
-func (tpdu TransportData) SeqNumber() uint8 {
+func (tpdu TPDU) SeqNumber() uint8 {
 	return (tpdu[0] >> 2) & 15
 }
 
-// Data parses the application-layer protocol data unit in order to provide control information
+// AppData parses the application-layer protocol data unit in order to provide control information
 // and the actual data.
-func (tpdu TransportData) Data() (AppControlInfo, []byte, error) {
-	switch tpdu.ControlInfo() {
+func (tpdu TPDU) AppData() (APCI, []byte, error) {
+	switch tpdu.PacketType() {
 	case UnnumberedDataPacket, NumberedDataPacket:
-		apci := AppControlInfo(((tpdu[0] & 3) << 2) | ((tpdu[1] >> 6) & 3))
+		apci := APCI(((tpdu[0] & 3) << 2) | ((tpdu[1] >> 6) & 3))
 
 		var data []byte
 
@@ -67,29 +69,41 @@ func (tpdu TransportData) Data() (AppControlInfo, []byte, error) {
 		}
 
 		return apci, data, nil
+
 	default:
-		return 0, nil, errors.New("TransportControlInfo does not indicate a data packet")
+		return 0, nil, ErrTransportNotData
 	}
 }
 
-// An AppControlInfo is the application-layer protocol control information (APCI).
-type AppControlInfo uint8
+// ControlData retrieves the control data within the data unit.
+func (tpdu TPDU) ControlData() (uint8, error) {
+	switch tpdu.PacketType() {
+	case UnnumberedControlPacket, NumberedControlPacket:
+		return tpdu[0] & 3, nil
+
+	default:
+		return 0, ErrTransportNotControl
+	}
+}
+
+// An APCI is the application-layer protocol control information (APCI).
+type APCI uint8
 
 const (
-	GroupValueRead         AppControlInfo = 0
-	GroupValueResponse     AppControlInfo = 1
-	GroupValueWrite        AppControlInfo = 2
-	IndividualAddrWrite    AppControlInfo = 3
-	IndividualAddrRequest  AppControlInfo = 4
-	IndividualAddrResponse AppControlInfo = 5
-	AdcRead                AppControlInfo = 6
-	AdcResponse            AppControlInfo = 7
-	MemoryRead             AppControlInfo = 8
-	MemoryResponse         AppControlInfo = 9
-	MemoryWrite            AppControlInfo = 10
-	UserMessage            AppControlInfo = 11
-	MaskVersionRead        AppControlInfo = 12
-	MaskVersionResponse    AppControlInfo = 13
-	Restart                AppControlInfo = 14
-	Escape                 AppControlInfo = 15
+	GroupValueRead         APCI = 0
+	GroupValueResponse     APCI = 1
+	GroupValueWrite        APCI = 2
+	IndividualAddrWrite    APCI = 3
+	IndividualAddrRequest  APCI = 4
+	IndividualAddrResponse APCI = 5
+	AdcRead                APCI = 6
+	AdcResponse            APCI = 7
+	MemoryRead             APCI = 8
+	MemoryResponse         APCI = 9
+	MemoryWrite            APCI = 10
+	UserMessage            APCI = 11
+	MaskVersionRead        APCI = 12
+	MaskVersionResponse    APCI = 13
+	Restart                APCI = 14
+	Escape                 APCI = 15
 )

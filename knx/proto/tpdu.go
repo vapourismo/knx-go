@@ -3,6 +3,9 @@ package proto
 import (
 	"io"
 	"errors"
+
+	"github.com/vapourismo/knx-go/knx/binary"
+	"bytes"
 )
 
 // A TPCI is the transport-layer protocol control information (TPCI).
@@ -48,37 +51,43 @@ type TPDU struct {
 	Data       []byte
 }
 
-//
+// Errors returned from ReadTPDU
 var (
-	ErrTransportUnitTooShort = errors.New("Given TPDU is too short")
+	ErrDataUnitTooShort = errors.New("Data segment of the TPDU is too short")
 )
 
 // ReadTPDU parses the given data in order to produce a TPDU struct.
-func ReadTPDU(data []byte) (*TPDU, error) {
-	if len(data) < 1 {
-		return nil, ErrTransportUnitTooShort
+func ReadTPDU(r io.Reader) (*TPDU, error) {
+	var head uint8
+	err := binary.ReadSequence(r, &head)
+	if err != nil {
+		return nil, err
 	}
 
-	packetType := TPCI((data[0] >> 6) & 3)
-	seqNumber := (data[0] >> 2) & 15
+	packetType := TPCI((head >> 6) & 3)
+	seqNumber := (head >> 2) & 15
 
 	switch packetType {
 	case UnnumberedControlPacket, NumberedControlPacket:
-		return &TPDU{packetType, seqNumber, data[0] & 3, 0, nil}, nil
+		return &TPDU{packetType, seqNumber, head & 3, 0, nil}, nil
 
 	case UnnumberedDataPacket, NumberedDataPacket:
-		if len(data) < 2 {
-			return nil, ErrTransportUnitTooShort
+		buffer := &bytes.Buffer{}
+		len, err := buffer.ReadFrom(r)
+		if err != nil {
+			return nil, err
+		} else if len < 1 {
+			return nil, ErrDataUnitTooShort
 		}
 
-		info := APCI((data[0] & 3) << 2 | (data[1] >> 6) & 3)
+		data := buffer.Bytes()
+		info := APCI((head & 3) << 2 | (data[0] >> 6) & 3)
 
 		var appData []byte
-		if len(data) > 2 {
-			appData = make([]byte, len(data) - 2)
-			copy(appData, data[2:])
+		if len > 1 {
+			appData = data[1:]
 		} else {
-			appData = []byte{data[1] & 63}
+			appData = []byte{data[0] & 63}
 		}
 
 		return &TPDU{packetType, seqNumber, 0, info, appData}, nil

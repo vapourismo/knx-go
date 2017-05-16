@@ -240,6 +240,19 @@ func (conn *connHandle) performHeartbeat(
 	}
 }
 
+// handleDisconnectRequest validates the request.
+func (conn *connHandle) handleDisconnectRequest(
+	ctx context.Context,
+	req *DisconnectRequest,
+) error {
+	// Validate the request channel.
+	if req.Channel != conn.channel {
+		return errors.New("Invalid communication channel in disconnect request")
+	}
+
+	return nil
+}
+
 // handleTunnelRequest validates the request, pushes the data to the client and acknowledges the
 // request for the gateway.
 func (conn *connHandle) handleTunnelRequest(
@@ -354,8 +367,19 @@ func (conn *connHandle) serveInbound(
 
 			// Determine what to do with the message.
 			switch msg.(type) {
+			case *DisconnectRequest:
+				req := msg.(*DisconnectRequest)
+
+				err := conn.handleDisconnectRequest(ctx, req)
+				if err == nil {
+					return nil
+				}
+
+				log(conn, "connHandle", "Error while handling disconnect request %v: %v", req, err)
+
 			case *TunnelRequest:
 				req := msg.(*TunnelRequest)
+
 				err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)
 				if err != nil {
 					log(conn, "connHandle", "Error while handling tunnel request %v: %v", req, err)
@@ -363,6 +387,7 @@ func (conn *connHandle) serveInbound(
 
 			case *TunnelResponse:
 				res := msg.(*TunnelResponse)
+
 				err := conn.handleTunnelResponse(ctx, res, ack)
 				if err != nil {
 					log(conn, "connHandle", "Error while handling tunnel response %v: %v", res, err)
@@ -370,6 +395,7 @@ func (conn *connHandle) serveInbound(
 
 			case *ConnectionStateResponse:
 				res := msg.(*ConnectionStateResponse)
+
 				err := conn.handleConnectionStateResponse(ctx, res, heartbeat)
 				if err != nil {
 					log(conn, "connHandle",

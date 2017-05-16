@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
-
+	"fmt"
 	"github.com/vapourismo/knx-go/knx/binary"
 )
 
@@ -108,7 +108,6 @@ func (tpdu *TPDU) ReadFrom(r io.Reader) error {
 
 // WriteTo writes the TPDU structure to the given Writer.
 func (tpdu *TPDU) WriteTo(w io.Writer) error {
-	// The 6 most significant bits are always used in the same way.
 	headMask := byte(tpdu.PacketType & 3) << 6 | byte(tpdu.SeqNumber & 15) << 2
 
 	switch tpdu.PacketType & 3 {
@@ -117,21 +116,18 @@ func (tpdu *TPDU) WriteTo(w io.Writer) error {
 		return err
 
 	case UnnumberedDataPacket, NumberedDataPacket:
-		var data []byte
+		data := make([]byte, 1, 2)
 		if len(tpdu.Data) > 0 {
 			data = append(data, tpdu.Data...)
 		} else {
-			data = []byte{0}
+			data = append(data, 0)
 		}
 
-		// The 2 least significant bits are used by the 2 most significant bits of the APCI.
-		data[0] &= 63
 		data[0] |= byte(tpdu.Info >> 2) & 3
+		data[1] &= 63
 
 		_, err := w.Write(data)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
 	return errors.New("Unreachable")

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"fmt"
 	"github.com/vapourismo/knx-go/knx/binary"
 )
 

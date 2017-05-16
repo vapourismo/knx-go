@@ -34,7 +34,7 @@ func ReadLData(r io.Reader) (*LData, error) {
 }
 
 // WriteTo writes the LData structure to the given Writer.
-func (ldata LData) WriteTo(w io.Writer) error {
+func (ldata *LData) WriteTo(w io.Writer) error {
 	err := binary.WriteSequence(w, ldata.Control1, ldata.Control2, ldata.Source, ldata.Destination)
 	if err != nil {
 		return err

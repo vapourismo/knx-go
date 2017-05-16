@@ -59,6 +59,7 @@ var (
 // ReadFrom parses the given data in order to fill the TPDU struct.
 func (tpdu *TPDU) ReadFrom(r io.Reader) error {
 	var head uint8
+
 	err := binary.ReadSequence(r, &head)
 	if err != nil {
 		return err
@@ -79,6 +80,8 @@ func (tpdu *TPDU) ReadFrom(r io.Reader) error {
 
 	case UnnumberedDataPacket, NumberedDataPacket:
 		buffer := &bytes.Buffer{}
+
+		// Empty the reader's remaining contents into a buffer.
 		len, err := buffer.ReadFrom(r)
 		if err != nil {
 			return err
@@ -87,20 +90,15 @@ func (tpdu *TPDU) ReadFrom(r io.Reader) error {
 		}
 
 		data := buffer.Bytes()
-		info := APCI((head & 3) << 2 | (data[0] >> 6) & 3)
-
-		var appData []byte
-		if len > 1 {
-			appData = data[1:]
-		} else {
-			appData = []byte{data[0] & 63}
-		}
 
 		tpdu.PacketType = packetType
 		tpdu.SeqNumber = seqNumber
 		tpdu.Control = 0
-		tpdu.Info = info
-		tpdu.Data = appData
+		tpdu.Info = APCI((head & 3) << 2 | (data[0] >> 6) & 3)
+		tpdu.Data = data
+
+		// The first 2 bits of the data contain rest of the APCI, we don't need them anymore.
+		tpdu.Data[0] &= 63
 
 		return nil
 	}
@@ -110,26 +108,31 @@ func (tpdu *TPDU) ReadFrom(r io.Reader) error {
 
 // WriteTo writes the TPDU structure to the given Writer.
 func (tpdu *TPDU) WriteTo(w io.Writer) error {
-	buffer := []byte{
-		byte(tpdu.PacketType & 3) << 6 | byte(tpdu.SeqNumber & 15) << 2,
-	}
+	// The 6 most significant bits are always used in the same way.
+	headMask := byte(tpdu.PacketType & 3) << 6 | byte(tpdu.SeqNumber & 15) << 2
 
-	switch tpdu.PacketType {
+	switch tpdu.PacketType & 3 {
 	case UnnumberedControlPacket, NumberedControlPacket:
-		buffer[0] |= byte(tpdu.Control & 3)
+		_, err := w.Write([]byte{headMask | byte(tpdu.Control & 3)})
+		return err
 
 	case UnnumberedDataPacket, NumberedDataPacket:
-		buffer[0] |= byte(tpdu.Info >> 2) & 3
-
+		var data []byte
 		if len(tpdu.Data) > 0 {
-			buffer = append(buffer, tpdu.Data...)
-			buffer[1] &= 63
-			buffer[1] |= byte(tpdu.Info & 3) << 6
+			data = append(data, tpdu.Data...)
 		} else {
-			buffer = []byte{buffer[0], byte(tpdu.Info & 3) << 6}
+			data = []byte{0}
+		}
+
+		// The 2 least significant bits are used by the 2 most significant bits of the APCI.
+		data[0] &= 63
+		data[0] |= byte(tpdu.Info >> 2) & 3
+
+		_, err := w.Write(data)
+		if err != nil {
+			return err
 		}
 	}
 
-	_, err := w.Write(buffer)
-	return err
+	return errors.New("Unreachable")
 }

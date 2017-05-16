@@ -64,7 +64,7 @@ func ReadCEMI(r io.Reader) (*CEMI, error) {
 }
 
 // WriteTo writes the CEMI frame to the Writer.
-func (cemi CEMI) WriteTo(w io.Writer) error {
+func (cemi *CEMI) WriteTo(w io.Writer) error {
 	var infoLen uint8
 	var info []byte
 

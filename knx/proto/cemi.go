@@ -1,7 +1,7 @@
 package proto
 
 import (
-	"errors"
+	"bytes"
 	"io"
 	"github.com/vapourismo/knx-go/knx/binary"
 )
@@ -16,17 +16,26 @@ const (
 	LDataCon MessageCode = 0x2e
 )
 
+// Segment is a protocol segment.
+type Segment interface {
+	WriteTo(w io.Writer) error
+}
+
+// A UnsupportedMessage is the raw representation of a CEMI message body.
+type UnsupportedMessage []byte
+
+// WriteTo writes the contents to a Writer.
+func (data UnsupportedMessage) WriteTo(w io.Writer) error {
+	_, err := w.Write(data)
+	return err
+}
+
 // CEMI is a common external message interface.
 type CEMI struct {
 	Code MessageCode
 	Info []byte
 	Body Segment
 }
-
-// Errors from ReadCEMI
-var (
-	ErrUnsupportedMessageCode = errors.New("CEMI message code is unsupported")
-)
 
 // ReadCEMI extract a CEMI frame from the given data.
 func ReadCEMI(r io.Reader) (*CEMI, error) {
@@ -57,7 +66,14 @@ func ReadCEMI(r io.Reader) (*CEMI, error) {
 		}
 
 	default:
-		return nil, ErrUnsupportedMessageCode
+		buffer := &bytes.Buffer{}
+
+		_, err := buffer.ReadFrom(r)
+		if err != nil {
+			return nil, err
+		}
+
+		body = UnsupportedMessage(buffer.Bytes())
 	}
 
 	return &CEMI{code, info, body}, nil

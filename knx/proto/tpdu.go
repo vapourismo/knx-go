@@ -1,11 +1,11 @@
 package proto
 
 import (
-	"io"
+	"bytes"
 	"errors"
+	"io"
 
 	"github.com/vapourismo/knx-go/knx/binary"
-	"bytes"
 )
 
 // A TPCI is the transport-layer protocol control information (TPCI).

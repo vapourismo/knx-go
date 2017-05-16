@@ -122,8 +122,9 @@ func (tpdu *TPDU) WriteTo(w io.Writer) error {
 			data = append(data, 0)
 		}
 
-		data[0] |= byte(tpdu.Info >> 2) & 3
+		data[0] |= headMask | byte((tpdu.Info >> 2) & 3)
 		data[1] &= 63
+		data[1] |= byte(tpdu.Info & 3) << 6
 
 		_, err := w.Write(data)
 		return err

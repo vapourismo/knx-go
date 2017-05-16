@@ -157,9 +157,9 @@ func (conn *connHandle) requestConnectionState(
 			// Is connection state positive?
 			if res == ConnStateNormal {
 				return nil
-			} else {
-				return res
 			}
+
+			return res
 		}
 	}
 }
@@ -210,9 +210,9 @@ func (conn *connHandle) requestTunnel(
 			// Check if the response confirms the tunnel request.
 			if res.Status == 0 {
 				return nil
-			} else {
-				return fmt.Errorf("Tunnel request has been rejected with status %#x", res.Status)
 			}
+
+			return fmt.Errorf("Tunnel request has been rejected with status %#x", res.Status)
 		}
 	}
 }
@@ -330,7 +330,7 @@ func (conn *connHandle) serveInbound(
 	heartbeat := make(chan ConnState)
 	timeout := make(chan struct{})
 
-	var seqNumber uint8 = 0
+	var seqNumber uint8
 
 	for {
 		select {

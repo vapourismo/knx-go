@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//
+// A Socket is a socket, duh.
 type Socket interface {
 	Send(payload OutgoingPayload) error
 	Inbound() <-chan interface{}
@@ -16,24 +16,32 @@ type Socket interface {
 // NewClientSocket creates a new Socket which can used to exchange KNXnet/IP packets with a gateway.
 func NewClientSocket(gatewayAddress string) (Socket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", gatewayAddress)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	conn, err := net.DialUDP("udp4", nil, addr)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
-	return makeUdpSocket(conn, addr), nil
+	return makeUDPSocket(conn, addr), nil
 }
 
 // NewRoutingSocket creates a new Socket which can be used to exchange KNXnet/IP packets with a
 // router.
 func NewRoutingSocket(multicastAddress string) (Socket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", multicastAddress)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	conn, err := net.ListenMulticastUDP("udp4", nil, addr)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
-	return makeUdpSocket(conn, nil), nil
+	return makeUDPSocket(conn, nil), nil
 }
 
 // UDP socket for KNXnet/IP packet exchange
@@ -42,8 +50,8 @@ type udpSocket struct {
 	inbound <-chan interface{}
 }
 
-// makeUdpSocket configures the UDPConn and launches the receiver and sender workers.
-func makeUdpSocket(conn *net.UDPConn, addr *net.UDPAddr) *udpSocket {
+// makeUDPSocket configures the UDPConn and launches the receiver and sender workers.
+func makeUDPSocket(conn *net.UDPConn, addr *net.UDPAddr) *udpSocket {
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan interface{})
@@ -58,13 +66,17 @@ func (sock *udpSocket) Send(payload OutgoingPayload) error {
 
 	// Packet serialization
 	err := WritePacket(buffer, payload)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	log(sock.conn, "udpSocket", "<- %T %+v", payload, payload)
 
 	// Transmission of the buffer contents
 	_, err = sock.conn.Write(buffer.Bytes())
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -116,4 +128,3 @@ func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- inte
 		inbound <- payload
 	}
 }
-

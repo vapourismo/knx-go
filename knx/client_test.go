@@ -252,7 +252,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 		err := conn.requestConnectionState(ctx, make(chan ConnState))
 		if err != ctx.Err() {
-			t.Fatal("Expected error %v, got %v", ctx.Err(), err)
+			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
 	})
 
@@ -309,7 +309,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 				heartbeat <- ConnStateNormal
 			} else {
-				t.Fatal("Unexpected type %T", msg)
+				t.Fatalf("Unexpected type %T", msg)
 			}
 		})
 
@@ -366,7 +366,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 				heartbeat <- ConnStateNormal
 			} else {
-				t.Fatal("Unexpected type %T", msg)
+				t.Fatalf("Unexpected type %T", msg)
 			}
 		})
 
@@ -406,7 +406,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 				heartbeat <- ConnStateInactive
 			} else {
-				t.Fatal("Unexpected type %T", msg)
+				t.Fatalf("Unexpected type %T", msg)
 			}
 		})
 
@@ -450,7 +450,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelResponse))
 		if err != ctx.Err() {
-			t.Fatal("Expected %v, got %v", ctx.Err(), err)
+			t.Fatalf("Expected %v, got %v", ctx.Err(), err)
 		}
 	})
 
@@ -685,7 +685,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		sock := makeDummySocket()
 		defer sock.Close()
 
-		var seqNumber uint8 = 0
+		var seqNumber uint8
 
 		conn := connHandle{sock, DefaultClientConfig, 1}
 		req := &TunnelRequest{2, 0, []byte{}}
@@ -724,14 +724,14 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 					t.Error("Invalid response status")
 				}
 			} else {
-				t.Fatal("Unexpected type %T", msg)
+				t.Fatalf("Unexpected type %T", msg)
 			}
 		})
 
 		t.Run("Worker", func (t *testing.T) {
 			t.Parallel()
 
-			var seqNumber uint8 = sendSeqNumber + 1
+			seqNumber := sendSeqNumber + 1
 
 			conn := connHandle{sock, DefaultClientConfig, channel}
 			req := &TunnelRequest{channel, sendSeqNumber, []byte{}}
@@ -776,14 +776,14 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 					t.Error("Invalid response status")
 				}
 			} else {
-				t.Fatal("Unexpected type %T", msg)
+				t.Fatalf("Unexpected type %T", msg)
 			}
 		})
 
 		t.Run("Worker", func (t *testing.T) {
 			t.Parallel()
 
-			var seqNumber uint8 = sendSeqNumber
+			seqNumber := sendSeqNumber
 
 			conn := connHandle{sock, DefaultClientConfig, channel}
 			req := &TunnelRequest{channel, sendSeqNumber, []byte{}}

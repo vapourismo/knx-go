@@ -6,13 +6,13 @@ import (
 	"errors"
 )
 
-// IPv4 address
+// Address is a IPv4 address.
 type Address [4]byte
 
-// Port number
+// Port is a port number.
 type Port uint16
 
-// Host information
+// A HostInfo contains information about a host.
 type HostInfo struct {
 	Address Address
 	Port    Port
@@ -42,7 +42,7 @@ func readHostInfo(r *bytes.Reader) (*HostInfo, error) {
 	return info, nil
 }
 
-// Connection request
+// A ConnectionRequest requests a connection to a gateway.
 type ConnectionRequest struct {
 	Control HostInfo
 	Tunnel  HostInfo
@@ -101,7 +101,7 @@ func (status ConnResStatus) Error() string {
 	return status.String()
 }
 
-// Connection response
+// ConnectionResponse is a response to a ConnectionRequest.
 type ConnectionResponse struct {
 	Channel uint8
 	Status  ConnResStatus
@@ -121,7 +121,7 @@ func readConnectionResponse(r *bytes.Reader) (*ConnectionResponse, error) {
 	return &ConnectionResponse{channel, status, *host}, nil
 }
 
-// Connection state request
+// A ConnectionStateRequest requests the the connection state from a gateway.
 type ConnectionStateRequest struct {
 	Channel byte
 	Status  byte
@@ -139,7 +139,7 @@ func (req ConnectionStateRequest) writeTo(w *bytes.Buffer) error {
 	return req.Host.writeTo(w)
 }
 
-//
+// A ConnState represents the state of a connection.
 type ConnState uint8
 
 //
@@ -175,7 +175,7 @@ func (state ConnState) Error() string {
 	return state.String()
 }
 
-// Connection state response
+// A ConnectionStateResponse is a response to a ConnectionStateRequest.
 type ConnectionStateResponse struct {
 	Channel uint8
 	Status  ConnState
@@ -192,7 +192,7 @@ func readConnectionStateResponse(r *bytes.Reader) (*ConnectionStateResponse, err
 	return res, nil
 }
 
-// Disconnect request
+// A DisconnectRequest requests a connection to be terminated.
 type DisconnectRequest struct {
 	Channel byte
 	Status  byte

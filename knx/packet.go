@@ -57,7 +57,7 @@ func readPacketHeader(r *bytes.Reader, service *serviceIdent, payloadLength *int
 	return nil
 }
 
-// Payload for outgoing traffic
+// A OutgoingPayload is the payload within a KNXnet/IP packet.
 type OutgoingPayload interface {
 	describe() (serviceIdent, int)
 	writeTo(w *bytes.Buffer) error

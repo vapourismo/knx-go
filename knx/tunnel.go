@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-// Tunnel request
+// A TunnelRequest asks a gateway to transmit data.
 type TunnelRequest struct {
 	Channel   byte
 	SeqNumber byte
@@ -42,7 +42,7 @@ func (req TunnelRequest) writeTo(w *bytes.Buffer) error {
 	return writeSequence(w, byte(4), req.Channel, req.SeqNumber, byte(0), req.Payload)
 }
 
-// Tunnel response
+// A TunnelResponse is a response to a TunnelRequest.
 type TunnelResponse struct {
 	Channel   byte
 	SeqNumber byte

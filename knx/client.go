@@ -250,6 +250,22 @@ func (conn *connHandle) handleDisconnectRequest(
 		return errors.New("Invalid communication channel in disconnect request")
 	}
 
+	// We don't need to check if this errors or not. It doesn't matter.
+	conn.sock.Send(&DisconnectResponse{req.Channel, 0})
+
+	return nil
+}
+
+// handleDisconnectResponse validates the response.
+func (conn *connHandle) handleDisconnectResponse(
+	ctx context.Context,
+	res *DisconnectResponse,
+) error {
+	// Validate the request channel.
+	if res.Channel != conn.channel {
+		return errors.New("Invalid communication channel in disconnect response")
+	}
+
 	return nil
 }
 
@@ -376,6 +392,16 @@ func (conn *connHandle) serveInbound(
 				}
 
 				log(conn, "connHandle", "Error while handling disconnect request %v: %v", req, err)
+
+			case *DisconnectResponse:
+				res := msg.(*DisconnectResponse)
+
+				err := conn.handleDisconnectResponse(ctx, res)
+				if err == nil {
+					return nil
+				}
+
+				log(conn, "connHandle", "Error while handling disconnect response %v: %v", res, err)
 
 			case *TunnelRequest:
 				req := msg.(*TunnelRequest)

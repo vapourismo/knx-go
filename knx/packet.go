@@ -13,6 +13,7 @@ const (
 	connectionStateRequestService          = 0x0207
 	connectionStateResponseService         = 0x0208
 	disconnectRequestService               = 0x0209
+	disconnectResponseService              = 0x020a
 	tunnelRequestService                   = 0x0420
 	tunnelResponseService                  = 0x0421
 )
@@ -79,6 +80,7 @@ func WritePacket(w *bytes.Buffer, payload OutgoingPayload) error {
 // Types can be: *ConnectionResponse
 //               *ConnectionStateResponse
 //               *DisconnectRequest
+//               *DisconnectResponse
 //               *TunnelRequest
 //               *TunnelResponse
 //
@@ -104,6 +106,9 @@ func ReadPacket(r *bytes.Reader) (interface{}, error) {
 
 		case disconnectRequestService:
 			return readDisconnectRequest(r)
+
+		case disconnectResponseService:
+			return readDisconnectResponse(r)
 
 		default:
 			return nil, errors.New("Unknown service")

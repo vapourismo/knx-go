@@ -221,3 +221,28 @@ func (req DisconnectRequest) writeTo(w *bytes.Buffer) error {
 
 	return req.Host.writeTo(w)
 }
+
+// A DisconnectResponse is a response to a DisconnectRequest.
+type DisconnectResponse struct {
+	Channel uint8
+	Status  uint8
+}
+
+func (res DisconnectResponse) describe() (serviceIdent, int) {
+	return disconnectResponseService, 2
+}
+
+func (res DisconnectResponse) writeTo(w *bytes.Buffer) error {
+	return writeSequence(w, res.Channel, res.Status)
+}
+
+func readDisconnectResponse(r *bytes.Reader) (*DisconnectResponse, error) {
+	res := &DisconnectResponse{}
+
+	err := readSequence(r, &res.Channel, &res.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

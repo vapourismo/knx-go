@@ -261,7 +261,7 @@ func (conn *connHandle) handleDisconnectResponse(
 	ctx context.Context,
 	res *DisconnectResponse,
 ) error {
-	// Validate the request channel.
+	// Validate the response channel.
 	if res.Channel != conn.channel {
 		return errors.New("Invalid communication channel in disconnect response")
 	}

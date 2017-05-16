@@ -25,12 +25,10 @@ func ReadLData(r io.Reader) (*LData, error) {
 		return nil, err
 	}
 
-	tpdu, err := ReadTPDU(r)
+	err = ldata.Data.ReadFrom(r)
 	if err != nil {
 		return nil, err
 	}
-
-	ldata.Data = *tpdu
 
 	return ldata, nil
 }

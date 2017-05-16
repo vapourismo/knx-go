@@ -56,12 +56,12 @@ var (
 	ErrDataUnitTooShort = errors.New("Data segment of the TPDU is too short")
 )
 
-// ReadTPDU parses the given data in order to produce a TPDU struct.
-func ReadTPDU(r io.Reader) (*TPDU, error) {
+// ReadFrom parses the given data in order to fill the TPDU struct.
+func (tpdu *TPDU) ReadFrom(r io.Reader) error {
 	var head uint8
 	err := binary.ReadSequence(r, &head)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	packetType := TPCI((head >> 6) & 3)
@@ -69,15 +69,21 @@ func ReadTPDU(r io.Reader) (*TPDU, error) {
 
 	switch packetType {
 	case UnnumberedControlPacket, NumberedControlPacket:
-		return &TPDU{packetType, seqNumber, head & 3, 0, nil}, nil
+		tpdu.PacketType = packetType
+		tpdu.SeqNumber = seqNumber
+		tpdu.Control = head & 3
+		tpdu.Info = 0
+		tpdu.Data = nil
+
+		return nil
 
 	case UnnumberedDataPacket, NumberedDataPacket:
 		buffer := &bytes.Buffer{}
 		len, err := buffer.ReadFrom(r)
 		if err != nil {
-			return nil, err
+			return err
 		} else if len < 1 {
-			return nil, ErrDataUnitTooShort
+			return ErrDataUnitTooShort
 		}
 
 		data := buffer.Bytes()
@@ -90,14 +96,20 @@ func ReadTPDU(r io.Reader) (*TPDU, error) {
 			appData = []byte{data[0] & 63}
 		}
 
-		return &TPDU{packetType, seqNumber, 0, info, appData}, nil
+		tpdu.PacketType = packetType
+		tpdu.SeqNumber = seqNumber
+		tpdu.Control = 0
+		tpdu.Info = info
+		tpdu.Data = appData
+
+		return nil
 	}
 
-	return nil, errors.New("Unreachable")
+	return errors.New("Unreachable")
 }
 
 // WriteTo writes the TPDU structure to the given Writer.
-func (tpdu TPDU) WriteTo(w io.Writer) (err error) {
+func (tpdu *TPDU) WriteTo(w io.Writer) error {
 	buffer := []byte{
 		byte(tpdu.PacketType & 3) << 6 | byte(tpdu.SeqNumber & 15) << 2,
 	}
@@ -118,6 +130,6 @@ func (tpdu TPDU) WriteTo(w io.Writer) (err error) {
 		}
 	}
 
-	_, err = w.Write(buffer)
-	return
+	_, err := w.Write(buffer)
+	return err
 }

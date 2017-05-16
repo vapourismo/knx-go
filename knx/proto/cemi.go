@@ -3,7 +3,7 @@ package proto
 import (
 	"bytes"
 	"io"
-	"github.com/vapourismo/knx-go/knx/binary"
+	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
 // MessageCode identifies the message body of a CEMI frame.
@@ -42,7 +42,7 @@ func ReadCEMI(r io.Reader) (*CEMI, error) {
 	var code MessageCode
 	var infoLen uint8
 
-	err := binary.ReadSequence(r, &code, &infoLen)
+	err := encoding.ReadSequence(r, &code, &infoLen)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (cemi *CEMI) WriteTo(w io.Writer) error {
 		infoLen = uint8(len(info))
 	}
 
-	err := binary.WriteSequence(w, cemi.Code, infoLen, info)
+	err := encoding.WriteSequence(w, cemi.Code, infoLen, info)
 	if err != nil {
 		return err
 	}

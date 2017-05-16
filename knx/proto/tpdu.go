@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"github.com/vapourismo/knx-go/knx/binary"
+	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
 // A TPCI is the transport-layer protocol control information (TPCI).
@@ -59,7 +59,7 @@ var (
 func (tpdu *TPDU) ReadFrom(r io.Reader) error {
 	var head uint8
 
-	err := binary.ReadSequence(r, &head)
+	err := encoding.ReadSequence(r, &head)
 	if err != nil {
 		return err
 	}

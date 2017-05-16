@@ -2,7 +2,7 @@ package proto
 
 import (
 	"io"
-	"github.com/vapourismo/knx-go/knx/binary"
+	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
 // A LData is a link-layer data frame.
@@ -18,7 +18,7 @@ type LData struct {
 func ReadLData(r io.Reader) (*LData, error) {
 	ldata := &LData{}
 
-	err := binary.ReadSequence(
+	err := encoding.ReadSequence(
 		r, &ldata.Control1, &ldata.Control2, &ldata.Source, &ldata.Destination,
 	)
 	if err != nil {
@@ -35,7 +35,7 @@ func ReadLData(r io.Reader) (*LData, error) {
 
 // WriteTo writes the LData structure to the given Writer.
 func (ldata *LData) WriteTo(w io.Writer) error {
-	err := binary.WriteSequence(w, ldata.Control1, ldata.Control2, ldata.Source, ldata.Destination)
+	err := encoding.WriteSequence(w, ldata.Control1, ldata.Control2, ldata.Source, ldata.Destination)
 	if err != nil {
 		return err
 	}

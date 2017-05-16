@@ -3,6 +3,7 @@ package knx
 import (
 	"bytes"
 	"errors"
+	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
 type serviceIdent uint16
@@ -23,14 +24,14 @@ func writePacketHeader(w *bytes.Buffer, service serviceIdent, payloadLength int)
 		return errors.New("Payload length is out of bounds")
 	}
 
-	return writeSequence(w, byte(6), byte(16), uint16(service), uint16(payloadLength + 6))
+	return encoding.WriteSequence(w, byte(6), byte(16), uint16(service), uint16(payloadLength + 6))
 }
 
 func readPacketHeader(r *bytes.Reader, service *serviceIdent, payloadLength *int) error {
 	var headerLength, protocolVersion byte
 	var service16, packetLength16 uint16
 
-	err := readSequence(r, &headerLength, &protocolVersion, &service16, &packetLength16)
+	err := encoding.ReadSequence(r, &headerLength, &protocolVersion, &service16, &packetLength16)
 
 	if err != nil { return err }
 

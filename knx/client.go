@@ -120,9 +120,9 @@ func newConn(
 	}
 }
 
-// requestConnectionState periodically sends a connection state request to the gateway until it has
+// requestState periodically sends a connection state request to the gateway until it has
 // received a response, the context is done, or HeartbeatDelay duration has passed.
-func (conn *conn) requestConnectionState(
+func (conn *conn) requestState(
 	ctx       context.Context,
 	heartbeat <-chan ConnState,
 ) error {
@@ -220,7 +220,7 @@ func (conn *conn) requestTunnel(
 	}
 }
 
-// performHeartbeat uses requestConnectionState to determine if the gateway is still alive.
+// performHeartbeat uses requestState to determine if the gateway is still alive.
 func (conn *conn) performHeartbeat(
 	ctx       context.Context,
 	heartbeat <-chan ConnState,
@@ -231,7 +231,7 @@ func (conn *conn) performHeartbeat(
 	defer cancel()
 
 	// Request the connction state.
-	err := conn.requestConnectionState(childCtx, heartbeat)
+	err := conn.requestState(childCtx, heartbeat)
 	if err != nil {
 		log(conn, "conn", "Error while requesting connection state: %v", err)
 

@@ -212,7 +212,7 @@ func TestnewConn(t *testing.T) {
 	})
 }
 
-func TestConnHandle_requestConnectionState(t *testing.T) {
+func TestConnHandle_requestState(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("SendFails", func (t *testing.T) {
@@ -221,7 +221,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 		conn := conn{sock, DefaultClientConfig, 1}
 
-		err := conn.requestConnectionState(ctx, make(chan ConnState))
+		err := conn.requestState(ctx, make(chan ConnState))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -236,7 +236,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		err := conn.requestConnectionState(ctx, make(chan ConnState))
+		err := conn.requestState(ctx, make(chan ConnState))
 		if err != ctx.Err() {
 			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
@@ -263,7 +263,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 			conn := conn{sock, config, 1}
 
-			err := conn.requestConnectionState(ctx, make(chan ConnState))
+			err := conn.requestState(ctx, make(chan ConnState))
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -308,7 +308,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 			conn := conn{sock, config, channel}
 
-			err := conn.requestConnectionState(ctx, heartbeat)
+			err := conn.requestState(ctx, heartbeat)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -323,7 +323,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 		conn := conn{sock, DefaultClientConfig, 1}
 
-		err := conn.requestConnectionState(ctx, heartbeat)
+		err := conn.requestState(ctx, heartbeat)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -362,7 +362,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 			conn := conn{sock, DefaultClientConfig, channel}
 
-			err := conn.requestConnectionState(ctx, heartbeat)
+			err := conn.requestState(ctx, heartbeat)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -402,7 +402,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 
 			conn := conn{sock, DefaultClientConfig, channel}
 
-			err := conn.requestConnectionState(ctx, heartbeat)
+			err := conn.requestState(ctx, heartbeat)
 			if err != ConnStateInactive {
 				t.Fatal(err)
 			}

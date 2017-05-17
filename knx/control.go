@@ -265,3 +265,4 @@ func readDiscRes(r *bytes.Reader) (*DiscRes, error) {
 
 	return res, nil
 }
+

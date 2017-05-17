@@ -6,34 +6,38 @@ import (
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
-type serviceIdent uint16
+// ServiceID identifies the service that is contained in a packet.
+type ServiceID uint16
 
+// KNXnet/IP services
 const (
-	connectionRequestService  serviceIdent = 0x0205
-	connectionResponseService              = 0x0206
-	connectionStateRequestService          = 0x0207
-	connectionStateResponseService         = 0x0208
-	disconnectRequestService               = 0x0209
-	disconnectResponseService              = 0x020a
-	tunnelRequestService                   = 0x0420
-	tunnelResponseService                  = 0x0421
+	ConnReqService      ServiceID = 0x0205
+	ConnResService                = 0x0206
+	ConnStateReqService           = 0x0207
+	ConnStateResService           = 0x0208
+	DiscReqService                = 0x0209
+	DiscResService                = 0x020a
+	TunnelReqService              = 0x0420
+	TunnelResService              = 0x0421
 )
 
-func writePacketHeader(w *bytes.Buffer, service serviceIdent, payloadLength int) error {
+func writePacketHeader(w *bytes.Buffer, service ServiceID, payloadLength int) error {
 	if payloadLength < 0 || payloadLength > 65529 {
 		return errors.New("Payload length is out of bounds")
 	}
 
-	return encoding.WriteSequence(w, byte(6), byte(16), uint16(service), uint16(payloadLength + 6))
+	return encoding.WriteSequence(w, byte(6), byte(16), uint16(service), uint16(payloadLength+6))
 }
 
-func readPacketHeader(r *bytes.Reader, service *serviceIdent, payloadLength *int) error {
+func readPacketHeader(r *bytes.Reader, service *ServiceID, payloadLength *int) error {
 	var headerLength, protocolVersion byte
 	var service16, packetLength16 uint16
 
 	err := encoding.ReadSequence(r, &headerLength, &protocolVersion, &service16, &packetLength16)
 
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	if headerLength != 6 {
 		return errors.New("Header length mismatches")
@@ -53,7 +57,7 @@ func readPacketHeader(r *bytes.Reader, service *serviceIdent, payloadLength *int
 		return errors.New("Packet is incomplete")
 	}
 
-	*service = serviceIdent(service16)
+	*service = ServiceID(service16)
 	*payloadLength = tmpPayloadLength
 
 	return nil
@@ -61,7 +65,7 @@ func readPacketHeader(r *bytes.Reader, service *serviceIdent, payloadLength *int
 
 // A OutgoingPayload is the payload within a KNXnet/IP packet.
 type OutgoingPayload interface {
-	describe() (serviceIdent, int)
+	describe() (ServiceID, int)
 	writeTo(w *bytes.Buffer) error
 }
 
@@ -70,7 +74,9 @@ func WritePacket(w *bytes.Buffer, payload OutgoingPayload) error {
 	service, length := payload.describe()
 
 	err := writePacketHeader(w, service, length)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	return payload.writeTo(w)
 }
@@ -86,32 +92,34 @@ func WritePacket(w *bytes.Buffer, payload OutgoingPayload) error {
 //               *TunnelResponse
 //
 func ReadPacket(r *bytes.Reader) (interface{}, error) {
-	var service serviceIdent
+	var service ServiceID
 	var length int
 
 	err := readPacketHeader(r, &service, &length)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	switch service {
-		case connectionResponseService:
-			return readConnectionResponse(r)
+	case ConnResService:
+		return readConnectionResponse(r)
 
-		case connectionStateResponseService:
-			return readConnectionStateResponse(r)
+	case ConnStateResService:
+		return readConnectionStateResponse(r)
 
-		case tunnelRequestService:
-			return readTunnelRequest(r)
+	case TunnelReqService:
+		return readTunnelRequest(r)
 
-		case tunnelResponseService:
-			return readTunnelResponse(r)
+	case TunnelResService:
+		return readTunnelResponse(r)
 
-		case disconnectRequestService:
-			return readDisconnectRequest(r)
+	case DiscReqService:
+		return readDisconnectRequest(r)
 
-		case disconnectResponseService:
-			return readDisconnectResponse(r)
+	case DiscResService:
+		return readDisconnectResponse(r)
 
-		default:
-			return nil, errors.New("Unknown service")
+	default:
+		return nil, errors.New("Unknown service")
 	}
 }

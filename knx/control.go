@@ -2,8 +2,8 @@ package knx
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
@@ -30,7 +30,9 @@ func readHostInfo(r *bytes.Reader) (*HostInfo, error) {
 	info := &HostInfo{}
 
 	err := encoding.ReadSequence(r, &length, &proto, info)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	if length != 8 {
 		return nil, errors.New("Host info structure length is invalid")
@@ -49,18 +51,22 @@ type ConnectionRequest struct {
 	Tunnel  HostInfo
 }
 
-func (req ConnectionRequest) describe() (serviceIdent, int) {
-	return connectionRequestService, 20
+func (req ConnectionRequest) describe() (ServiceID, int) {
+	return ConnReqService, 20
 }
 
 var connReqInfo = [4]byte{4, 4, 2, 0}
 
 func (req ConnectionRequest) writeTo(w *bytes.Buffer) error {
 	err := req.Control.writeTo(w)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	err = req.Tunnel.writeTo(w)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	_, err = w.Write(connReqInfo[:])
 	return err
@@ -114,10 +120,14 @@ func readConnectionResponse(r *bytes.Reader) (*ConnectionResponse, error) {
 	var status ConnResStatus
 
 	err := encoding.ReadSequence(r, &channel, &status)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	host, err := readHostInfo(r)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	return &ConnectionResponse{channel, status, *host}, nil
 }
@@ -129,13 +139,15 @@ type ConnectionStateRequest struct {
 	Host    HostInfo
 }
 
-func (req ConnectionStateRequest) describe() (serviceIdent, int) {
-	return connectionStateRequestService, 10
+func (req ConnectionStateRequest) describe() (ServiceID, int) {
+	return ConnStateReqService, 10
 }
 
 func (req ConnectionStateRequest) writeTo(w *bytes.Buffer) error {
 	err := encoding.WriteSequence(w, req.Channel, req.Status)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	return req.Host.writeTo(w)
 }
@@ -204,21 +216,27 @@ func readDisconnectRequest(r *bytes.Reader) (*DisconnectRequest, error) {
 	var channel, status byte
 
 	err := encoding.ReadSequence(r, &channel, &status)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	host, err := readHostInfo(r)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	return &DisconnectRequest{channel, status, *host}, nil
 }
 
-func (req DisconnectRequest) describe() (serviceIdent, int) {
-	return disconnectRequestService, 10
+func (req DisconnectRequest) describe() (ServiceID, int) {
+	return DiscReqService, 10
 }
 
 func (req DisconnectRequest) writeTo(w *bytes.Buffer) error {
 	err := encoding.WriteSequence(w, req.Channel, req.Status)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	return req.Host.writeTo(w)
 }
@@ -229,8 +247,8 @@ type DisconnectResponse struct {
 	Status  uint8
 }
 
-func (res DisconnectResponse) describe() (serviceIdent, int) {
-	return disconnectResponseService, 2
+func (res DisconnectResponse) describe() (ServiceID, int) {
+	return DiscResService, 2
 }
 
 func (res DisconnectResponse) writeTo(w *bytes.Buffer) error {

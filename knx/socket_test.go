@@ -1,145 +1,107 @@
 package knx
 
 import (
-	"context"
+	"container/list"
 	"errors"
 	"sync"
-	"testing"
 )
 
 type dummySocket struct {
-	mu      sync.Mutex
-	outOpen bool
-	inOpen  bool
-
-	out     chan OutgoingPayload
-	in      chan interface{}
+	cond    *sync.Cond
+	out     *list.List
+	in      *list.List
+	inbound chan interface{}
 }
 
-func makeDummySocket() *dummySocket {
-	return &dummySocket{
-		sync.Mutex{},
-		true,
-		true,
-		make(chan OutgoingPayload, 10),
-		make(chan interface{}, 10),
+func (sock *dummySocket) serveOne() bool {
+	sock.cond.L.Lock()
+
+	for sock.in != nil && sock.in.Len() < 1 {
+		sock.cond.Wait()
 	}
-}
 
-func (sock *dummySocket) gatewaySend(payload interface{}) error {
-	for {
-		sock.mu.Lock()
-
-		if !sock.inOpen {
-			sock.mu.Unlock()
-			return errors.New("Socket is closed")
-		}
-
-		select {
-			case sock.in <- payload:
-				sock.mu.Unlock()
-				return nil
-
-			default:
-				sock.mu.Unlock()
-		}
+	if sock.in == nil {
+		sock.cond.L.Unlock()
+		return false
 	}
+
+	val := sock.in.Remove(sock.in.Front())
+
+	sock.cond.Broadcast()
+	sock.cond.L.Unlock()
+
+	sock.inbound <- val
+
+	return true
 }
 
-func (sock *dummySocket) gatewayInbound() <-chan OutgoingPayload {
-	return sock.out
-}
-
-func (sock *dummySocket) closeOut() {
-	sock.mu.Lock()
-	defer sock.mu.Unlock()
-
-	if sock.outOpen {
-		close(sock.out)
-		sock.outOpen = false
-	}
+func (sock *dummySocket) serveAll() {
+	for sock.serveOne() {}
+	close(sock.inbound)
 }
 
 func (sock *dummySocket) closeIn() {
-	sock.mu.Lock()
-	defer sock.mu.Unlock()
+	sock.cond.L.Lock()
+	defer sock.cond.L.Unlock()
 
-	if sock.inOpen {
-		close(sock.in)
-		sock.inOpen = false
-	}
+	sock.in = nil
+
+	sock.cond.Broadcast()
+}
+
+func (sock *dummySocket) closeOut() {
+	sock.cond.L.Lock()
+	defer sock.cond.L.Unlock()
+
+	sock.out = nil
+
+	sock.cond.Broadcast()
 }
 
 func (sock *dummySocket) Send(payload OutgoingPayload) error {
-	for {
-		sock.mu.Lock()
-
-		if !sock.outOpen {
-			sock.mu.Unlock()
-			return errors.New("Socket is closed")
-		}
-
-		select {
-			case sock.out <- payload:
-				sock.mu.Unlock()
-				return nil
-
-			default:
-				sock.mu.Unlock()
-		}
-	}
+	return sock.sendAny(payload)
 }
 
-func (sock *dummySocket) Inbound() <-chan interface{} {
-	return sock.in
-}
+func (sock *dummySocket) sendAny(payload interface{}) error {
+	sock.cond.L.Lock()
+	defer sock.cond.L.Unlock()
 
-func (sock *dummySocket) Close() error {
-	sock.mu.Lock()
-	defer sock.mu.Unlock()
-
-	if sock.outOpen {
-		close(sock.out)
-		sock.outOpen = false
+	if sock.out == nil {
+		return errors.New("Outbound is closed")
 	}
 
-	if sock.inOpen {
-		close(sock.in)
-		sock.inOpen = false
-	}
+	sock.out.PushBack(payload)
+	sock.cond.Broadcast()
 
 	return nil
 }
 
-type gatewayHelper struct {
-	ctx  context.Context
-	sock *dummySocket
-	test *testing.T
+func (sock *dummySocket) Close() error {
+	sock.cond.L.Lock()
+	defer sock.cond.L.Unlock()
+
+	sock.in = nil
+	sock.out = nil
+
+	sock.cond.Broadcast()
+
+	return nil
 }
 
-func (helper *gatewayHelper) receive() OutgoingPayload {
-	select {
-	case <-helper.ctx.Done():
-		helper.test.Fatalf("While waiting for inbound packet: %v", helper.ctx.Err())
-		return nil
-
-	case msg, open := <-helper.sock.gatewayInbound():
-		if !open {
-			helper.test.Fatal("Inbound socket channel is closed")
-			return nil
-		}
-
-		return msg
-	}
+func (sock *dummySocket) Inbound() <-chan interface{} {
+	return sock.inbound
 }
 
-func (helper *gatewayHelper) ignore() {
-	helper.receive()
-}
+func makeDummySockets() (*dummySocket, *dummySocket) {
+	cond := sync.NewCond(&sync.Mutex{})
+	forGateway := list.New()
+	forClient := list.New()
 
-func (helper *gatewayHelper) send(msg interface{}) {
-	err := helper.sock.gatewaySend(msg)
-	if err != nil {
-		helper.test.Fatalf("While responding: %v", err)
-	}
+	client := &dummySocket{cond, forGateway, forClient, make(chan interface{})}
+	go client.serveAll()
+
+	gateway := &dummySocket{cond, forClient, forGateway, make(chan interface{})}
+	go gateway.serveAll()
+
+	return client, gateway
 }

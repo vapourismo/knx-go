@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestnewConn(t *testing.T) {
+func TestNewConn(t *testing.T) {
 	ctx := context.Background()
 
 	// Socket was closed before anything could be done.

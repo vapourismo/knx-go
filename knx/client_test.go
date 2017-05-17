@@ -298,7 +298,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			gw.ignore()
 
 			msg := gw.receive()
-			if req, ok := msg.(*ConnectionStateRequest); ok {
+			if req, ok := msg.(*ConnStateReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -355,7 +355,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			gw := gatewayHelper{ctx, sock, t}
 
 			msg := gw.receive()
-			if req, ok := msg.(*ConnectionStateRequest); ok {
+			if req, ok := msg.(*ConnStateReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -395,7 +395,7 @@ func TestConnHandle_requestConnectionState(t *testing.T) {
 			gw := gatewayHelper{ctx, sock, t}
 
 			msg := gw.receive()
-			if req, ok := msg.(*ConnectionStateRequest); ok {
+			if req, ok := msg.(*ConnStateReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -433,7 +433,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 		conn := connHandle{sock, DefaultClientConfig, 1}
 
-		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelResponse))
+		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelRes))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -448,7 +448,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelResponse))
+		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelRes))
 		if err != ctx.Err() {
 			t.Fatalf("Expected %v, got %v", ctx.Err(), err)
 		}
@@ -475,7 +475,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 			conn := connHandle{sock, config, 1}
 
-			err := conn.requestTunnel(ctx, 1, []byte{}, make(chan *TunnelResponse))
+			err := conn.requestTunnel(ctx, 1, []byte{}, make(chan *TunnelRes))
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -484,10 +484,10 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("Resend", func (t *testing.T) {
 		sock := makeDummySocket()
-		ack := make(chan *TunnelResponse)
+		ack := make(chan *TunnelRes)
 
 		const (
-			channel uint8 = 1
+			channel   uint8 = 1
 			seqNumber uint8 = 0
 		)
 
@@ -499,7 +499,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			gw.ignore()
 
 			msg := gw.receive()
-			if req, ok := msg.(*TunnelRequest); ok {
+			if req, ok := msg.(*TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -508,7 +508,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelResponse{req.Channel, req.SeqNumber, 0}
+				ack <- &TunnelRes{req.Channel, req.SeqNumber, 0}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -534,7 +534,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		sock := makeDummySocket()
 		defer sock.Close()
 
-		ack := make(chan *TunnelResponse)
+		ack := make(chan *TunnelRes)
 		close(ack)
 
 		conn := connHandle{sock, DefaultClientConfig, 1}
@@ -547,12 +547,12 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("InvalidSeqNumber", func (t *testing.T) {
 		sock := makeDummySocket()
-		ack := make(chan *TunnelResponse)
+		ack := make(chan *TunnelRes)
 
 		ctx, cancel := context.WithCancel(ctx)
 
 		const (
-			channel uint8 = 1
+			channel   uint8 = 1
 			seqNumber uint8 = 0
 		)
 
@@ -562,7 +562,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			gw := gatewayHelper{ctx, sock, t}
 
 			msg := gw.receive()
-			if req, ok := msg.(*TunnelRequest); ok {
+			if req, ok := msg.(*TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -571,7 +571,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelResponse{req.Channel, req.SeqNumber + 10, 0}
+				ack <- &TunnelRes{req.Channel, req.SeqNumber + 10, 0}
 				cancel()
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
@@ -593,10 +593,10 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("BadStatus", func (t *testing.T) {
 		sock := makeDummySocket()
-		ack := make(chan *TunnelResponse)
+		ack := make(chan *TunnelRes)
 
 		const (
-			channel uint8 = 1
+			channel   uint8 = 1
 			seqNumber uint8 = 0
 		)
 
@@ -606,7 +606,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			gw := gatewayHelper{ctx, sock, t}
 
 			msg := gw.receive()
-			if req, ok := msg.(*TunnelRequest); ok {
+			if req, ok := msg.(*TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -615,7 +615,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelResponse{req.Channel, req.SeqNumber, 1}
+				ack <- &TunnelRes{req.Channel, req.SeqNumber, 1}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -636,10 +636,10 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("Ok", func (t *testing.T) {
 		sock := makeDummySocket()
-		ack := make(chan *TunnelResponse)
+		ack := make(chan *TunnelRes)
 
 		const (
-			channel uint8 = 1
+			channel   uint8 = 1
 			seqNumber uint8 = 0
 		)
 
@@ -649,7 +649,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			gw := gatewayHelper{ctx, sock, t}
 
 			msg := gw.receive()
-			if req, ok := msg.(*TunnelRequest); ok {
+			if req, ok := msg.(*TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -658,7 +658,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelResponse{req.Channel, req.SeqNumber, 0}
+				ack <- &TunnelRes{req.Channel, req.SeqNumber, 0}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -688,7 +688,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		var seqNumber uint8
 
 		conn := connHandle{sock, DefaultClientConfig, 1}
-		req := &TunnelRequest{2, 0, []byte{}}
+		req := &TunnelReq{2, 0, []byte{}}
 
 		err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan []byte))
 		if err == nil {
@@ -711,7 +711,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			gw := gatewayHelper{ctx, sock, t}
 
 			msg := gw.receive()
-			if res, ok := msg.(*TunnelResponse); ok {
+			if res, ok := msg.(*TunnelRes); ok {
 				if res.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -734,7 +734,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber + 1
 
 			conn := connHandle{sock, DefaultClientConfig, channel}
-			req := &TunnelRequest{channel, sendSeqNumber, []byte{}}
+			req := &TunnelReq{channel, sendSeqNumber, []byte{}}
 
 			err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan []byte))
 			if err != nil {
@@ -763,7 +763,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			gw := gatewayHelper{ctx, sock, t}
 
 			msg := gw.receive()
-			if res, ok := msg.(*TunnelResponse); ok {
+			if res, ok := msg.(*TunnelRes); ok {
 				if res.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -786,7 +786,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber
 
 			conn := connHandle{sock, DefaultClientConfig, channel}
-			req := &TunnelRequest{channel, sendSeqNumber, []byte{}}
+			req := &TunnelReq{channel, sendSeqNumber, []byte{}}
 
 			err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)
 			if err != nil {
@@ -815,8 +815,8 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 		conn := connHandle{sock, DefaultClientConfig, 1}
 
-		res := &TunnelResponse{2, 0, 0}
-		err := conn.handleTunnelResponse(ctx, res, make(chan *TunnelResponse))
+		res := &TunnelRes{2, 0, 0}
+		err := conn.handleTunnelResponse(ctx, res, make(chan *TunnelRes))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -824,14 +824,14 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 	t.Run("Ok", func (t *testing.T) {
 		sock := makeDummySocket()
-		ack := make(chan *TunnelResponse)
+		ack := make(chan *TunnelRes)
 
 		t.Run("Worker", func (t *testing.T) {
 			t.Parallel()
 
 			conn := connHandle{sock, DefaultClientConfig, 1}
 
-			res := &TunnelResponse{1, 0, 0}
+			res := &TunnelRes{1, 0, 0}
 			err := conn.handleTunnelResponse(ctx, res, ack)
 			if err != nil {
 				t.Fatal(err)

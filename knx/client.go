@@ -25,9 +25,9 @@ type ClientConfig struct {
 
 // Default configuration elements
 var (
-	defaultResendInterval    = 500 * time.Millisecond
-	defaultHeartbeatDelay    = 10 * time.Second
-	defaultHeartbeatTimeout  = 10 * time.Second
+	defaultResendInterval   = 500 * time.Millisecond
+	defaultHeartbeatDelay   = 10 * time.Second
+	defaultHeartbeatTimeout = 10 * time.Second
 
 	DefaultClientConfig = ClientConfig{
 		defaultResendInterval,
@@ -123,7 +123,7 @@ func (conn *connHandle) requestConnectionState(
 	ctx       context.Context,
 	heartbeat <-chan ConnState,
 ) error {
-	req := &ConnectionStateRequest{conn.channel, 0, HostInfo{}}
+	req := &ConnStateReq{conn.channel, 0, HostInfo{}}
 
 	// Send first connection state request
 	err := conn.sock.Send(req)
@@ -169,9 +169,9 @@ func (conn *connHandle) requestTunnel(
 	ctx       context.Context,
 	seqNumber uint8,
 	data      []byte,
-	ack       <-chan *TunnelResponse,
+	ack       <-chan *TunnelRes,
 ) error {
-	req := &TunnelRequest{conn.channel, seqNumber, data}
+	req := &TunnelReq{conn.channel, seqNumber, data}
 
 	// Send initial request.
 	err := conn.sock.Send(req)
@@ -243,7 +243,7 @@ func (conn *connHandle) performHeartbeat(
 // handleDisconnectRequest validates the request.
 func (conn *connHandle) handleDisconnectRequest(
 	ctx context.Context,
-	req *DisconnectRequest,
+	req *DiscReq,
 ) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
@@ -251,7 +251,7 @@ func (conn *connHandle) handleDisconnectRequest(
 	}
 
 	// We don't need to check if this errors or not. It doesn't matter.
-	conn.sock.Send(&DisconnectResponse{req.Channel, 0})
+	conn.sock.Send(&DiscRes{req.Channel, 0})
 
 	return nil
 }
@@ -259,7 +259,7 @@ func (conn *connHandle) handleDisconnectRequest(
 // handleDisconnectResponse validates the response.
 func (conn *connHandle) handleDisconnectResponse(
 	ctx context.Context,
-	res *DisconnectResponse,
+	res *DiscRes,
 ) error {
 	// Validate the response channel.
 	if res.Channel != conn.channel {
@@ -273,7 +273,7 @@ func (conn *connHandle) handleDisconnectResponse(
 // request for the gateway.
 func (conn *connHandle) handleTunnelRequest(
 	ctx       context.Context,
-	req       *TunnelRequest,
+	req       *TunnelReq,
 	seqNumber *uint8,
 	inbound   chan<- []byte,
 ) error {
@@ -296,15 +296,15 @@ func (conn *connHandle) handleTunnelRequest(
 	}
 
 	// Send the acknowledgement.
-	return conn.sock.Send(&TunnelResponse{conn.channel, req.SeqNumber, 0})
+	return conn.sock.Send(&TunnelRes{conn.channel, req.SeqNumber, 0})
 }
 
 // handleTunnelResponse validates the response and relays it to a sender that is awaiting an
 // acknowledgement.
 func (conn *connHandle) handleTunnelResponse(
 	ctx context.Context,
-	res *TunnelResponse,
-	ack chan<- *TunnelResponse,
+	res *TunnelRes,
+	ack chan<- *TunnelRes,
 ) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
@@ -327,7 +327,7 @@ func (conn *connHandle) handleTunnelResponse(
 // there is a waiting one.
 func (conn *connHandle) handleConnectionStateResponse(
 	ctx       context.Context,
-	res       *ConnectionStateResponse,
+	res       *ConnStateRes,
 	heartbeat chan<- ConnState,
 ) error {
 	// Validate the request channel.
@@ -349,9 +349,9 @@ func (conn *connHandle) handleConnectionStateResponse(
 
 // serveInbound processes incoming packets.
 func (conn *connHandle) serveInbound(
-	ctx      context.Context,
-	inbound  chan<- []byte,
-	ack      chan<- *TunnelResponse,
+	ctx     context.Context,
+	inbound chan<- []byte,
+	ack     chan<- *TunnelRes,
 ) error {
 	defer close(ack)
 	defer close(inbound)
@@ -382,47 +382,37 @@ func (conn *connHandle) serveInbound(
 			}
 
 			// Determine what to do with the message.
-			switch msg.(type) {
-			case *DisconnectRequest:
-				req := msg.(*DisconnectRequest)
-
-				err := conn.handleDisconnectRequest(ctx, req)
+			switch msg := msg.(type) {
+			case *DiscReq:
+				err := conn.handleDisconnectRequest(ctx, msg)
 				if err == nil {
 					return nil
 				}
 
-				log(conn, "connHandle", "Error while handling disconnect request %v: %v", req, err)
+				log(conn, "connHandle", "Error while handling disconnect request %v: %v", msg, err)
 
-			case *DisconnectResponse:
-				res := msg.(*DisconnectResponse)
-
-				err := conn.handleDisconnectResponse(ctx, res)
+			case *DiscRes:
+				err := conn.handleDisconnectResponse(ctx, msg)
 				if err == nil {
 					return nil
 				}
 
-				log(conn, "connHandle", "Error while handling disconnect response %v: %v", res, err)
+				log(conn, "connHandle", "Error while handling disconnect response %v: %v", msg, err)
 
-			case *TunnelRequest:
-				req := msg.(*TunnelRequest)
-
-				err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)
+			case *TunnelReq:
+				err := conn.handleTunnelRequest(ctx, msg, &seqNumber, inbound)
 				if err != nil {
-					log(conn, "connHandle", "Error while handling tunnel request %v: %v", req, err)
+					log(conn, "connHandle", "Error while handling tunnel request %v: %v", msg, err)
 				}
 
-			case *TunnelResponse:
-				res := msg.(*TunnelResponse)
-
-				err := conn.handleTunnelResponse(ctx, res, ack)
+			case *TunnelRes:
+				err := conn.handleTunnelResponse(ctx, msg, ack)
 				if err != nil {
-					log(conn, "connHandle", "Error while handling tunnel response %v: %v", res, err)
+					log(conn, "connHandle", "Error while handling tunnel response %v: %v", msg, err)
 				}
 
-			case *ConnectionStateResponse:
-				res := msg.(*ConnectionStateResponse)
-
-				err := conn.handleConnectionStateResponse(ctx, res, heartbeat)
+			case *ConnStateRes:
+				err := conn.handleConnectionStateResponse(ctx, msg, heartbeat)
 				if err != nil {
 					log(conn, "connHandle",
 					    "Error while handling connection state response: %v", err)
@@ -441,7 +431,7 @@ type Client struct {
 
 	mu        sync.Mutex
 	seqNumber uint8
-	ack       chan *TunnelResponse
+	ack       chan *TunnelRes
 
 	inbound   chan []byte
 }
@@ -476,7 +466,7 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 		conn,
 		sync.Mutex{},
 		0,
-		make(chan *TunnelResponse),
+		make(chan *TunnelRes),
 		make(chan []byte),
 	}, nil
 }

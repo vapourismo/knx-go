@@ -132,18 +132,18 @@ func readConnectionResponse(r *bytes.Reader) (*ConnectionResponse, error) {
 	return &ConnectionResponse{channel, status, *host}, nil
 }
 
-// A ConnectionStateRequest requests the the connection state from a gateway.
-type ConnectionStateRequest struct {
+// A ConnStateReq requests the the connection state from a gateway.
+type ConnStateReq struct {
 	Channel byte
 	Status  byte
 	Host    HostInfo
 }
 
-func (req ConnectionStateRequest) describe() (ServiceID, int) {
+func (req ConnStateReq) describe() (ServiceID, int) {
 	return ConnStateReqService, 10
 }
 
-func (req ConnectionStateRequest) writeTo(w *bytes.Buffer) error {
+func (req ConnStateReq) writeTo(w *bytes.Buffer) error {
 	err := encoding.WriteSequence(w, req.Channel, req.Status)
 	if err != nil {
 		return err
@@ -188,14 +188,14 @@ func (state ConnState) Error() string {
 	return state.String()
 }
 
-// A ConnectionStateResponse is a response to a ConnectionStateRequest.
-type ConnectionStateResponse struct {
+// A ConnStateRes is a response to a ConnectionStateRequest.
+type ConnStateRes struct {
 	Channel uint8
 	Status  ConnState
 }
 
-func readConnectionStateResponse(r *bytes.Reader) (*ConnectionStateResponse, error) {
-	res := &ConnectionStateResponse{}
+func readConnStateRes(r *bytes.Reader) (*ConnStateRes, error) {
+	res := &ConnStateRes{}
 
 	err := encoding.ReadSequence(r, &res.Channel, &res.Status)
 	if err != nil {
@@ -205,14 +205,14 @@ func readConnectionStateResponse(r *bytes.Reader) (*ConnectionStateResponse, err
 	return res, nil
 }
 
-// A DisconnectRequest requests a connection to be terminated.
-type DisconnectRequest struct {
+// A DiscReq requests a connection to be terminated.
+type DiscReq struct {
 	Channel byte
 	Status  byte
 	Host    HostInfo
 }
 
-func readDisconnectRequest(r *bytes.Reader) (*DisconnectRequest, error) {
+func readDiscReq(r *bytes.Reader) (*DiscReq, error) {
 	var channel, status byte
 
 	err := encoding.ReadSequence(r, &channel, &status)
@@ -225,14 +225,14 @@ func readDisconnectRequest(r *bytes.Reader) (*DisconnectRequest, error) {
 		return nil, err
 	}
 
-	return &DisconnectRequest{channel, status, *host}, nil
+	return &DiscReq{channel, status, *host}, nil
 }
 
-func (req DisconnectRequest) describe() (ServiceID, int) {
+func (req DiscReq) describe() (ServiceID, int) {
 	return DiscReqService, 10
 }
 
-func (req DisconnectRequest) writeTo(w *bytes.Buffer) error {
+func (req DiscReq) writeTo(w *bytes.Buffer) error {
 	err := encoding.WriteSequence(w, req.Channel, req.Status)
 	if err != nil {
 		return err
@@ -241,22 +241,22 @@ func (req DisconnectRequest) writeTo(w *bytes.Buffer) error {
 	return req.Host.writeTo(w)
 }
 
-// A DisconnectResponse is a response to a DisconnectRequest.
-type DisconnectResponse struct {
+// A DiscRes is a response to a DisconnectRequest.
+type DiscRes struct {
 	Channel uint8
 	Status  uint8
 }
 
-func (res DisconnectResponse) describe() (ServiceID, int) {
+func (res DiscRes) describe() (ServiceID, int) {
 	return DiscResService, 2
 }
 
-func (res DisconnectResponse) writeTo(w *bytes.Buffer) error {
+func (res DiscRes) writeTo(w *bytes.Buffer) error {
 	return encoding.WriteSequence(w, res.Channel, res.Status)
 }
 
-func readDisconnectResponse(r *bytes.Reader) (*DisconnectResponse, error) {
-	res := &DisconnectResponse{}
+func readDiscRes(r *bytes.Reader) (*DiscRes, error) {
+	res := &DiscRes{}
 
 	err := encoding.ReadSequence(r, &res.Channel, &res.Status)
 	if err != nil {

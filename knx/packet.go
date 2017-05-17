@@ -105,19 +105,19 @@ func ReadPacket(r *bytes.Reader) (interface{}, error) {
 		return readConnectionResponse(r)
 
 	case ConnStateResService:
-		return readConnectionStateResponse(r)
+		return readConnStateRes(r)
 
 	case TunnelReqService:
-		return readTunnelRequest(r)
+		return readTunnelReq(r)
 
 	case TunnelResService:
-		return readTunnelResponse(r)
+		return readTunnelRes(r)
 
 	case DiscReqService:
-		return readDisconnectRequest(r)
+		return readDiscReq(r)
 
 	case DiscResService:
-		return readDisconnectResponse(r)
+		return readDiscRes(r)
 
 	default:
 		return nil, errors.New("Unknown service")

@@ -60,9 +60,9 @@ type conn struct {
 	channel uint8
 }
 
-// newConn sends a connection request every 500ms through the socket until the provided
-// context gets canceled, or a response is received. A response that renders the gateway as busy
-// will not stop newConn.
+// newConn repeatedly sends a connection request through the socket until the provided context gets
+// canceled, or a response is received. A response that renders the gateway as busy will not stop
+// newConn.
 func newConn(
 	ctx context.Context,
 	sock Socket,

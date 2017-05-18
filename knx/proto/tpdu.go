@@ -64,13 +64,16 @@ func (apci APCI) MakeTPDU(data []byte) []byte {
 	return buffer
 }
 
+// TPDU is the transport-layer protocol data unit.
+type TPDU []byte
+
 // Errors from ExtractAPDU
 var (
 	ErrNoDataPacket = errors.New("Given TPDU is not a data packet")
 )
 
-// ExtractAPDUFromTPDU parses the APDU section of a TPDU, if one exists.
-func ExtractAPDUFromTPDU(tpdu []byte) (APCI, []byte, error) {
+// ExtractAPDU parses the APDU section, if one exists.
+func (tpdu TPDU) ExtractAPDU() (APCI, []byte, error) {
 	if len(tpdu) < 2 {
 		return 0, nil, ErrDataTooShort
 	}
@@ -81,6 +84,8 @@ func ExtractAPDUFromTPDU(tpdu []byte) (APCI, []byte, error) {
 		apci := APCI((tpdu[0] & 3) << 2 | (tpdu[1] >> 6) & 3)
 		data := make([]byte, len(tpdu) - 1)
 		copy(data, tpdu[1:])
+
+		data[0] &= 63
 
 		return apci, data, nil
 	}

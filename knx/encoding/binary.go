@@ -24,3 +24,8 @@ func ReadSequence(r io.Reader, items ...interface{}) error {
 
 	return nil
 }
+
+// UInt16 extracts a uint16 from the given data.
+func UInt16(data []byte) uint16 {
+	return binary.BigEndian.Uint16(data)
+}

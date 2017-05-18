@@ -3,7 +3,6 @@ package proto
 import (
 	"io"
 	"github.com/vapourismo/knx-go/knx/encoding"
-	"bytes"
 )
 
 // A LData is a link-layer data frame.
@@ -16,25 +15,18 @@ type LData struct {
 }
 
 // ReadLData parses the given data in order to extract a LData frame.
-func ReadLData(r io.Reader) (*LData, error) {
-	ldata := &LData{}
-
-	err := encoding.ReadSequence(
-		r, &ldata.Control1, &ldata.Control2, &ldata.Source, &ldata.Destination,
-	)
-	if err != nil {
-		return nil, err
+func ReadLData(ldata []byte) (*LData, error) {
+	if len(ldata) < 7 {
+		return nil, ErrDataTooShort
 	}
 
-	buffer := &bytes.Buffer{}
-	_, err = buffer.ReadFrom(r)
-	if err != nil {
-		return nil, err
-	}
-
-	ldata.TPDU = buffer.Bytes()
-
-	return ldata, nil
+	return &LData{
+		Control1:    ldata[0],
+		Control2:    ldata[1],
+		Source:      encoding.UInt16(ldata[2:]),
+		Destination: encoding.UInt16(ldata[4:]),
+		TPDU:        ldata[6:],
+	}, nil
 }
 
 // WriteTo writes the LData structure to the given Writer.

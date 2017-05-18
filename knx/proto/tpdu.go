@@ -38,6 +38,32 @@ const (
 	Escape                 APCI = 15
 )
 
+// MakeTPDU generates a TPDU that contains an APDU with the given APCI and data. In order to be able
+// to properly format the APDU, the given data must have a certain length.
+//
+// len(data) == 0 indicates no data.
+// len(data) == 1 indicates that only the 6 least significant bits are actual data.
+// len(data) >  1 indicates that everything but the first byte is data.
+//
+func (apci APCI) MakeTPDU(data []byte) []byte {
+	var buffer []byte
+
+	if len(data) > 0 {
+		buffer = make([]byte, len(data) + 1)
+		copy(buffer[1:], data)
+	} else {
+		buffer = make([]byte, 2)
+	}
+
+	buffer[0] |= byte(UnnumberedDataPacket) << 6
+	buffer[0] |= byte(apci >> 2) & 3
+
+	buffer[1] &= 63
+	buffer[1] |= byte(apci & 3) << 6
+
+	return buffer
+}
+
 // Errors from ExtractAPDU
 var (
 	ErrNoDataPacket = errors.New("Given TPDU is not a data packet")
@@ -60,24 +86,4 @@ func ExtractAPDUFromTPDU(tpdu []byte) (APCI, []byte, error) {
 	}
 
 	return 0, nil, ErrNoDataPacket
-}
-
-// GenerateTPDUWithAPDU generates a TPDU with a APDU section.
-func GenerateTPDUWithAPDU(apci APCI, data []byte) []byte {
-	var buffer []byte
-
-	if len(data) > 0 {
-		buffer = make([]byte, len(data) + 1)
-		copy(buffer[1:], data)
-	} else {
-		buffer = make([]byte, 2)
-	}
-
-	buffer[0] |= byte(UnnumberedDataPacket) << 6
-	buffer[0] |= byte(apci >> 2) & 3
-
-	buffer[1] &= 63
-	buffer[1] |= byte(apci & 3) << 6
-
-	return buffer
 }

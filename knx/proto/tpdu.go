@@ -1,16 +1,13 @@
 package proto
 
 import (
-	"bytes"
 	"errors"
-	"io"
-	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
 // A TPCI is the transport-layer protocol control information (TPCI).
 type TPCI uint8
 
-//
+// TPCI values
 const (
 	UnnumberedDataPacket    TPCI = 0
 	NumberedDataPacket      TPCI = 1
@@ -21,7 +18,7 @@ const (
 // An APCI is the application-layer protocol control information (APCI).
 type APCI uint8
 
-//
+// APCI values
 const (
 	GroupValueRead         APCI = 0
 	GroupValueResponse     APCI = 1
@@ -41,94 +38,46 @@ const (
 	Escape                 APCI = 15
 )
 
-// A TPDU is the transport-layer protocol data unit within a L_Data frame.
-type TPDU struct {
-	PacketType TPCI
-	SeqNumber  uint8
-	Control    uint8
-	Info       APCI
-	Data       []byte
-}
-
-// Errors returned from ReadTPDU
+// Errors from ExtractAPDU
 var (
-	ErrDataUnitTooShort = errors.New("Data segment of the TPDU is too short")
+	ErrNoDataPacket = errors.New("Given TPDU is not a data packet")
 )
 
-// ReadFrom parses the given data in order to fill the TPDU struct.
-func (tpdu *TPDU) ReadFrom(r io.Reader) error {
-	var head uint8
-
-	err := encoding.ReadSequence(r, &head)
-	if err != nil {
-		return err
+// ExtractAPDUFromTPDU parses the APDU section of a TPDU, if one exists.
+func ExtractAPDUFromTPDU(tpdu []byte) (APCI, []byte, error) {
+	if len(tpdu) < 2 {
+		return 0, nil, ErrDataTooShort
 	}
 
-	packetType := TPCI((head >> 6) & 3)
-	seqNumber := (head >> 2) & 15
-
+	packetType := TPCI((tpdu[0] >> 6) & 3)
 	switch packetType {
-	case UnnumberedControlPacket, NumberedControlPacket:
-		tpdu.PacketType = packetType
-		tpdu.SeqNumber = seqNumber
-		tpdu.Control = head & 3
-		tpdu.Info = 0
-		tpdu.Data = nil
-
-		return nil
-
 	case UnnumberedDataPacket, NumberedDataPacket:
-		buffer := &bytes.Buffer{}
+		apci := APCI((tpdu[0] & 3) << 2 | (tpdu[1] >> 6) & 3)
+		data := make([]byte, len(tpdu) - 1)
+		copy(data, tpdu[1:])
 
-		// Empty the reader's remaining contents into a buffer.
-		len, err := buffer.ReadFrom(r)
-		if err != nil {
-			return err
-		} else if len < 1 {
-			return ErrDataUnitTooShort
-		}
-
-		data := buffer.Bytes()
-
-		tpdu.PacketType = packetType
-		tpdu.SeqNumber = seqNumber
-		tpdu.Control = 0
-		tpdu.Info = APCI((head & 3) << 2 | (data[0] >> 6) & 3)
-		tpdu.Data = data
-
-		// The first 2 bits of the data contain rest of the APCI, we don't need them anymore.
-		tpdu.Data[0] &= 63
-
-		return nil
+		return apci, data, nil
 	}
 
-	return errors.New("Unreachable")
+	return 0, nil, ErrNoDataPacket
 }
 
-// WriteTo writes the TPDU structure to the given Writer.
-func (tpdu *TPDU) WriteTo(w io.Writer) error {
-	headMask := byte(tpdu.PacketType & 3) << 6 | byte(tpdu.SeqNumber & 15) << 2
+// GenerateTPDUWithAPDU generates a TPDU with a APDU section.
+func GenerateTPDUWithAPDU(apci APCI, data []byte) []byte {
+	var buffer []byte
 
-	switch tpdu.PacketType & 3 {
-	case UnnumberedControlPacket, NumberedControlPacket:
-		_, err := w.Write([]byte{headMask | byte(tpdu.Control & 3)})
-		return err
-
-	case UnnumberedDataPacket, NumberedDataPacket:
-		data := make([]byte, 1, 2)
-		if len(tpdu.Data) > 0 {
-			data = append(data, tpdu.Data...)
-		} else {
-			data = append(data, 0)
-		}
-
-		data[0] |= headMask | byte((tpdu.Info >> 2) & 3)
-		data[1] &= 63
-		data[1] |= byte(tpdu.Info & 3) << 6
-
-		_, err := w.Write(data)
-		return err
+	if len(data) > 0 {
+		buffer = make([]byte, len(data) + 1)
+		copy(buffer[1:], data)
+	} else {
+		buffer = make([]byte, 2)
 	}
 
-	return errors.New("Unreachable")
+	buffer[0] |= byte(UnnumberedDataPacket) << 6
+	buffer[0] |= byte(apci >> 2) & 3
+
+	buffer[1] &= 63
+	buffer[1] |= byte(apci & 3) << 6
+
+	return buffer
 }

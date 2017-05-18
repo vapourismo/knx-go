@@ -16,8 +16,14 @@ type LData struct {
 
 // ReadLData parses the given data in order to extract a LData frame.
 func ReadLData(ldata []byte) (*LData, error) {
-	if len(ldata) < 7 {
+	if len(ldata) < 8 {
 		return nil, ErrDataTooShort
+	}
+
+	tpduLen := int(ldata[6])
+
+	if tpduLen > len(ldata) - 8 {
+		return nil, ErrDataIncomplete
 	}
 
 	return &LData{
@@ -25,7 +31,7 @@ func ReadLData(ldata []byte) (*LData, error) {
 		Control2:    ldata[1],
 		Source:      encoding.UInt16(ldata[2:]),
 		Destination: encoding.UInt16(ldata[4:]),
-		TPDU:        ldata[6:],
+		TPDU:        ldata[7:8 + tpduLen],
 	}, nil
 }
 

@@ -45,7 +45,7 @@ func ReadCEMI(cemi []byte) (*CEMI, error) {
 	code := MessageCode(cemi[0])
 	infoLen := int(cemi[1])
 
-	if infoLen < len(cemi) - 2 {
+	if infoLen > len(cemi) - 2 {
 		return nil, ErrDataIncomplete
 	}
 
@@ -75,8 +75,8 @@ func (cemi *CEMI) WriteTo(w io.Writer) error {
 		infoLen = 255
 		info = cemi.Info[:256]
 	} else {
-		info = cemi.Info
 		infoLen = uint8(len(info))
+		info = cemi.Info
 	}
 
 	err := encoding.WriteSequence(w, cemi.Code, infoLen, info)

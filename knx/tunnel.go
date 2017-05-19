@@ -46,7 +46,8 @@ func (req TunnelReq) describe() (ServiceID, int) {
 }
 
 func (req TunnelReq) writeTo(w *bytes.Buffer) error {
-	return encoding.WriteSequence(w, byte(4), req.Channel, req.SeqNumber, byte(0), req.Payload)
+	_, err := encoding.WriteSequence(w, byte(4), req.Channel, req.SeqNumber, byte(0), req.Payload)
+	return err
 }
 
 // A TunnelRes is a response to a TunnelRequest.
@@ -76,5 +77,6 @@ func (res TunnelRes) describe() (ServiceID, int) {
 }
 
 func (res TunnelRes) writeTo(w *bytes.Buffer) error {
-	return encoding.WriteSequence(w, byte(4), res.Channel, res.SeqNumber, res.Status)
+	_, err := encoding.WriteSequence(w, byte(4), res.Channel, res.SeqNumber, res.Status)
+	return err
 }

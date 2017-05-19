@@ -26,7 +26,10 @@ func writePacketHeader(w *bytes.Buffer, service ServiceID, payloadLength int) er
 		return errors.New("Payload length is out of bounds")
 	}
 
-	return encoding.WriteSequence(w, byte(6), byte(16), uint16(service), uint16(payloadLength + 6))
+	_, err := encoding.WriteSequence(
+		w, byte(6), byte(16), uint16(service), uint16(payloadLength + 6),
+	)
+	return err
 }
 
 func readPacketHeader(r *bytes.Reader, service *ServiceID, payloadLength *int) error {

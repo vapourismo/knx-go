@@ -17,16 +17,16 @@ const (
 
 // Segment is a protocol segment.
 type Segment interface {
-	WriteTo(w io.Writer) error
+	io.WriterTo
 }
 
 // A UnsupportedMessage is the raw representation of a CEMI message body.
 type UnsupportedMessage []byte
 
 // WriteTo writes the contents to a Writer.
-func (data UnsupportedMessage) WriteTo(w io.Writer) error {
-	_, err := w.Write(data)
-	return err
+func (data UnsupportedMessage) WriteTo(w io.Writer) (int64, error) {
+	len, err := w.Write(data)
+	return int64(len), err
 }
 
 // CEMI is a common external message interface.
@@ -67,7 +67,7 @@ func ReadCEMI(cemi []byte) (*CEMI, error) {
 }
 
 // WriteTo writes the CEMI frame to the Writer.
-func (cemi *CEMI) WriteTo(w io.Writer) error {
+func (cemi *CEMI) WriteTo(w io.Writer) (int64, error) {
 	var infoLen uint8
 	var info []byte
 
@@ -79,10 +79,5 @@ func (cemi *CEMI) WriteTo(w io.Writer) error {
 		info = cemi.Info
 	}
 
-	err := encoding.WriteSequence(w, cemi.Code, infoLen, info)
-	if err != nil {
-		return err
-	}
-
-	return cemi.Body.WriteTo(w)
+	return encoding.WriteSequence(w, cemi.Code, infoLen, info, cemi.Body)
 }

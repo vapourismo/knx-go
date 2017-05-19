@@ -22,7 +22,8 @@ type HostInfo struct {
 var hostInfoPreamble = [2]byte{8, 1}
 
 func (info HostInfo) writeTo(w *bytes.Buffer) error {
-	return encoding.WriteSequence(w, hostInfoPreamble, info)
+	_, err := encoding.WriteSequence(w, hostInfoPreamble, info)
+	return err
 }
 
 func readHostInfo(r *bytes.Reader) (*HostInfo, error) {
@@ -144,7 +145,7 @@ func (req ConnStateReq) describe() (ServiceID, int) {
 }
 
 func (req ConnStateReq) writeTo(w *bytes.Buffer) error {
-	err := encoding.WriteSequence(w, req.Channel, req.Status)
+	_, err := encoding.WriteSequence(w, req.Channel, req.Status)
 	if err != nil {
 		return err
 	}
@@ -233,7 +234,7 @@ func (req DiscReq) describe() (ServiceID, int) {
 }
 
 func (req DiscReq) writeTo(w *bytes.Buffer) error {
-	err := encoding.WriteSequence(w, req.Channel, req.Status)
+	_, err := encoding.WriteSequence(w, req.Channel, req.Status)
 	if err != nil {
 		return err
 	}
@@ -252,7 +253,8 @@ func (res DiscRes) describe() (ServiceID, int) {
 }
 
 func (res DiscRes) writeTo(w *bytes.Buffer) error {
-	return encoding.WriteSequence(w, res.Channel, res.Status)
+	_, err := encoding.WriteSequence(w, res.Channel, res.Status)
+	return err
 }
 
 func readDiscRes(r *bytes.Reader) (*DiscRes, error) {

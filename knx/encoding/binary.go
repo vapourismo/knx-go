@@ -69,7 +69,8 @@ var (
 )
 
 func writeItem(w io.Writer, item interface{}) (int64, error) {
-	buffer := make([]byte, 8)
+	arr := [8]byte{}
+	buffer := arr[:]
 
 	switch item := item.(type) {
 	case uint8:  return writeUint8(w, buffer, item)

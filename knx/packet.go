@@ -12,13 +12,13 @@ type ServiceID uint16
 // KNXnet/IP services
 const (
 	ConnReqService      ServiceID = 0x0205
-	ConnResService                = 0x0206
-	ConnStateReqService           = 0x0207
-	ConnStateResService           = 0x0208
-	DiscReqService                = 0x0209
-	DiscResService                = 0x020a
-	TunnelReqService              = 0x0420
-	TunnelResService              = 0x0421
+	ConnResService      ServiceID = 0x0206
+	ConnStateReqService ServiceID = 0x0207
+	ConnStateResService ServiceID = 0x0208
+	DiscReqService      ServiceID = 0x0209
+	DiscResService      ServiceID = 0x020a
+	TunnelReqService    ServiceID = 0x0420
+	TunnelResService    ServiceID = 0x0421
 )
 
 func writePacketHeader(w *bytes.Buffer, service ServiceID, payloadLength int) error {
@@ -26,7 +26,7 @@ func writePacketHeader(w *bytes.Buffer, service ServiceID, payloadLength int) er
 		return errors.New("Payload length is out of bounds")
 	}
 
-	return encoding.WriteSequence(w, byte(6), byte(16), uint16(service), uint16(payloadLength+6))
+	return encoding.WriteSequence(w, byte(6), byte(16), uint16(service), uint16(payloadLength + 6))
 }
 
 func readPacketHeader(r *bytes.Reader, service *ServiceID, payloadLength *int) error {

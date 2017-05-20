@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-// A TPCI is the transport-layer protocol control information (TPCI).
+// A TPCI is the Transport-layer Protocol Control Information.
 type TPCI uint8
 
 // TPCI values
@@ -15,37 +15,47 @@ const (
 	NumberedControlPacket   TPCI = 3
 )
 
-// An APCI is the application-layer protocol control information (APCI).
+// APCI is the Application-layer Protocol Control Information.
 type APCI uint8
 
-// APCI values
+// These are usable APCI values.
 const (
 	GroupValueRead         APCI = 0
 	GroupValueResponse     APCI = 1
 	GroupValueWrite        APCI = 2
+
 	IndividualAddrWrite    APCI = 3
 	IndividualAddrRequest  APCI = 4
 	IndividualAddrResponse APCI = 5
+
 	AdcRead                APCI = 6
 	AdcResponse            APCI = 7
+
 	MemoryRead             APCI = 8
 	MemoryResponse         APCI = 9
 	MemoryWrite            APCI = 10
+
 	UserMessage            APCI = 11
+
 	MaskVersionRead        APCI = 12
 	MaskVersionResponse    APCI = 13
+
 	Restart                APCI = 14
+
 	Escape                 APCI = 15
 )
+
+// TPDU is the Transport-layer Protocol Data Unit.
+type TPDU []byte
 
 // MakeTPDU generates a TPDU that contains an APDU with the given APCI and data. In order to be able
 // to properly format the APDU, the given data must have a certain length.
 //
-// len(data) == 0 indicates no data.
-// len(data) == 1 indicates that only the 6 least significant bits are actual data.
-// len(data) >  1 indicates that everything but the first byte is data.
+// If len(data) > 0, then you must not utilize the 2 most significant bits of the first byte. They
+// will be utilized to store part of the APCI.
 //
-func (apci APCI) MakeTPDU(data []byte) []byte {
+// Why? Because KNX.
+func MakeTPDU(apci APCI, data []byte) TPDU {
 	var buffer []byte
 
 	if len(data) > 0 {
@@ -61,15 +71,13 @@ func (apci APCI) MakeTPDU(data []byte) []byte {
 	buffer[1] &= 63
 	buffer[1] |= byte(apci & 3) << 6
 
-	return buffer
+	return TPDU(buffer)
 }
 
-// TPDU is the transport-layer protocol data unit.
-type TPDU []byte
-
-// Errors from ExtractAPDU
+// These are errors than can occur when processing the TPDU.
 var (
-	ErrNoDataPacket = errors.New("Given TPDU is not a data packet")
+	ErrDataTooShort = errors.New("TPDU is too short")
+	ErrNoDataPacket = errors.New("TPCI does not indicate a data packet")
 )
 
 // ExtractAPDU parses the APDU section, if one exists.

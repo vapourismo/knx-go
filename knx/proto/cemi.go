@@ -6,7 +6,7 @@ import (
 	"bytes"
 )
 
-// MessageCode identifies the message body of a CEMI frame.
+// MessageCode is used to identify the contents of a CEMI frame.
 type MessageCode uint8
 
 // Supported message codes
@@ -21,23 +21,23 @@ type Segment interface {
 	io.WriterTo
 }
 
-// A UnsupportedMessage is the raw representation of a CEMI message body.
+// An UnsupportedMessage is the raw representation of a CEMI message body.
 type UnsupportedMessage []byte
 
-// WriteTo writes the contents to a Writer.
+// WriteTo serializes the message and writes it to the given Writer.
 func (data UnsupportedMessage) WriteTo(w io.Writer) (int64, error) {
 	len, err := w.Write(data)
 	return int64(len), err
 }
 
-// CEMI is a common external message interface.
+// CEMI is the Common External Message Interface.
 type CEMI struct {
 	Code MessageCode
 	Info []byte
 	Body Segment
 }
 
-// ReadFrom initializes the structure using the given Reader.
+// ReadFrom initializes the structure by reading from the given Reader.
 func (cemi *CEMI) ReadFrom(r io.Reader) (n int64, err error) {
 	var infoLen uint8
 	n, err = encoding.ReadSome(r, &cemi.Code, &infoLen)
@@ -82,7 +82,7 @@ func (cemi *CEMI) ReadFrom(r io.Reader) (n int64, err error) {
 	}
 }
 
-// WriteTo writes the CEMI frame to the Writer.
+// WriteTo serializes the CEMI frame and writes it to the given Writer.
 func (cemi *CEMI) WriteTo(w io.Writer) (int64, error) {
 	var infoLen uint8
 	var info []byte

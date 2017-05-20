@@ -15,7 +15,7 @@ type LData struct {
 	Data        TPDU
 }
 
-// ReadFrom initializes the LData structure using the given data.
+// ReadFrom initializes the LData structure by reading from the given Reader.
 func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
 	var tpduLen8 uint8
 	len, err := encoding.ReadSome(
@@ -45,7 +45,7 @@ func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
 	return
 }
 
-// WriteTo writes the LData structure to the given Writer.
+// WriteTo serializes the LData structure and writes it to the given Writer.
 func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 	if len(ldata.Data) < 1 {
 		return 0, errors.New("TPDU length has be 1 or more")

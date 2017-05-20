@@ -117,6 +117,8 @@ func TestRead(t *testing.T) {
 		t.Run(fmt.Sprintf("%T", c.value), func (t *testing.T) {
 			typ := reflect.TypeOf(c.value)
 
+			r := bytes.NewReader(c.input)
+
 			var n int64
 			var err error
 			var res interface{}
@@ -125,11 +127,11 @@ func TestRead(t *testing.T) {
 				sliceLen := reflect.ValueOf(c.value).Len()
 
 				res = reflect.MakeSlice(typ, sliceLen, sliceLen).Interface()
-				n, err = Read(c.input, res)
+				n, err = Read(r, res)
 			} else {
 				ptr := reflect.New(typ)
 
-				n, err = Read(c.input, ptr.Interface())
+				n, err = Read(r, ptr.Interface())
 				res = reflect.Indirect(ptr).Interface()
 			}
 

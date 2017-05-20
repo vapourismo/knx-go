@@ -15,25 +15,34 @@ type LData struct {
 	Data        TPDU
 }
 
-// ReadLData parses the given data in order to extract a LData frame.
-func ReadLData(ldata []byte) (*LData, error) {
-	if len(ldata) < 8 {
-		return nil, ErrDataTooShort
+// ReadFrom initializes the LData structure using the given data.
+func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
+	var tpduLen8 uint8
+	len, err := encoding.ReadSome(
+		r,
+		&ldata.Control1,
+		&ldata.Control2,
+		&ldata.Source,
+		&ldata.Destination,
+		&tpduLen8,
+	)
+	n += len
+
+	if err != nil {
+		return n, err
 	}
 
-	tpduLen := int(ldata[6])
+	tpdu := make([]byte, int(tpduLen8) + 1)
+	len, err = encoding.Read(r, tpdu)
+	n += len
 
-	if tpduLen > len(ldata) - 8 {
-		return nil, ErrDataIncomplete
+	if err != nil {
+		return n, err
 	}
 
-	return &LData{
-		Control1:    ldata[0],
-		Control2:    ldata[1],
-		Source:      encoding.UInt16(ldata[2:]),
-		Destination: encoding.UInt16(ldata[4:]),
-		Data:        TPDU(ldata[7:8 + tpduLen]),
-	}, nil
+	ldata.Data = TPDU(tpdu)
+
+	return
 }
 
 // WriteTo writes the LData structure to the given Writer.
@@ -44,8 +53,13 @@ func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 		return 0, errors.New("TPDU is too large")
 	}
 
-	return encoding.WriteSequence(
-		w, ldata.Control1, ldata.Control2, ldata.Source, ldata.Destination,
-		byte(len(ldata.Data) - 1), ldata.Data,
+	return encoding.WriteSome(
+		w,
+		ldata.Control1,
+		ldata.Control2,
+		ldata.Source,
+		ldata.Destination,
+		byte(len(ldata.Data) - 1),
+		ldata.Data,
 	)
 }

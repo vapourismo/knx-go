@@ -3,6 +3,7 @@ package proto
 import (
 	"io"
 	"github.com/vapourismo/knx-go/knx/encoding"
+	"bytes"
 )
 
 // MessageCode identifies the message body of a CEMI frame.
@@ -36,33 +37,48 @@ type CEMI struct {
 	Body Segment
 }
 
-// ReadCEMI extract a CEMI frame from the given data.
-func ReadCEMI(cemi []byte) (*CEMI, error) {
-	if len(cemi) < 2 {
-		return nil, ErrDataTooShort
+// ReadFrom initializes the structure using the given Reader.
+func (cemi *CEMI) ReadFrom(r io.Reader) (n int64, err error) {
+	var infoLen uint8
+	n, err = encoding.ReadSome(r, &cemi.Code, &infoLen)
+	if err != nil {
+		return
 	}
 
-	code := MessageCode(cemi[0])
-	infoLen := int(cemi[1])
+	cemi.Info = make([]byte, int(infoLen))
+	len, err := encoding.Read(r, cemi.Info)
+	n += len
 
-	if infoLen > len(cemi) - 2 {
-		return nil, ErrDataIncomplete
+	if err != nil {
+		return n, err
 	}
 
-	info := cemi[2:2 + infoLen]
-	data := cemi[2 + infoLen:]
-
-	switch code {
+	switch cemi.Code {
 	case LDataReq, LDataInd, LDataCon:
-		body, err := ReadLData(data)
+		ldata := &LData{}
+		len, err = ldata.ReadFrom(r)
+		n += len
+
 		if err != nil {
-			return nil, err
+			return n, err
 		}
 
-		return &CEMI{code, info, body}, nil
+		cemi.Body = ldata
+
+		return
 
 	default:
-		return &CEMI{code, info, UnsupportedMessage(data)}, nil
+		buffer := bytes.Buffer{}
+		len, err = buffer.ReadFrom(r)
+		n += len
+
+		if err != nil {
+			return n, err
+		}
+
+		cemi.Body = UnsupportedMessage(buffer.Bytes())
+
+		return
 	}
 }
 
@@ -79,5 +95,5 @@ func (cemi *CEMI) WriteTo(w io.Writer) (int64, error) {
 		info = cemi.Info
 	}
 
-	return encoding.WriteSequence(w, cemi.Code, infoLen, info, cemi.Body)
+	return encoding.WriteSome(w, cemi.Code, infoLen, info, cemi.Body)
 }

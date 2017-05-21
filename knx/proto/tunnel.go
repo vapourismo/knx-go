@@ -19,6 +19,11 @@ type TunnelReq struct {
 	Payload cemi.CEMI
 }
 
+// Service returns the service identifiers for tunnel requests.
+func (TunnelReq) Service() ServiceID {
+	return TunnelReqService
+}
+
 // ReadFrom initializes the structure by reading from the given Reader.
 func (req *TunnelReq) ReadFrom(r io.Reader) (n int64, err error) {
 	var length, reserved uint8
@@ -50,6 +55,11 @@ type TunnelRes struct {
 
 	// Status code, determines whether the tunneling succeeded or not
 	Status uint8
+}
+
+// Service returns the service identifier for tunnel responses.
+func (TunnelRes) Service() ServiceID {
+	return TunnelResService
 }
 
 // ReadFrom initializes the structure by reading from the given Reader.

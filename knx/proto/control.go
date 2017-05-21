@@ -12,6 +12,11 @@ type ConnReq struct {
 	Tunnel  HostInfo
 }
 
+// Service returns the service identifier for connection requests.
+func (ConnReq) Service() ServiceID {
+	return ConnReqService
+}
+
 var connReqInfo = [4]byte{4, 4, 2, 0}
 
 // WriteTo serializes the structure and writes it to the given Writer.
@@ -62,6 +67,11 @@ type ConnRes struct {
 	Control HostInfo
 }
 
+// Service returns the service identifier for connection responses.
+func (ConnRes) Service() ServiceID {
+	return ConnResService
+}
+
 // ReadFrom initializes the structure by reading from the given Reader.
 func (res *ConnRes) ReadFrom(r io.Reader) (int64, error) {
 	return encoding.ReadSome(r, &res.Channel, &res.Status, &res.Control)
@@ -72,6 +82,11 @@ type ConnStateReq struct {
 	Channel uint8
 	Status  uint8
 	Control HostInfo
+}
+
+// Service returns the service identifier for connection state requests.
+func (ConnStateReq) Service() ServiceID {
+	return ConnStateReqService
 }
 
 // ReadFrom initializes the structure by reading from the given Reader.
@@ -98,20 +113,20 @@ const (
 // String converts the connection state to a string.
 func (state ConnState) String() string {
 	switch state {
-	case ConnStateNormal:
-		return "Connection is intact"
+		case ConnStateNormal:
+			return "Connection is intact"
 
-	case ConnStateInactive:
-		return "Connection is inactive"
+		case ConnStateInactive:
+			return "Connection is inactive"
 
-	case ConnStateDataError:
-		return "Gateway encountered a data error"
+		case ConnStateDataError:
+			return "Gateway encountered a data error"
 
-	case ConnStateKNXError:
-		return "Gateway encountered a KNX error"
+		case ConnStateKNXError:
+			return "Gateway encountered a KNX error"
 
-	default:
-		return fmt.Sprintf("Unknown connection state %#x", uint8(state))
+		default:
+			return fmt.Sprintf("Unknown connection state %#x", uint8(state))
 	}
 }
 
@@ -124,6 +139,11 @@ func (state ConnState) Error() string {
 type ConnStateRes struct {
 	Channel uint8
 	Status  ConnState
+}
+
+// Service returns the service identifier for connection state responses.
+func (ConnStateRes) Service() ServiceID {
+	return ConnStateResService
 }
 
 // ReadFrom initializes the structure by reading from the given Reader.
@@ -143,6 +163,11 @@ type DiscReq struct {
 	Control HostInfo
 }
 
+// Service returns the service identifier for disconnect requests.
+func (DiscReq) Service() ServiceID {
+	return DiscReqService
+}
+
 // ReadFrom initializes the structure by reading from the given Reader.
 func (req *DiscReq) ReadFrom(r io.Reader) (int64, error) {
 	return encoding.ReadSome(r, &req.Channel, &req.Status, &req.Control)
@@ -157,6 +182,11 @@ func (req *DiscReq) WriteTo(w io.Writer) (int64, error) {
 type DiscRes struct {
 	Channel uint8
 	Status  uint8
+}
+
+// Service returns the service identifier for disconnect responses.
+func (DiscRes) Service() ServiceID {
+	return DiscResService
 }
 
 // ReadFrom initializes the structure by reading from the given Reader.

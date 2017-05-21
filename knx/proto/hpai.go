@@ -19,8 +19,6 @@ type HostInfo struct {
 	Port    Port
 }
 
-var hostInfoPreamble = [2]byte{8, 1}
-
 // ReadFrom initializes the structure by reading from the given Reader.
 func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
 	var length, proto uint8
@@ -42,5 +40,5 @@ func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (info *HostInfo) WriteTo(w *bytes.Buffer) (int64, error) {
-	return encoding.WriteSome(w, hostInfoPreamble, info.Address, info.Port)
+	return encoding.WriteSome(w, byte(8), byte(1), info.Address, info.Port)
 }

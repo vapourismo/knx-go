@@ -60,6 +60,27 @@ type serviceReaderFrom interface {
 }
 
 // Unpack parses a KNXnet/IP packet and retrieves its service payload.
+//
+// On success, the variable pointed to by srv will contain a pointer to a service type.
+// You can cast it to the matching against service type, like so:
+//
+// 	var srv Service
+//
+// 	_, err := Unpack(r, &srv)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+//
+// 	switch srv := srv.(type) {
+// 		case *ConnRes:
+// 			// ...
+//
+// 		case *TunnelReq:
+// 			// ...
+//
+// 		// ...
+// 	}
+//
 func Unpack(r io.Reader, srv *Service) (int64, error) {
 	var headerLen, version uint8
 	var srvID ServiceID

@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"github.com/vapourismo/knx-go/knx/encoding"
@@ -16,7 +17,7 @@ var connReqInfo = [4]byte{4, 4, 2, 0}
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (req *ConnReq) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, req.Control, req.Tunnel, connReqInfo)
+	return encoding.WriteSome(w, &req.Control, &req.Tunnel, connReqInfo)
 }
 
 // ConnResStatus is the type of status code carried in a connection response.

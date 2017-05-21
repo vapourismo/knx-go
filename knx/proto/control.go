@@ -1,7 +1,6 @@
 package proto
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"github.com/vapourismo/knx-go/knx/encoding"
@@ -75,6 +74,11 @@ type ConnStateReq struct {
 	Control HostInfo
 }
 
+// ReadFrom initializes the structure by reading from the given Reader.
+func (req *ConnStateReq) ReadFrom(r io.Reader) (int64, error) {
+	return encoding.ReadSome(r, &req.Channel, &req.Status, &req.Control)
+}
+
 // WriteTo serializes the structure and writes it to the given Writer.
 func (req *ConnStateReq) WriteTo(w io.Writer) (int64, error) {
 	return encoding.WriteSome(w, req.Channel, req.Status, &req.Control)
@@ -125,6 +129,11 @@ type ConnStateRes struct {
 // ReadFrom initializes the structure by reading from the given Reader.
 func (res *ConnStateRes) ReadFrom(r io.Reader) (int64, error) {
 	return encoding.ReadSome(r, &res.Channel, &res.Status)
+}
+
+// WriteTo serializes the structure and writes it to the given Writer.
+func (res *ConnStateRes) WriteTo(w io.Writer) (int64, error) {
+	return encoding.WriteSome(w, res.Channel, res.Status)
 }
 
 // A DiscReq requests a connection to be terminated.

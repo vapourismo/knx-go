@@ -37,7 +37,7 @@ func (req *TunnelReq) ReadFrom(r io.Reader) (n int64, err error) {
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (req *TunnelReq) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, byte(4), req.Channel, req.SeqNumber, byte(0), req.Payload)
+	return encoding.WriteSome(w, byte(4), req.Channel, req.SeqNumber, byte(0), &req.Payload)
 }
 
 // A TunnelRes is a response to a TunnelRequest. It acts as an acknowledgement.

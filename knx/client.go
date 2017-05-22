@@ -39,7 +39,11 @@ var (
 )
 
 // checkClientConfig makes sure that the configuration is actually usable.
-func checkClientConfig(config ClientConfig) ClientConfig {
+func checkClientConfig(config *ClientConfig) *ClientConfig {
+	if config == nil {
+		return &DefaultClientConfig
+	}
+
 	if config.ResendInterval <= 0 {
 		config.ResendInterval = defaultResendInterval
 	}
@@ -66,9 +70,9 @@ type conn struct {
 // canceled, or a response is received. A response that renders the gateway as busy will not stop
 // newConn.
 func newConn(
-	ctx context.Context,
-	sock Socket,
-	config ClientConfig,
+	ctx       context.Context,
+	sock      Socket,
+	configPtr *ClientConfig,
 ) (*conn, error) {
 	req := &proto.ConnReq{}
 
@@ -77,6 +81,8 @@ func newConn(
 	if err != nil {
 		return nil, err
 	}
+
+	config := checkClientConfig(configPtr)
 
 	// Create a resend timer.
 	ticker := time.NewTicker(config.ResendInterval)
@@ -107,7 +113,7 @@ func newConn(
 				switch res.Status {
 				// Conection has been established.
 				case proto.ConnResOk:
-					return &conn{sock, config, res.Channel}, nil
+					return &conn{sock, *config, res.Channel}, nil
 
 				// The gateway is busy, but we don't stop yet.
 				case proto.ConnResBusy:
@@ -441,8 +447,10 @@ type Client struct {
 	inbound   chan *cemi.CEMI
 }
 
-// Connect establishes a connection with a gateway.
-func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
+// Connect establishes a connection with a gateway. You may pass nil as config. Alternatively, you
+// can pass a pointer to a zero initialized ClientConfig; the function will take care of filling in
+// the default values.
+func Connect(gatewayAddr string, config *ClientConfig) (*Client, error) {
 	// Create socket which will be used for communication.
 	sock, err := NewClientSocket(gatewayAddr)
 	if err != nil {

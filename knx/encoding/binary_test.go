@@ -2,14 +2,23 @@ package encoding
 
 import (
 	"bytes"
-	"testing"
+	"errors"
 	"fmt"
 	"reflect"
+	"testing"
 )
 
 type writeCase struct {
 	value interface{}
 	result []byte
+}
+
+type badWriter struct{}
+
+var errBadWrite = errors.New("Bad write")
+
+func (badWriter) Write([]byte) (int, error) {
+	return 0, errBadWrite
 }
 
 func TestWrite(t *testing.T) {
@@ -56,9 +65,9 @@ func TestWrite(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		t.Run(fmt.Sprintf("%T", c.value), func (t *testing.T) {
-			buffer := &bytes.Buffer{}
-			n, err := Write(buffer, c.value)
+		t.Run(fmt.Sprintf("Types/%T", c.value), func (t *testing.T) {
+			buffer := bytes.Buffer{}
+			n, err := Write(&buffer, c.value)
 
 			if err != nil {
 				t.Fatal(err)
@@ -73,11 +82,89 @@ func TestWrite(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("WriterTo", func (t *testing.T) {
+		source := bytes.Buffer{}
+		n, err := source.WriteString("Hello World")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		sourceData := source.Bytes()
+
+		target := bytes.Buffer{}
+		m, err := Write(&target, &source)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if int64(n) != m {
+			t.Errorf("Written length (%d) does not match the read length (%d)", m, n)
+		}
+
+		if !bytes.Equal(sourceData, target.Bytes()) {
+			t.Errorf(
+				"Written contents (%v) do not match read contents (%v)",
+				sourceData, target.Bytes(),
+			)
+		}
+	})
+
+	t.Run("BadWriter", func (t *testing.T) {
+		len, err := Write(badWriter{}, uint8(42))
+
+		if err != errBadWrite {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		if len != 0 {
+			t.Errorf("Unexpected length: %d", len)
+		}
+	})
+}
+
+func TestWriteSome(t *testing.T) {
+	t.Run("Ok", func (t *testing.T) {
+		buffer := bytes.Buffer{}
+
+		len, err := WriteSome(&buffer, uint16(0x1337), uint8(0x42))
+		if err != nil {
+			t.Fatal("Unexpected error: %v", err)
+		}
+
+		if len != 3 {
+			t.Fatalf("Unexpected length: ", len)
+		}
+
+		cmp := []byte{0x13, 0x37, 0x42}
+		if !bytes.Equal(buffer.Bytes(), cmp) {
+			t.Fatalf("Written data mismatches expectations: %v != %v", buffer.Bytes(), cmp)
+		}
+	})
+
+	t.Run("BadWriter", func (t *testing.T) {
+		len, err := WriteSome(badWriter{}, uint16(0x1337), uint8(0x42))
+		if err != errBadWrite {
+			t.Fatal("Unexpected error: %v", err)
+		}
+
+		if len != 0 {
+			t.Fatalf("Unexpected length: ", len)
+		}
+	})
 }
 
 type readCase struct {
 	value interface{}
 	input []byte
+}
+
+type badReader struct {}
+
+var errBadRead = errors.New("Bad read")
+
+func (badReader) Read([]byte) (int, error) {
+	return 0, errBadRead
 }
 
 func TestRead(t *testing.T) {
@@ -114,7 +201,7 @@ func TestRead(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		t.Run(fmt.Sprintf("%T", c.value), func (t *testing.T) {
+		t.Run(fmt.Sprintf("Types/%T", c.value), func (t *testing.T) {
 			typ := reflect.TypeOf(c.value)
 
 			r := bytes.NewReader(c.input)
@@ -148,4 +235,86 @@ func TestRead(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("ReaderFrom", func (t *testing.T) {
+		source := bytes.Buffer{}
+		n, err := source.WriteString("Hello World")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		sourceData := source.Bytes()
+
+		target := bytes.Buffer{}
+		m, err := Read(&source, &target)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if int64(n) != m {
+			t.Errorf("Read length (%d) does not match the written length (%d)", m, n)
+		}
+
+		if !bytes.Equal(sourceData, target.Bytes()) {
+			t.Errorf(
+				"Written contents (%v) do not match read contents (%v)",
+				sourceData, target.Bytes(),
+			)
+		}
+	})
+
+	t.Run("BadReader", func (t *testing.T) {
+		var target uint8
+		len, err := Read(badReader{}, &target)
+
+		if err != errBadRead {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		if len != 0 {
+			t.Errorf("Unexpected length: %d", len)
+		}
+	})
+}
+
+func TestReadSome(t *testing.T) {
+	t.Run("Ok", func (t *testing.T) {
+		source := bytes.NewReader([]byte{0x13, 0x37, 0x42})
+
+		var a uint16
+		var b uint8
+
+		len, err := ReadSome(source, &a, &b)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len != 3 {
+			t.Fatalf("Unexpected length: %d", len)
+		}
+
+		if a != 0x1337 {
+			t.Errorf("Value 'a' mismatches: %d != 0x1337", a)
+		}
+
+		if b != 0x42 {
+			t.Errorf("Value 'b' mismatches: %d != 0x42", b)
+		}
+	})
+
+	t.Run("BadReader", func (t *testing.T) {
+		var a uint16
+		var b uint8
+
+		len, err := ReadSome(badReader{}, &a, &b)
+
+		if err != errBadRead {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		if len != 0 {
+			t.Errorf("Unexpected length: %d", len)
+		}
+	})
 }

@@ -11,8 +11,7 @@ func Write(w io.Writer, item interface{}) (int64, error) {
 		return wt.WriteTo(w)
 	}
 
-	err := binary.Write(w, binary.BigEndian, item)
-	if err != nil {
+	if err := binary.Write(w, binary.BigEndian, item); err != nil {
 		return 0, err
 	}
 
@@ -38,8 +37,7 @@ func Read(r io.Reader, item interface{}) (int64, error) {
 		return rf.ReadFrom(r)
 	}
 
-	err := binary.Read(r, binary.BigEndian, item)
-	if err != nil {
+	if err := binary.Read(r, binary.BigEndian, item); err != nil {
 		return 0, err
 	}
 

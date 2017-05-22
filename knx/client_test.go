@@ -17,7 +17,7 @@ func TestNewConn(t *testing.T) {
 
 		client.Close()
 
-		_, err := newConn(ctx, client, nil)
+		_, err := newConn(ctx, client, DefaultClientConfig)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -32,7 +32,7 @@ func TestNewConn(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		_, err := newConn(ctx, client, nil)
+		_, err := newConn(ctx, client, DefaultClientConfig)
 		if err != ctx.Err() {
 			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
@@ -57,7 +57,7 @@ func TestNewConn(t *testing.T) {
 			config := DefaultClientConfig
 			config.ResendInterval = 1
 
-			_, err := newConn(ctx, client, &config)
+			_, err := newConn(ctx, client, config)
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -91,7 +91,7 @@ func TestNewConn(t *testing.T) {
 			config := DefaultClientConfig
 			config.ResendInterval = 1
 
-			_, err := newConn(ctx, client, &config)
+			_, err := newConn(ctx, client, config)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -106,7 +106,7 @@ func TestNewConn(t *testing.T) {
 
 		client.closeIn()
 
-		_, err := newConn(ctx, client, nil)
+		_, err := newConn(ctx, client, DefaultClientConfig)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -134,7 +134,7 @@ func TestNewConn(t *testing.T) {
 
 			defer client.Close()
 
-			_, err := newConn(ctx, client, nil)
+			_, err := newConn(ctx, client, DefaultClientConfig)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -173,7 +173,7 @@ func TestNewConn(t *testing.T) {
 			config := DefaultClientConfig
 			config.ResendInterval = 1
 
-			_, err := newConn(ctx, client, &config)
+			_, err := newConn(ctx, client, config)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -202,7 +202,7 @@ func TestNewConn(t *testing.T) {
 
 			defer client.Close()
 
-			_, err := newConn(ctx, client, nil)
+			_, err := newConn(ctx, client, DefaultClientConfig)
 			if err != proto.ConnResUnsupportedType {
 				t.Fatalf("Expected error %v, got %v", proto.ConnResUnsupportedType, err)
 			}

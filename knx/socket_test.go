@@ -4,13 +4,14 @@ import (
 	"container/list"
 	"errors"
 	"sync"
+	"github.com/vapourismo/knx-go/knx/proto"
 )
 
 type dummySocket struct {
 	cond    *sync.Cond
 	out     *list.List
 	in      *list.List
-	inbound chan interface{}
+	inbound chan proto.Service
 }
 
 func (sock *dummySocket) serveOne() bool {
@@ -30,7 +31,7 @@ func (sock *dummySocket) serveOne() bool {
 	sock.cond.Broadcast()
 	sock.cond.L.Unlock()
 
-	sock.inbound <- val
+	sock.inbound <- val.(proto.Service)
 
 	return true
 }
@@ -58,7 +59,7 @@ func (sock *dummySocket) closeOut() {
 	sock.cond.Broadcast()
 }
 
-func (sock *dummySocket) Send(payload OutgoingPayload) error {
+func (sock *dummySocket) Send(payload proto.ServiceWriterTo) error {
 	return sock.sendAny(payload)
 }
 
@@ -88,7 +89,7 @@ func (sock *dummySocket) Close() error {
 	return nil
 }
 
-func (sock *dummySocket) Inbound() <-chan interface{} {
+func (sock *dummySocket) Inbound() <-chan proto.Service {
 	return sock.inbound
 }
 
@@ -97,10 +98,10 @@ func makeDummySockets() (*dummySocket, *dummySocket) {
 	forGateway := list.New()
 	forClient := list.New()
 
-	client := &dummySocket{cond, forGateway, forClient, make(chan interface{})}
+	client := &dummySocket{cond, forGateway, forClient, make(chan proto.Service)}
 	go client.serveAll()
 
-	gateway := &dummySocket{cond, forClient, forGateway, make(chan interface{})}
+	gateway := &dummySocket{cond, forClient, forGateway, make(chan proto.Service)}
 	go gateway.serveAll()
 
 	return client, gateway

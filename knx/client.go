@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"github.com/vapourismo/knx-go/knx/proto"
+	"github.com/vapourismo/knx-go/knx/cemi"
 )
 
 // ClientConfig allows you to configure the client's behavior.
@@ -68,7 +70,7 @@ func newConn(
 	sock Socket,
 	config ClientConfig,
 ) (*conn, error) {
-	req := &ConnectionRequest{}
+	req := &proto.ConnReq{}
 
 	// Send the initial request.
 	err := sock.Send(req)
@@ -101,14 +103,14 @@ func newConn(
 			}
 
 			// We're only interested in connection responses.
-			if res, ok := msg.(*ConnectionResponse); ok {
+			if res, ok := msg.(*proto.ConnRes); ok {
 				switch res.Status {
 				// Conection has been established.
-				case ConnResOk:
+				case proto.ConnResOk:
 					return &conn{sock, config, res.Channel}, nil
 
 				// The gateway is busy, but we don't stop yet.
-				case ConnResBusy:
+				case proto.ConnResBusy:
 					continue
 
 				// Connection request has been denied.
@@ -124,9 +126,9 @@ func newConn(
 // received a response, the context is done, or HeartbeatDelay duration has passed.
 func (conn *conn) requestState(
 	ctx       context.Context,
-	heartbeat <-chan ConnState,
+	heartbeat <-chan proto.ConnState,
 ) error {
-	req := &ConnStateReq{conn.channel, 0, HostInfo{}}
+	req := &proto.ConnStateReq{conn.channel, 0, proto.HostInfo{}}
 
 	// Send first connection state request
 	err := conn.sock.Send(req)
@@ -158,7 +160,7 @@ func (conn *conn) requestState(
 			}
 
 			// Is connection state positive?
-			if res == ConnStateNormal {
+			if res == proto.ConnStateNormal {
 				return nil
 			}
 
@@ -171,10 +173,10 @@ func (conn *conn) requestState(
 func (conn *conn) requestTunnel(
 	ctx       context.Context,
 	seqNumber uint8,
-	data      []byte,
-	ack       <-chan *TunnelRes,
+	data      cemi.CEMI,
+	ack       <-chan *proto.TunnelRes,
 ) error {
-	req := &TunnelReq{conn.channel, seqNumber, data}
+	req := &proto.TunnelReq{conn.channel, seqNumber, data}
 
 	// Send initial request.
 	err := conn.sock.Send(req)
@@ -223,7 +225,7 @@ func (conn *conn) requestTunnel(
 // performHeartbeat uses requestState to determine if the gateway is still alive.
 func (conn *conn) performHeartbeat(
 	ctx       context.Context,
-	heartbeat <-chan ConnState,
+	heartbeat <-chan proto.ConnState,
 	timeout   chan<- struct{},
 ) {
 	// Setup a child context which will time out with the given heartbeat timeout.
@@ -246,7 +248,7 @@ func (conn *conn) performHeartbeat(
 // handleDisconnectRequest validates the request.
 func (conn *conn) handleDisconnectRequest(
 	ctx context.Context,
-	req *DiscReq,
+	req *proto.DiscReq,
 ) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
@@ -254,7 +256,7 @@ func (conn *conn) handleDisconnectRequest(
 	}
 
 	// We don't need to check if this errors or not. It doesn't matter.
-	conn.sock.Send(&DiscRes{req.Channel, 0})
+	conn.sock.Send(&proto.DiscRes{req.Channel, 0})
 
 	return nil
 }
@@ -262,7 +264,7 @@ func (conn *conn) handleDisconnectRequest(
 // handleDisconnectResponse validates the response.
 func (conn *conn) handleDisconnectResponse(
 	ctx context.Context,
-	res *DiscRes,
+	res *proto.DiscRes,
 ) error {
 	// Validate the response channel.
 	if res.Channel != conn.channel {
@@ -276,9 +278,9 @@ func (conn *conn) handleDisconnectResponse(
 // request for the gateway.
 func (conn *conn) handleTunnelRequest(
 	ctx       context.Context,
-	req       *TunnelReq,
+	req       *proto.TunnelReq,
 	seqNumber *uint8,
-	inbound   chan<- []byte,
+	inbound   chan<- *cemi.CEMI,
 ) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
@@ -293,21 +295,21 @@ func (conn *conn) handleTunnelRequest(
 		go func () {
 			select {
 			case <-ctx.Done():
-			case inbound <- req.Payload:
+			case inbound <- &req.Payload:
 			}
 		}()
 	}
 
 	// Send the acknowledgement.
-	return conn.sock.Send(&TunnelRes{conn.channel, req.SeqNumber, 0})
+	return conn.sock.Send(&proto.TunnelRes{conn.channel, req.SeqNumber, 0})
 }
 
 // handleTunnelResponse validates the response and relays it to a sender that is awaiting an
 // acknowledgement.
 func (conn *conn) handleTunnelResponse(
 	ctx context.Context,
-	res *TunnelRes,
-	ack chan<- *TunnelRes,
+	res *proto.TunnelRes,
+	ack chan<- *proto.TunnelRes,
 ) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
@@ -330,8 +332,8 @@ func (conn *conn) handleTunnelResponse(
 // there is a waiting one.
 func (conn *conn) handleConnectionStateResponse(
 	ctx       context.Context,
-	res       *ConnStateRes,
-	heartbeat chan<- ConnState,
+	res       *proto.ConnStateRes,
+	heartbeat chan<- proto.ConnState,
 ) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
@@ -353,13 +355,13 @@ func (conn *conn) handleConnectionStateResponse(
 // serveInbound processes incoming packets.
 func (conn *conn) serveInbound(
 	ctx     context.Context,
-	inbound chan<- []byte,
-	ack     chan<- *TunnelRes,
+	inbound chan<- *cemi.CEMI,
+	ack     chan<- *proto.TunnelRes,
 ) error {
 	defer close(ack)
 	defer close(inbound)
 
-	heartbeat := make(chan ConnState)
+	heartbeat := make(chan proto.ConnState)
 	timeout := make(chan struct{})
 
 	var seqNumber uint8
@@ -386,7 +388,7 @@ func (conn *conn) serveInbound(
 
 			// Determine what to do with the message.
 			switch msg := msg.(type) {
-			case *DiscReq:
+			case *proto.DiscReq:
 				err := conn.handleDisconnectRequest(ctx, msg)
 				if err == nil {
 					return nil
@@ -394,7 +396,7 @@ func (conn *conn) serveInbound(
 
 				log(conn, "conn", "Error while handling disconnect request %v: %v", msg, err)
 
-			case *DiscRes:
+			case *proto.DiscRes:
 				err := conn.handleDisconnectResponse(ctx, msg)
 				if err == nil {
 					return nil
@@ -402,19 +404,19 @@ func (conn *conn) serveInbound(
 
 				log(conn, "conn", "Error while handling disconnect response %v: %v", msg, err)
 
-			case *TunnelReq:
+			case *proto.TunnelReq:
 				err := conn.handleTunnelRequest(ctx, msg, &seqNumber, inbound)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel request %v: %v", msg, err)
 				}
 
-			case *TunnelRes:
+			case *proto.TunnelRes:
 				err := conn.handleTunnelResponse(ctx, msg, ack)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
 				}
 
-			case *ConnStateRes:
+			case *proto.ConnStateRes:
 				err := conn.handleConnectionStateResponse(ctx, msg, heartbeat)
 				if err != nil {
 					log(conn, "conn",
@@ -434,9 +436,9 @@ type Client struct {
 
 	mu        sync.Mutex
 	seqNumber uint8
-	ack       chan *TunnelRes
+	ack       chan *proto.TunnelRes
 
-	inbound   chan []byte
+	inbound   chan *cemi.CEMI
 }
 
 // Connect establishes a connection with a gateway.
@@ -466,8 +468,8 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 		conn,
 		sync.Mutex{},
 		0,
-		make(chan *TunnelRes),
-		make(chan []byte),
+		make(chan *proto.TunnelRes),
+		make(chan *cemi.CEMI),
 	}, nil
 }
 
@@ -482,12 +484,12 @@ func (client *Client) Close() {
 }
 
 // Inbound retrieves the channel which transmits incoming data.
-func (client *Client) Inbound() <-chan []byte {
+func (client *Client) Inbound() <-chan *cemi.CEMI {
 	return client.inbound
 }
 
 // Send relays a tunnel request to the gateway with the given contents.
-func (client *Client) Send(data []byte) error {
+func (client *Client) Send(data cemi.CEMI) error {
 	// Establish a lock so that nobody else can modify the sequence number.
 	client.mu.Lock()
 	defer client.mu.Unlock()

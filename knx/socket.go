@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"net"
 	"time"
+	"github.com/vapourismo/knx-go/knx/proto"
 )
 
 // A Socket is a socket, duh.
 type Socket interface {
-	Send(payload OutgoingPayload) error
-	Inbound() <-chan interface{}
+	Send(payload proto.ServiceWriterTo) error
+	Inbound() <-chan proto.Service
 	Close() error
 }
 
@@ -47,25 +48,25 @@ func NewRoutingSocket(multicastAddress string) (Socket, error) {
 // UDP socket for KNXnet/IP packet exchange
 type udpSocket struct {
 	conn    *net.UDPConn
-	inbound <-chan interface{}
+	inbound <-chan proto.Service
 }
 
 // makeUDPSocket configures the UDPConn and launches the receiver and sender workers.
 func makeUDPSocket(conn *net.UDPConn, addr *net.UDPAddr) *udpSocket {
 	conn.SetDeadline(time.Time{})
 
-	inbound := make(chan interface{})
+	inbound := make(chan proto.Service)
 	go udpSocketReceiver(conn, addr, inbound)
 
 	return &udpSocket{conn, inbound}
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *udpSocket) Send(payload OutgoingPayload) error {
-	buffer := &bytes.Buffer{}
+func (sock *udpSocket) Send(payload proto.ServiceWriterTo) error {
+	buffer := bytes.Buffer{}
 
 	// Packet serialization
-	err := WritePacket(buffer, payload)
+	_, err := proto.Pack(&buffer, payload)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func (sock *udpSocket) Send(payload OutgoingPayload) error {
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *udpSocket) Inbound() <-chan interface{} {
+func (sock *udpSocket) Inbound() <-chan proto.Service {
 	return sock.inbound
 }
 
@@ -92,17 +93,16 @@ func (sock *udpSocket) Close() error {
 }
 
 // udpSocketReceiver is the receiver worker for udpSocket.
-func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- interface{}) {
+func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.Service) {
 	log(conn, "udpSocket", "Started receiver")
 	defer log(conn, "udpSocket", "Stopped receiver")
 
 	defer close(inbound)
 
+	buffer := [1024]byte{}
 	reader := bytes.NewReader(nil)
 
 	for {
-		buffer := [1024]byte{}
-
 		len, sender, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
 			log(conn, "udpSocket", "Error during read: %v", err)
@@ -117,7 +117,8 @@ func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- inte
 
 		reader.Reset(buffer[:len])
 
-		payload, err := ReadPacket(reader)
+		var payload proto.Service
+		_, err = proto.Unpack(reader, &payload)
 		if err != nil {
 			log(conn, "udpSocket", "Error during packet parsing: %v", err)
 			continue

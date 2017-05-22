@@ -3,6 +3,8 @@ package knx
 import (
 	"context"
 	"testing"
+	"github.com/vapourismo/knx-go/knx/proto"
+	"github.com/vapourismo/knx-go/knx/cemi"
 )
 
 func TestNewConn(t *testing.T) {
@@ -74,8 +76,8 @@ func TestNewConn(t *testing.T) {
 			<-gateway.Inbound()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*ConnectionRequest); ok {
-				gateway.sendAny(&ConnectionResponse{1, ConnResOk, req.Control})
+			if req, ok := msg.(*proto.ConnReq); ok {
+				gateway.sendAny(&proto.ConnRes{1, proto.ConnResOk, req.Control})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -120,8 +122,8 @@ func TestNewConn(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*ConnectionRequest); ok {
-				gateway.sendAny(&ConnectionResponse{1, ConnResOk, req.Control})
+			if req, ok := msg.(*proto.ConnReq); ok {
+				gateway.sendAny(&proto.ConnRes{1, proto.ConnResOk, req.Control})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -149,15 +151,15 @@ func TestNewConn(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*ConnectionRequest); ok {
-				gateway.sendAny(&ConnectionResponse{0, ConnResBusy, req.Control})
+			if req, ok := msg.(*proto.ConnReq); ok {
+				gateway.sendAny(&proto.ConnRes{0, proto.ConnResBusy, req.Control})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 
 			msg = <-gateway.Inbound()
-			if req, ok := msg.(*ConnectionRequest); ok {
-				gateway.sendAny(&ConnectionResponse{1, ConnResOk, req.Control})
+			if req, ok := msg.(*proto.ConnReq); ok {
+				gateway.sendAny(&proto.ConnRes{1, proto.ConnResOk, req.Control})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -188,8 +190,8 @@ func TestNewConn(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*ConnectionRequest); ok {
-				gateway.sendAny(&ConnectionResponse{0, ConnResUnsupportedType, req.Control})
+			if req, ok := msg.(*proto.ConnReq); ok {
+				gateway.sendAny(&proto.ConnRes{0, proto.ConnResUnsupportedType, req.Control})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -201,8 +203,8 @@ func TestNewConn(t *testing.T) {
 			defer client.Close()
 
 			_, err := newConn(ctx, client, DefaultClientConfig)
-			if err != ConnResUnsupportedType {
-				t.Fatalf("Expected error %v, got %v", ConnResUnsupportedType, err)
+			if err != proto.ConnResUnsupportedType {
+				t.Fatalf("Expected error %v, got %v", proto.ConnResUnsupportedType, err)
 			}
 		})
 	})
@@ -219,7 +221,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 		conn := conn{client, DefaultClientConfig, 1}
 
-		err := conn.requestState(ctx, make(chan ConnState))
+		err := conn.requestState(ctx, make(chan proto.ConnState))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -235,7 +237,7 @@ func TestConnHandle_requestState(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		err := conn.requestState(ctx, make(chan ConnState))
+		err := conn.requestState(ctx, make(chan proto.ConnState))
 		if err != ctx.Err() {
 			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
@@ -263,7 +265,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := conn{client, config, 1}
 
-			err := conn.requestState(ctx, make(chan ConnState))
+			err := conn.requestState(ctx, make(chan proto.ConnState))
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -274,7 +276,7 @@ func TestConnHandle_requestState(t *testing.T) {
 		client, gateway := makeDummySockets()
 
 		const channel uint8 = 1
-		heartbeat := make(chan ConnState)
+		heartbeat := make(chan proto.ConnState)
 
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
@@ -284,7 +286,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			<-gateway.Inbound()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*ConnStateReq); ok {
+			if req, ok := msg.(*proto.ConnStateReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -293,7 +295,7 @@ func TestConnHandle_requestState(t *testing.T) {
 					t.Error("Non-null request status")
 				}
 
-				heartbeat <- ConnStateNormal
+				heartbeat <- proto.ConnStateNormal
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -321,7 +323,7 @@ func TestConnHandle_requestState(t *testing.T) {
 		defer client.Close()
 		defer gateway.Close()
 
-		heartbeat := make(chan ConnState)
+		heartbeat := make(chan proto.ConnState)
 		close(heartbeat)
 
 		conn := conn{client, DefaultClientConfig, 1}
@@ -336,7 +338,7 @@ func TestConnHandle_requestState(t *testing.T) {
 		client, gateway := makeDummySockets()
 
 		const channel uint8 = 1
-		heartbeat := make(chan ConnState)
+		heartbeat := make(chan proto.ConnState)
 
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
@@ -344,7 +346,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*ConnStateReq); ok {
+			if req, ok := msg.(*proto.ConnStateReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -353,7 +355,7 @@ func TestConnHandle_requestState(t *testing.T) {
 					t.Error("Non-null request status")
 				}
 
-				heartbeat <- ConnStateNormal
+				heartbeat <- proto.ConnStateNormal
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -377,7 +379,7 @@ func TestConnHandle_requestState(t *testing.T) {
 		client, gateway := makeDummySockets()
 
 		const channel uint8 = 1
-		heartbeat := make(chan ConnState)
+		heartbeat := make(chan proto.ConnState)
 
 		t.Run("Gateway", func (t *testing.T) {
 			t.Parallel()
@@ -385,7 +387,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*ConnStateReq); ok {
+			if req, ok := msg.(*proto.ConnStateReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -394,7 +396,7 @@ func TestConnHandle_requestState(t *testing.T) {
 					t.Error("Non-null request status")
 				}
 
-				heartbeat <- ConnStateInactive
+				heartbeat <- proto.ConnStateInactive
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -408,7 +410,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			conn := conn{client, DefaultClientConfig, channel}
 
 			err := conn.requestState(ctx, heartbeat)
-			if err != ConnStateInactive {
+			if err != proto.ConnStateInactive {
 				t.Fatal(err)
 			}
 		})
@@ -426,7 +428,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 		conn := conn{client, DefaultClientConfig, 1}
 
-		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelRes))
+		err := conn.requestTunnel(ctx, 0, cemi.CEMI{}, make(chan *proto.TunnelRes))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -442,7 +444,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		err := conn.requestTunnel(ctx, 0, []byte{}, make(chan *TunnelRes))
+		err := conn.requestTunnel(ctx, 0, cemi.CEMI{}, make(chan *proto.TunnelRes))
 		if err != ctx.Err() {
 			t.Fatalf("Expected %v, got %v", ctx.Err(), err)
 		}
@@ -470,7 +472,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 			conn := conn{client, config, 1}
 
-			err := conn.requestTunnel(ctx, 1, []byte{}, make(chan *TunnelRes))
+			err := conn.requestTunnel(ctx, 1, cemi.CEMI{}, make(chan *proto.TunnelRes))
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -479,7 +481,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("Resend", func (t *testing.T) {
 		client, gateway := makeDummySockets()
-		ack := make(chan *TunnelRes)
+		ack := make(chan *proto.TunnelRes)
 
 		const (
 			channel   uint8 = 1
@@ -494,7 +496,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			<-gateway.Inbound()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*TunnelReq); ok {
+			if req, ok := msg.(*proto.TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -503,7 +505,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelRes{req.Channel, req.SeqNumber, 0}
+				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber, 0}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -519,7 +521,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 			conn := conn{client, config, channel}
 
-			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			err := conn.requestTunnel(ctx, seqNumber, cemi.CEMI{}, ack)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -531,12 +533,12 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		defer client.Close()
 		defer gateway.Close()
 
-		ack := make(chan *TunnelRes)
+		ack := make(chan *proto.TunnelRes)
 		close(ack)
 
 		conn := conn{client, DefaultClientConfig, 1}
 
-		err := conn.requestTunnel(ctx, 0, []byte{}, ack)
+		err := conn.requestTunnel(ctx, 0, cemi.CEMI{}, ack)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -544,7 +546,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("InvalidSeqNumber", func (t *testing.T) {
 		client, gateway := makeDummySockets()
-		ack := make(chan *TunnelRes)
+		ack := make(chan *proto.TunnelRes)
 		ctx, cancel := context.WithCancel(ctx)
 
 		const (
@@ -558,7 +560,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*TunnelReq); ok {
+			if req, ok := msg.(*proto.TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -567,7 +569,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelRes{req.Channel, req.SeqNumber + 10, 0}
+				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber + 10, 0}
 				cancel()
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
@@ -581,7 +583,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 			conn := conn{client, DefaultClientConfig, channel}
 
-			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			err := conn.requestTunnel(ctx, seqNumber, cemi.CEMI{}, ack)
 			if err != ctx.Err() {
 				t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 			}
@@ -590,7 +592,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("BadStatus", func (t *testing.T) {
 		client, gateway := makeDummySockets()
-		ack := make(chan *TunnelRes)
+		ack := make(chan *proto.TunnelRes)
 
 		const (
 			channel   uint8 = 1
@@ -603,7 +605,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*TunnelReq); ok {
+			if req, ok := msg.(*proto.TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -612,7 +614,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelRes{req.Channel, req.SeqNumber, 1}
+				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber, 1}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -625,7 +627,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 			conn := conn{client, DefaultClientConfig, channel}
 
-			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			err := conn.requestTunnel(ctx, seqNumber, cemi.CEMI{}, ack)
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -634,7 +636,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 	t.Run("Ok", func (t *testing.T) {
 		client, gateway := makeDummySockets()
-		ack := make(chan *TunnelRes)
+		ack := make(chan *proto.TunnelRes)
 
 		const (
 			channel   uint8 = 1
@@ -647,7 +649,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if req, ok := msg.(*TunnelReq); ok {
+			if req, ok := msg.(*proto.TunnelReq); ok {
 				if req.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -656,7 +658,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &TunnelRes{req.Channel, req.SeqNumber, 0}
+				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber, 0}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -669,7 +671,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 			conn := conn{client, DefaultClientConfig, channel}
 
-			err := conn.requestTunnel(ctx, seqNumber, []byte{}, ack)
+			err := conn.requestTunnel(ctx, seqNumber, cemi.CEMI{}, ack)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -688,9 +690,9 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		var seqNumber uint8
 
 		conn := conn{client, DefaultClientConfig, 1}
-		req := &TunnelReq{2, 0, []byte{}}
+		req := &proto.TunnelReq{2, 0, cemi.CEMI{}}
 
-		err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan []byte))
+		err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan *cemi.CEMI))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -710,7 +712,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if res, ok := msg.(*TunnelRes); ok {
+			if res, ok := msg.(*proto.TunnelRes); ok {
 				if res.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -735,9 +737,9 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber + 1
 
 			conn := conn{client, DefaultClientConfig, channel}
-			req := &TunnelReq{channel, sendSeqNumber, []byte{}}
+			req := &proto.TunnelReq{channel, sendSeqNumber, cemi.CEMI{}}
 
-			err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan []byte))
+			err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan *cemi.CEMI))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -750,7 +752,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 
 	t.Run("Ok", func (t *testing.T) {
 		client, gateway := makeDummySockets()
-		inbound := make(chan []byte)
+		inbound := make(chan *cemi.CEMI)
 
 		const (
 			channel       uint8 = 1
@@ -763,7 +765,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			defer gateway.Close()
 
 			msg := <-gateway.Inbound()
-			if res, ok := msg.(*TunnelRes); ok {
+			if res, ok := msg.(*proto.TunnelRes); ok {
 				if res.Channel != channel {
 					t.Error("Mismatching channel")
 				}
@@ -788,7 +790,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber
 
 			conn := conn{client, DefaultClientConfig, channel}
-			req := &TunnelReq{channel, sendSeqNumber, []byte{}}
+			req := &proto.TunnelReq{channel, sendSeqNumber, cemi.CEMI{}}
 
 			err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)
 			if err != nil {
@@ -818,8 +820,8 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 		conn := conn{client, DefaultClientConfig, 1}
 
-		res := &TunnelRes{2, 0, 0}
-		err := conn.handleTunnelResponse(ctx, res, make(chan *TunnelRes))
+		res := &proto.TunnelRes{2, 0, 0}
+		err := conn.handleTunnelResponse(ctx, res, make(chan *proto.TunnelRes))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -827,7 +829,7 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 	t.Run("Ok", func (t *testing.T) {
 		client, gateway := makeDummySockets()
-		ack := make(chan *TunnelRes)
+		ack := make(chan *proto.TunnelRes)
 
 		t.Run("Worker", func (t *testing.T) {
 			t.Parallel()
@@ -837,7 +839,7 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 			conn := conn{client, DefaultClientConfig, 1}
 
-			res := &TunnelRes{1, 0, 0}
+			res := &proto.TunnelRes{1, 0, 0}
 			err := conn.handleTunnelResponse(ctx, res, ack)
 			if err != nil {
 				t.Fatal(err)

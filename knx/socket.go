@@ -96,11 +96,9 @@ func (sock *udpSocket) Close() error {
 func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.Service) {
 	log(conn, "udpSocket", "Started receiver")
 	defer log(conn, "udpSocket", "Stopped receiver")
-
 	defer close(inbound)
 
 	buffer := [1024]byte{}
-	reader := bytes.NewReader(nil)
 
 	for {
 		len, sender, err := conn.ReadFromUDP(buffer[:])
@@ -115,10 +113,8 @@ func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- prot
 			continue
 		}
 
-		reader.Reset(buffer[:len])
-
 		var payload proto.Service
-		_, err = proto.Unpack(reader, &payload)
+		_, err = proto.Unpack(bytes.NewReader(buffer[:len]), &payload)
 		if err != nil {
 			log(conn, "udpSocket", "Error during packet parsing: %v", err)
 			continue

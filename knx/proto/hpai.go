@@ -1,7 +1,6 @@
 package proto
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"github.com/vapourismo/knx-go/knx/encoding"
@@ -39,6 +38,6 @@ func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
-func (info *HostInfo) WriteTo(w *bytes.Buffer) (int64, error) {
+func (info *HostInfo) WriteTo(w io.Writer) (int64, error) {
 	return encoding.WriteSome(w, byte(8), byte(1), info.Address, info.Port)
 }

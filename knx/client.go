@@ -70,9 +70,9 @@ type conn struct {
 // canceled, or a response is received. A response that renders the gateway as busy will not stop
 // newConn.
 func newConn(
-	ctx       context.Context,
-	sock      Socket,
-	configPtr *ClientConfig,
+	ctx    context.Context,
+	sock   Socket,
+	config *ClientConfig,
 ) (*conn, error) {
 	req := &proto.ConnReq{}
 
@@ -81,8 +81,6 @@ func newConn(
 	if err != nil {
 		return nil, err
 	}
-
-	config := checkClientConfig(configPtr)
 
 	// Create a resend timer.
 	ticker := time.NewTicker(config.ResendInterval)
@@ -457,12 +455,14 @@ func Connect(gatewayAddr string, config *ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
+	config = checkClientConfig(config)
+
 	// Prepare a context, so that the connection request cannot run forever.
 	connectCtx, cancelConnect := context.WithTimeout(context.Background(), config.ResponseTimeout)
 	defer cancelConnect()
 
 	// Connect to the gateway.
-	conn, err := newConn(connectCtx, sock, checkClientConfig(config))
+	conn, err := newConn(connectCtx, sock, config)
 	if err != nil {
 		return nil, err
 	}

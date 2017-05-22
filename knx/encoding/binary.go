@@ -48,7 +48,7 @@ func Read(r io.Reader, item interface{}) (int64, error) {
 
 // ReadSome reads multiple items from the Reader.
 func ReadSome(r io.Reader, items ...interface{}) (n int64, err error) {
-	for item := range items {
+	for _, item := range items {
 		len, err := Read(r, item)
 		n += len
 		if err != nil {

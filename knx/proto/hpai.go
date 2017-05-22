@@ -2,12 +2,18 @@ package proto
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
 // Address is a IPv4 address.
 type Address [4]byte
+
+// String formats the address.
+func (addr Address) String() string {
+	return fmt.Sprintf("%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3])
+}
 
 // Port is a port number.
 type Port uint16

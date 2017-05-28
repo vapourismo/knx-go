@@ -11,10 +11,20 @@ type dummySocket struct {
 	cond    *sync.Cond
 	out     *list.List
 	in      *list.List
-	inbound chan proto.Service
 }
 
-func (sock *dummySocket) serveOne() bool {
+func makeDummySockets() (*dummySocket, *dummySocket) {
+	cond := sync.NewCond(&sync.Mutex{})
+	forGateway := list.New()
+	forClient := list.New()
+
+	client := &dummySocket{cond, forGateway, forClient}
+	gateway := &dummySocket{cond, forClient, forGateway}
+
+	return client, gateway
+}
+
+func (sock *dummySocket) Receive() (proto.Service, error) {
 	sock.cond.L.Lock()
 
 	for sock.in != nil && sock.in.Len() < 1 {
@@ -23,7 +33,7 @@ func (sock *dummySocket) serveOne() bool {
 
 	if sock.in == nil {
 		sock.cond.L.Unlock()
-		return false
+		return nil, errors.New("Input is closed")
 	}
 
 	val := sock.in.Remove(sock.in.Front())
@@ -31,32 +41,7 @@ func (sock *dummySocket) serveOne() bool {
 	sock.cond.Broadcast()
 	sock.cond.L.Unlock()
 
-	sock.inbound <- val.(proto.Service)
-
-	return true
-}
-
-func (sock *dummySocket) serveAll() {
-	for sock.serveOne() {}
-	close(sock.inbound)
-}
-
-func (sock *dummySocket) closeIn() {
-	sock.cond.L.Lock()
-	defer sock.cond.L.Unlock()
-
-	sock.in = nil
-
-	sock.cond.Broadcast()
-}
-
-func (sock *dummySocket) closeOut() {
-	sock.cond.L.Lock()
-	defer sock.cond.L.Unlock()
-
-	sock.out = nil
-
-	sock.cond.Broadcast()
+	return val.(proto.Service), nil
 }
 
 func (sock *dummySocket) Send(payload proto.ServiceWriterTo) error {
@@ -89,20 +74,20 @@ func (sock *dummySocket) Close() error {
 	return nil
 }
 
-func (sock *dummySocket) Inbound() <-chan proto.Service {
-	return sock.inbound
+func (sock *dummySocket) closeIn() {
+	sock.cond.L.Lock()
+	defer sock.cond.L.Unlock()
+
+	sock.in = nil
+
+	sock.cond.Broadcast()
 }
 
-func makeDummySockets() (*dummySocket, *dummySocket) {
-	cond := sync.NewCond(&sync.Mutex{})
-	forGateway := list.New()
-	forClient := list.New()
+func (sock *dummySocket) closeOut() {
+	sock.cond.L.Lock()
+	defer sock.cond.L.Unlock()
 
-	client := &dummySocket{cond, forGateway, forClient, make(chan proto.Service)}
-	go client.serveAll()
+	sock.out = nil
 
-	gateway := &dummySocket{cond, forClient, forGateway, make(chan proto.Service)}
-	go gateway.serveAll()
-
-	return client, gateway
+	sock.cond.Broadcast()
 }

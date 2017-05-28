@@ -54,31 +54,31 @@ func (cemi *CEMI) ReadFrom(r io.Reader) (n int64, err error) {
 	}
 
 	switch cemi.Code {
-	case LDataReq, LDataInd, LDataCon:
-		ldata := &LData{}
-		len, err = ldata.ReadFrom(r)
-		n += len
+		case LDataReq, LDataInd, LDataCon:
+			ldata := &LData{}
+			len, err = ldata.ReadFrom(r)
+			n += len
 
-		if err != nil {
-			return n, err
-		}
+			if err != nil {
+				return n, err
+			}
 
-		cemi.Body = ldata
+			cemi.Body = ldata
 
-		return
+			return
 
-	default:
-		buffer := bytes.Buffer{}
-		len, err = buffer.ReadFrom(r)
-		n += len
+		default:
+			buffer := bytes.Buffer{}
+			len, err = buffer.ReadFrom(r)
+			n += len
 
-		if err != nil {
-			return n, err
-		}
+			if err != nil {
+				return n, err
+			}
 
-		cemi.Body = UnsupportedMessage(buffer.Bytes())
+			cemi.Body = UnsupportedMessage(buffer.Bytes())
 
-		return
+			return
 	}
 }
 

@@ -88,14 +88,14 @@ func (tpdu TPDU) ExtractAPDU() (APCI, []byte, error) {
 
 	packetType := TPCI((tpdu[0] >> 6) & 3)
 	switch packetType {
-	case UnnumberedDataPacket, NumberedDataPacket:
-		apci := APCI((tpdu[0] & 3) << 2 | (tpdu[1] >> 6) & 3)
-		data := make([]byte, len(tpdu) - 1)
-		copy(data, tpdu[1:])
+		case UnnumberedDataPacket, NumberedDataPacket:
+			apci := APCI((tpdu[0] & 3) << 2 | (tpdu[1] >> 6) & 3)
+			data := make([]byte, len(tpdu) - 1)
+			copy(data, tpdu[1:])
 
-		data[0] &= 63
+			data[0] &= 63
 
-		return apci, data, nil
+			return apci, data, nil
 	}
 
 	return 0, nil, ErrNoDataPacket

@@ -85,39 +85,39 @@ func newConn(
 	// Cycle until a request gets a response.
 	for {
 		select {
-		// Termination has been requested.
-		case <-ctx.Done():
-			return nil, ctx.Err()
+			// Termination has been requested.
+			case <-ctx.Done():
+				return nil, ctx.Err()
 
-		// Resend timer triggered.
-		case <-ticker.C:
-			err := sock.Send(req)
-			if err != nil {
-				return nil, err
-			}
-
-		// A message has been received or the channel has been closed.
-		case msg, open := <-sock.Inbound():
-			if !open {
-				return nil, errors.New("Inbound channel has been closed")
-			}
-
-			// We're only interested in connection responses.
-			if res, ok := msg.(*proto.ConnRes); ok {
-				switch res.Status {
-				// Conection has been established.
-				case proto.ConnResOk:
-					return &conn{sock, config, res.Channel}, nil
-
-				// The gateway is busy, but we don't stop yet.
-				case proto.ConnResBusy:
-					continue
-
-				// Connection request has been denied.
-				default:
-					return nil, res.Status
+			// Resend timer triggered.
+			case <-ticker.C:
+				err := sock.Send(req)
+				if err != nil {
+					return nil, err
 				}
-			}
+
+			// A message has been received or the channel has been closed.
+			case msg, open := <-sock.Inbound():
+				if !open {
+					return nil, errors.New("Inbound channel has been closed")
+				}
+
+				// We're only interested in connection responses.
+				if res, ok := msg.(*proto.ConnRes); ok {
+					switch res.Status {
+						// Conection has been established.
+						case proto.ConnResOk:
+							return &conn{sock, config, res.Channel}, nil
+
+						// The gateway is busy, but we don't stop yet.
+						case proto.ConnResBusy:
+							continue
+
+						// Connection request has been denied.
+						default:
+							return nil, res.Status
+					}
+				}
 		}
 	}
 }
@@ -142,29 +142,29 @@ func (conn *conn) requestState(
 
 	for {
 		select {
-		// Termination has been requested.
-		case <-ctx.Done():
-			return ctx.Err()
+			// Termination has been requested.
+			case <-ctx.Done():
+				return ctx.Err()
 
-		// Resend timer fired.
-		case <-ticker.C:
-			err := conn.sock.Send(req)
-			if err != nil {
-				return err
-			}
+			// Resend timer fired.
+			case <-ticker.C:
+				err := conn.sock.Send(req)
+				if err != nil {
+					return err
+				}
 
-		// Received a connection state response.
-		case res, open := <-heartbeat:
-			if !open {
-				return errors.New("Heartbeat channel is closed")
-			}
+			// Received a connection state response.
+			case res, open := <-heartbeat:
+				if !open {
+					return errors.New("Heartbeat channel is closed")
+				}
 
-			// Is connection state positive?
-			if res == proto.ConnStateNormal {
-				return nil
-			}
+				// Is connection state positive?
+				if res == proto.ConnStateNormal {
+					return nil
+				}
 
-			return res
+				return res
 		}
 	}
 }
@@ -190,34 +190,34 @@ func (conn *conn) requestTunnel(
 
 	for {
 		select {
-		// Termination has been requested.
-		case <-ctx.Done():
-			return ctx.Err()
+			// Termination has been requested.
+			case <-ctx.Done():
+				return ctx.Err()
 
-		// Resend timer fired.
-		case <-ticker.C:
-			err := conn.sock.Send(req)
-			if err != nil {
-				return err
-			}
+			// Resend timer fired.
+			case <-ticker.C:
+				err := conn.sock.Send(req)
+				if err != nil {
+					return err
+				}
 
-		// Received a tunnel response.
-		case res, open := <-ack:
-			if !open {
-				return errors.New("Ack channel is closed")
-			}
+			// Received a tunnel response.
+			case res, open := <-ack:
+				if !open {
+					return errors.New("Ack channel is closed")
+				}
 
-			// Ignore mismatching sequence numbers.
-			if res.SeqNumber != seqNumber {
-				continue
-			}
+				// Ignore mismatching sequence numbers.
+				if res.SeqNumber != seqNumber {
+					continue
+				}
 
-			// Check if the response confirms the tunnel request.
-			if res.Status == 0 {
-				return nil
-			}
+				// Check if the response confirms the tunnel request.
+				if res.Status == 0 {
+					return nil
+				}
 
-			return fmt.Errorf("Tunnel request has been rejected with status %#x", res.Status)
+				return fmt.Errorf("Tunnel request has been rejected with status %#x", res.Status)
 		}
 	}
 }
@@ -239,8 +239,8 @@ func (conn *conn) performHeartbeat(
 
 		// Write to timeout as an indication that the heartbeat has failed.
 		select {
-		case <-ctx.Done():
-		case timeout <- struct{}{}:
+			case <-ctx.Done():
+			case timeout <- struct{}{}:
 		}
 	}
 }
@@ -294,8 +294,8 @@ func (conn *conn) handleTunnelRequest(
 		// Send tunnel data to the client.
 		go func () {
 			select {
-			case <-ctx.Done():
-			case inbound <- &req.Payload:
+				case <-ctx.Done():
+				case inbound <- &req.Payload:
 			}
 		}()
 	}
@@ -319,9 +319,9 @@ func (conn *conn) handleTunnelResponse(
 	// Send to client.
 	go func () {
 		select {
-		case <-ctx.Done():
-		case <-time.After(conn.config.ResendInterval):
-		case ack <- res:
+			case <-ctx.Done():
+			case <-time.After(conn.config.ResendInterval):
+			case ack <- res:
 		}
 	}()
 
@@ -343,9 +343,9 @@ func (conn *conn) handleConnectionStateResponse(
 	// Send connection state to the heartbeat goroutine.
 	go func () {
 		select {
-		case <-ctx.Done():
-		case <-time.After(conn.config.ResendInterval):
-		case heartbeat <- res.Status:
+			case <-ctx.Done():
+			case <-time.After(conn.config.ResendInterval):
+			case heartbeat <- res.Status:
 		}
 	}()
 
@@ -368,61 +368,61 @@ func (conn *conn) serveInbound(
 
 	for {
 		select {
-		// Termination has been requested.
-		case <-ctx.Done():
-			return ctx.Err()
+			// Termination has been requested.
+			case <-ctx.Done():
+				return ctx.Err()
 
-		// Heartbeat worker signals a result.
-		case <-timeout:
-			return errors.New("Heartbeat did not succeed")
+			// Heartbeat worker signals a result.
+			case <-timeout:
+				return errors.New("Heartbeat did not succeed")
 
-		// There were no incoming packets for some time.
-		case <-time.After(conn.config.HeartbeatDelay):
-			go conn.performHeartbeat(ctx, heartbeat, timeout)
+			// There were no incoming packets for some time.
+			case <-time.After(conn.config.HeartbeatDelay):
+				go conn.performHeartbeat(ctx, heartbeat, timeout)
 
-		// A message has been received or the channel is closed.
-		case msg, open := <-conn.sock.Inbound():
-			if !open {
-				return errors.New("Socket's inbound channel is closed")
-			}
-
-			// Determine what to do with the message.
-			switch msg := msg.(type) {
-			case *proto.DiscReq:
-				err := conn.handleDisconnectRequest(ctx, msg)
-				if err == nil {
-					return nil
+			// A message has been received or the channel is closed.
+			case msg, open := <-conn.sock.Inbound():
+				if !open {
+					return errors.New("Socket's inbound channel is closed")
 				}
 
-				log(conn, "conn", "Error while handling disconnect request %v: %v", msg, err)
+				// Determine what to do with the message.
+				switch msg := msg.(type) {
+				case *proto.DiscReq:
+					err := conn.handleDisconnectRequest(ctx, msg)
+					if err == nil {
+						return nil
+					}
 
-			case *proto.DiscRes:
-				err := conn.handleDisconnectResponse(ctx, msg)
-				if err == nil {
-					return nil
+					log(conn, "conn", "Error while handling disconnect request %v: %v", msg, err)
+
+				case *proto.DiscRes:
+					err := conn.handleDisconnectResponse(ctx, msg)
+					if err == nil {
+						return nil
+					}
+
+					log(conn, "conn", "Error while handling disconnect response %v: %v", msg, err)
+
+				case *proto.TunnelReq:
+					err := conn.handleTunnelRequest(ctx, msg, &seqNumber, inbound)
+					if err != nil {
+						log(conn, "conn", "Error while handling tunnel request %v: %v", msg, err)
+					}
+
+				case *proto.TunnelRes:
+					err := conn.handleTunnelResponse(ctx, msg, ack)
+					if err != nil {
+						log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
+					}
+
+				case *proto.ConnStateRes:
+					err := conn.handleConnectionStateResponse(ctx, msg, heartbeat)
+					if err != nil {
+						log(conn, "conn",
+							"Error while handling connection state response: %v", err)
+					}
 				}
-
-				log(conn, "conn", "Error while handling disconnect response %v: %v", msg, err)
-
-			case *proto.TunnelReq:
-				err := conn.handleTunnelRequest(ctx, msg, &seqNumber, inbound)
-				if err != nil {
-					log(conn, "conn", "Error while handling tunnel request %v: %v", msg, err)
-				}
-
-			case *proto.TunnelRes:
-				err := conn.handleTunnelResponse(ctx, msg, ack)
-				if err != nil {
-					log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
-				}
-
-			case *proto.ConnStateRes:
-				err := conn.handleConnectionStateResponse(ctx, msg, heartbeat)
-				if err != nil {
-					log(conn, "conn",
-					    "Error while handling connection state response: %v", err)
-				}
-			}
 		}
 	}
 }

@@ -38,20 +38,20 @@ const (
 // String describes the status code.
 func (status ConnResStatus) String() string {
 	switch status {
-	case ConnResOk:
-		return "Connection established"
+		case ConnResOk:
+			return "Connection established"
 
-	case ConnResUnsupportedType:
-		return "Requested connection type is unsupported"
+		case ConnResUnsupportedType:
+			return "Requested connection type is unsupported"
 
-	case ConnResUnsupportedOption:
-		return "One of the requested options is unsupported"
+		case ConnResUnsupportedOption:
+			return "One of the requested options is unsupported"
 
-	case ConnResBusy:
-		return "No data channel is available"
+		case ConnResBusy:
+			return "No data channel is available"
 
-	default:
-		return fmt.Sprintf("Unknown status code %#x", uint8(status))
+		default:
+			return fmt.Sprintf("Unknown status code %#x", uint8(status))
 	}
 }
 

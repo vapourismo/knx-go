@@ -2,23 +2,16 @@ package encoding
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/vapourismo/knx-go/utilities/testutils"
 )
 
 type writeCase struct {
 	value interface{}
 	result []byte
-}
-
-type badWriter struct{}
-
-var errBadWrite = errors.New("Bad write")
-
-func (badWriter) Write([]byte) (int, error) {
-	return 0, errBadWrite
 }
 
 func TestWrite(t *testing.T) {
@@ -111,9 +104,9 @@ func TestWrite(t *testing.T) {
 	})
 
 	t.Run("BadWriter", func (t *testing.T) {
-		len, err := Write(badWriter{}, uint8(42))
+		len, err := Write(testutils.BadWriter{}, uint8(42))
 
-		if err != errBadWrite {
+		if err != testutils.ErrBadWrite {
 			t.Errorf("Unexpected error: %v", err)
 		}
 
@@ -143,8 +136,8 @@ func TestWriteSome(t *testing.T) {
 	})
 
 	t.Run("BadWriter", func (t *testing.T) {
-		len, err := WriteSome(badWriter{}, uint16(0x1337), uint8(0x42))
-		if err != errBadWrite {
+		len, err := WriteSome(testutils.BadWriter{}, uint16(0x1337), uint8(0x42))
+		if err != testutils.ErrBadWrite {
 			t.Fatal("Unexpected error: %v", err)
 		}
 
@@ -157,14 +150,6 @@ func TestWriteSome(t *testing.T) {
 type readCase struct {
 	value interface{}
 	input []byte
-}
-
-type badReader struct {}
-
-var errBadRead = errors.New("Bad read")
-
-func (badReader) Read([]byte) (int, error) {
-	return 0, errBadRead
 }
 
 func TestRead(t *testing.T) {
@@ -265,9 +250,9 @@ func TestRead(t *testing.T) {
 
 	t.Run("BadReader", func (t *testing.T) {
 		var target uint8
-		len, err := Read(badReader{}, &target)
+		len, err := Read(testutils.BadReader{}, &target)
 
-		if err != errBadRead {
+		if err != testutils.ErrBadRead {
 			t.Errorf("Unexpected error: %v", err)
 		}
 
@@ -307,9 +292,9 @@ func TestReadSome(t *testing.T) {
 		var a uint16
 		var b uint8
 
-		len, err := ReadSome(badReader{}, &a, &b)
+		len, err := ReadSome(testutils.BadReader{}, &a, &b)
 
-		if err != errBadRead {
+		if err != testutils.ErrBadRead {
 			t.Errorf("Unexpected error: %v", err)
 		}
 

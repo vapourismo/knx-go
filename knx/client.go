@@ -28,14 +28,14 @@ type ClientConfig struct {
 
 // Default configuration elements
 var (
-	defaultResendInterval   = 500 * time.Millisecond
-	defaultHeartbeatDelay   = 10 * time.Second
-	defaultHeartbeatTimeout = 10 * time.Second
+	defaultResendInterval  = 500 * time.Millisecond
+	defaultHeartbeatDelay  = 10 * time.Second
+	defaultResponseTimeout = 10 * time.Second
 
 	DefaultClientConfig = ClientConfig{
 		defaultResendInterval,
 		defaultHeartbeatDelay,
-		defaultHeartbeatTimeout,
+		defaultResponseTimeout,
 	}
 )
 
@@ -50,7 +50,7 @@ func checkClientConfig(config ClientConfig) ClientConfig {
 	}
 
 	if config.ResponseTimeout <= 0 {
-		config.ResponseTimeout = defaultHeartbeatTimeout
+		config.ResponseTimeout = defaultResponseTimeout
 	}
 
 	return config

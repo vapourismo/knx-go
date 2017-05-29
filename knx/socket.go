@@ -96,6 +96,8 @@ func (sock *udpSocket) Close() error {
 func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.Service) {
 	log(conn, "udpSocket", "Started receiver")
 	defer log(conn, "udpSocket", "Stopped receiver")
+
+	// A closed inbound channel indicates to its readers that the worker has terminated.
 	defer close(inbound)
 
 	buffer := [1024]byte{}

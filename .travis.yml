@@ -1,0 +1,8 @@
+language: go
+go:
+  - 1.7
+  - 1.8
+  - stable
+  - tip
+script:
+  - go test -race -timeout 30s -v ./...

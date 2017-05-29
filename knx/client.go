@@ -55,21 +55,21 @@ func checkClientConfig(config ClientConfig) ClientConfig {
 	return config
 }
 
-// conn is a handle for the client connection.
-type conn struct {
+// tunnelConn is a handle for a tunnel connection.
+type tunnelConn struct {
 	sock    Socket
 	config  ClientConfig
 	channel uint8
 }
 
-// newConn repeatedly sends a connection request through the socket until the provided context gets
+// newTunnelConn repeatedly sends a connection request through the socket until the provided context gets
 // canceled, or a response is received. A response that renders the gateway as busy will not stop
-// newConn.
-func newConn(
+// newTunnelConn.
+func newTunnelConn(
 	ctx    context.Context,
 	sock   Socket,
 	config ClientConfig,
-) (*conn, error) {
+) (*tunnelConn, error) {
 	req := &proto.ConnReq{}
 
 	// Send the initial request.
@@ -107,7 +107,7 @@ func newConn(
 					switch res.Status {
 						// Conection has been established.
 						case proto.ConnResOk:
-							return &conn{sock, config, res.Channel}, nil
+							return &tunnelConn{sock, config, res.Channel}, nil
 
 						// The gateway is busy, but we don't stop yet.
 						case proto.ConnResBusy:
@@ -124,7 +124,7 @@ func newConn(
 
 // requestState periodically sends a connection state request to the gateway until it has
 // received a response or the context is done.
-func (conn *conn) requestState(
+func (conn *tunnelConn) requestState(
 	ctx       context.Context,
 	heartbeat <-chan proto.ConnState,
 ) (proto.ConnState, error) {
@@ -165,7 +165,7 @@ func (conn *conn) requestState(
 }
 
 //
-func (conn *conn) requestTunnel(
+func (conn *tunnelConn) requestTunnel(
 	ctx       context.Context,
 	seqNumber uint8,
 	data      cemi.CEMI,
@@ -218,7 +218,7 @@ func (conn *conn) requestTunnel(
 }
 
 // performHeartbeat uses requestState to determine if the gateway is still alive.
-func (conn *conn) performHeartbeat(
+func (conn *tunnelConn) performHeartbeat(
 	ctx       context.Context,
 	heartbeat <-chan proto.ConnState,
 	timeout   chan<- struct{},
@@ -245,7 +245,7 @@ func (conn *conn) performHeartbeat(
 }
 
 // handleDisconnectRequest validates the request.
-func (conn *conn) handleDisconnectRequest(
+func (conn *tunnelConn) handleDisconnectRequest(
 	ctx context.Context,
 	req *proto.DiscReq,
 ) error {
@@ -261,7 +261,7 @@ func (conn *conn) handleDisconnectRequest(
 }
 
 // handleDisconnectResponse validates the response.
-func (conn *conn) handleDisconnectResponse(
+func (conn *tunnelConn) handleDisconnectResponse(
 	ctx context.Context,
 	res *proto.DiscRes,
 ) error {
@@ -275,7 +275,7 @@ func (conn *conn) handleDisconnectResponse(
 
 // handleTunnelRequest validates the request, pushes the data to the client and acknowledges the
 // request for the gateway.
-func (conn *conn) handleTunnelRequest(
+func (conn *tunnelConn) handleTunnelRequest(
 	ctx       context.Context,
 	req       *proto.TunnelReq,
 	seqNumber *uint8,
@@ -305,7 +305,7 @@ func (conn *conn) handleTunnelRequest(
 
 // handleTunnelResponse validates the response and relays it to a sender that is awaiting an
 // acknowledgement.
-func (conn *conn) handleTunnelResponse(
+func (conn *tunnelConn) handleTunnelResponse(
 	ctx context.Context,
 	res *proto.TunnelRes,
 	ack chan<- *proto.TunnelRes,
@@ -329,7 +329,7 @@ func (conn *conn) handleTunnelResponse(
 
 // handleConnectionStateResponse validates the response and sends it to the heartbeat routine, if
 // there is a waiting one.
-func (conn *conn) handleConnectionStateResponse(
+func (conn *tunnelConn) handleConnectionStateResponse(
 	ctx       context.Context,
 	res       *proto.ConnStateRes,
 	heartbeat chan<- proto.ConnState,
@@ -352,7 +352,7 @@ func (conn *conn) handleConnectionStateResponse(
 }
 
 // serveInbound processes incoming packets.
-func (conn *conn) serveInbound(
+func (conn *tunnelConn) serveInbound(
 	ctx     context.Context,
 	inbound chan<- *cemi.CEMI,
 	ack     chan<- *proto.TunnelRes,
@@ -431,7 +431,7 @@ type Client struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 
-	conn      *conn
+	conn      *tunnelConn
 
 	mu        sync.Mutex
 	seqNumber uint8
@@ -456,7 +456,7 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 	defer cancelConnect()
 
 	// Connect to the gateway.
-	conn, err := newConn(connectCtx, sock, config)
+	conn, err := newTunnelConn(connectCtx, sock, config)
 	if err != nil {
 		return nil, err
 	}

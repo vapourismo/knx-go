@@ -130,11 +130,6 @@ func (state ConnState) String() string {
 	}
 }
 
-// Error implements the error Error method.
-func (state ConnState) Error() string {
-	return state.String()
-}
-
 // A ConnStateRes is a response to a ConnStateReq.
 type ConnStateRes struct {
 	Channel uint8

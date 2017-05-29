@@ -221,7 +221,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 		conn := conn{client, DefaultClientConfig, 1}
 
-		err := conn.requestState(ctx, make(chan proto.ConnState))
+		_, err := conn.requestState(ctx, make(chan proto.ConnState))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -237,7 +237,7 @@ func TestConnHandle_requestState(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		err := conn.requestState(ctx, make(chan proto.ConnState))
+		_, err := conn.requestState(ctx, make(chan proto.ConnState))
 		if err != ctx.Err() {
 			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
@@ -265,7 +265,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := conn{client, config, 1}
 
-			err := conn.requestState(ctx, make(chan proto.ConnState))
+			_, err := conn.requestState(ctx, make(chan proto.ConnState))
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -311,9 +311,14 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := conn{client, config, channel}
 
-			err := conn.requestState(ctx, heartbeat)
+			state, err := conn.requestState(ctx, heartbeat)
+
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			if state != proto.ConnStateNormal {
+				t.Fatalf("Unexpected connection state: %v", state)
 			}
 		})
 	})
@@ -328,7 +333,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 		conn := conn{client, DefaultClientConfig, 1}
 
-		err := conn.requestState(ctx, heartbeat)
+		_, err := conn.requestState(ctx, heartbeat)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -368,9 +373,14 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := conn{client, DefaultClientConfig, channel}
 
-			err := conn.requestState(ctx, heartbeat)
+			state, err := conn.requestState(ctx, heartbeat)
+
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			if state != proto.ConnStateNormal {
+				t.Fatalf("Unexpected connection state: %v", state)
 			}
 		})
 	})
@@ -409,9 +419,14 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := conn{client, DefaultClientConfig, channel}
 
-			err := conn.requestState(ctx, heartbeat)
-			if err != proto.ConnStateInactive {
+			state, err := conn.requestState(ctx, heartbeat)
+
+			if err != nil {
 				t.Fatal(err)
+			}
+
+			if state != proto.ConnStateInactive {
+				t.Fatalf("Unexpected connection state: %v", state)
 			}
 		})
 	})

@@ -123,17 +123,17 @@ func newConn(
 }
 
 // requestState periodically sends a connection state request to the gateway until it has
-// received a response, the context is done, or HeartbeatDelay duration has passed.
+// received a response or the context is done.
 func (conn *conn) requestState(
 	ctx       context.Context,
 	heartbeat <-chan proto.ConnState,
-) error {
+) (proto.ConnState, error) {
 	req := &proto.ConnStateReq{conn.channel, 0, proto.HostInfo{}}
 
 	// Send first connection state request
 	err := conn.sock.Send(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Start the resend timer.
@@ -144,27 +144,22 @@ func (conn *conn) requestState(
 		select {
 			// Termination has been requested.
 			case <-ctx.Done():
-				return ctx.Err()
+				return 0, ctx.Err()
 
 			// Resend timer fired.
 			case <-ticker.C:
 				err := conn.sock.Send(req)
 				if err != nil {
-					return err
+					return 0, err
 				}
 
 			// Received a connection state response.
 			case res, open := <-heartbeat:
 				if !open {
-					return errors.New("Heartbeat channel is closed")
+					return 0, errors.New("Heartbeat channel is closed")
 				}
 
-				// Is connection state positive?
-				if res == proto.ConnStateNormal {
-					return nil
-				}
-
-				return res
+				return res, nil
 		}
 	}
 }
@@ -233,9 +228,13 @@ func (conn *conn) performHeartbeat(
 	defer cancel()
 
 	// Request the connction state.
-	err := conn.requestState(childCtx, heartbeat)
-	if err != nil {
-		log(conn, "conn", "Error while requesting connection state: %v", err)
+	state, err := conn.requestState(childCtx, heartbeat)
+	if err != nil || state != proto.ConnStateNormal {
+		if err != nil {
+			log(conn, "conn", "Error while requesting connection state: %v", err)
+		} else {
+			log(conn, "conn", "Bad connection state: %v", state)
+		}
 
 		// Write to timeout as an indication that the heartbeat has failed.
 		select {

@@ -24,6 +24,11 @@ type HostInfo struct {
 	Port    Port
 }
 
+// Equals check whether both structures are equal.
+func (info HostInfo) Equals(other HostInfo) bool {
+	return (info.Address == other.Address && info.Port == other.Port)
+}
+
 // ReadFrom initializes the structure by reading from the given Reader.
 func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
 	var length, proto uint8
@@ -44,6 +49,6 @@ func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
-func (info *HostInfo) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, byte(8), byte(1), info.Address, info.Port)
+func (info HostInfo) WriteTo(w io.Writer) (int64, error) {
+	return encoding.WriteSome(w, []byte{8, 1}, info.Address, info.Port)
 }

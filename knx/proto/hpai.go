@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 

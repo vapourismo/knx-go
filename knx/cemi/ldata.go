@@ -3,6 +3,7 @@ package cemi
 import (
 	"errors"
 	"io"
+
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
@@ -32,7 +33,7 @@ func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
 		return n, err
 	}
 
-	tpdu := make([]byte, int(tpduLen8) + 1)
+	tpdu := make([]byte, int(tpduLen8)+1)
 	len, err = encoding.Read(r, tpdu)
 	n += len
 
@@ -59,7 +60,7 @@ func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 		ldata.Control2,
 		ldata.Source,
 		ldata.Destination,
-		byte(len(ldata.Data) - 1),
+		byte(len(ldata.Data)-1),
 		ldata.Data,
 	)
 }

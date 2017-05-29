@@ -2,9 +2,10 @@ package knx
 
 import (
 	"context"
+	"testing"
+
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/proto"
-	"testing"
 )
 
 func TestNewConn(t *testing.T) {
@@ -77,7 +78,11 @@ func TestNewConn(t *testing.T) {
 
 			msg := <-gateway.Inbound()
 			if req, ok := msg.(*proto.ConnReq); ok {
-				gateway.sendAny(&proto.ConnRes{1, proto.ConnResOk, req.Control})
+				gateway.sendAny(&proto.ConnRes{
+					Channel: 1,
+					Status:  proto.ConnResOk,
+					Control: req.Control,
+				})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -123,7 +128,11 @@ func TestNewConn(t *testing.T) {
 
 			msg := <-gateway.Inbound()
 			if req, ok := msg.(*proto.ConnReq); ok {
-				gateway.sendAny(&proto.ConnRes{1, proto.ConnResOk, req.Control})
+				gateway.sendAny(&proto.ConnRes{
+					Channel: 1,
+					Status:  proto.ConnResOk,
+					Control: req.Control,
+				})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -152,14 +161,18 @@ func TestNewConn(t *testing.T) {
 
 			msg := <-gateway.Inbound()
 			if req, ok := msg.(*proto.ConnReq); ok {
-				gateway.sendAny(&proto.ConnRes{0, proto.ConnResBusy, req.Control})
+				gateway.sendAny(&proto.ConnRes{Channel: 0, Status: proto.ConnResBusy, Control: req.Control})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
 
 			msg = <-gateway.Inbound()
 			if req, ok := msg.(*proto.ConnReq); ok {
-				gateway.sendAny(&proto.ConnRes{1, proto.ConnResOk, req.Control})
+				gateway.sendAny(&proto.ConnRes{
+					Channel: 1,
+					Status:  proto.ConnResOk,
+					Control: req.Control,
+				})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -191,7 +204,11 @@ func TestNewConn(t *testing.T) {
 
 			msg := <-gateway.Inbound()
 			if req, ok := msg.(*proto.ConnReq); ok {
-				gateway.sendAny(&proto.ConnRes{0, proto.ConnResUnsupportedType, req.Control})
+				gateway.sendAny(&proto.ConnRes{
+					Channel: 0,
+					Status:  proto.ConnResUnsupportedType,
+					Control: req.Control,
+				})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -520,7 +537,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber, 0}
+				ack <- &proto.TunnelRes{Channel: req.Channel, SeqNumber: req.SeqNumber, Status: 0}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -584,7 +601,11 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber + 10, 0}
+				ack <- &proto.TunnelRes{
+					Channel:   req.Channel,
+					SeqNumber: req.SeqNumber + 10,
+					Status:    0,
+				}
 				cancel()
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
@@ -629,7 +650,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber, 1}
+				ack <- &proto.TunnelRes{Channel: req.Channel, SeqNumber: req.SeqNumber, Status: 1}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -673,7 +694,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 					t.Error("Mismatching sequence number")
 				}
 
-				ack <- &proto.TunnelRes{req.Channel, req.SeqNumber, 0}
+				ack <- &proto.TunnelRes{Channel: req.Channel, SeqNumber: req.SeqNumber, Status: 0}
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -705,7 +726,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		var seqNumber uint8
 
 		conn := tunnelConn{client, DefaultClientConfig, 1}
-		req := &proto.TunnelReq{2, 0, cemi.CEMI{}}
+		req := &proto.TunnelReq{Channel: 2, SeqNumber: 0, Payload: cemi.CEMI{}}
 
 		err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan *cemi.CEMI))
 		if err == nil {
@@ -752,7 +773,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber + 1
 
 			conn := tunnelConn{client, DefaultClientConfig, channel}
-			req := &proto.TunnelReq{channel, sendSeqNumber, cemi.CEMI{}}
+			req := &proto.TunnelReq{Channel: channel, SeqNumber: sendSeqNumber, Payload: cemi.CEMI{}}
 
 			err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan *cemi.CEMI))
 			if err != nil {
@@ -805,7 +826,11 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber
 
 			conn := tunnelConn{client, DefaultClientConfig, channel}
-			req := &proto.TunnelReq{channel, sendSeqNumber, cemi.CEMI{}}
+			req := &proto.TunnelReq{
+				Channel:   channel,
+				SeqNumber: sendSeqNumber,
+				Payload:   cemi.CEMI{},
+			}
 
 			err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)
 			if err != nil {
@@ -835,7 +860,7 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 		conn := tunnelConn{client, DefaultClientConfig, 1}
 
-		res := &proto.TunnelRes{2, 0, 0}
+		res := &proto.TunnelRes{Channel: 2, SeqNumber: 0, Status: 0}
 		err := conn.handleTunnelResponse(ctx, res, make(chan *proto.TunnelRes))
 		if err == nil {
 			t.Fatal("Should not succeed")
@@ -854,7 +879,7 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 			conn := tunnelConn{client, DefaultClientConfig, 1}
 
-			res := &proto.TunnelRes{1, 0, 0}
+			res := &proto.TunnelRes{Channel: 1, SeqNumber: 0, Status: 0}
 			err := conn.handleTunnelResponse(ctx, res, ack)
 			if err != nil {
 				t.Fatal(err)

@@ -3,6 +3,7 @@ package proto
 import (
 	"fmt"
 	"io"
+
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
@@ -38,20 +39,20 @@ const (
 // String describes the status code.
 func (status ConnResStatus) String() string {
 	switch status {
-		case ConnResOk:
-			return "Connection established"
+	case ConnResOk:
+		return "Connection established"
 
-		case ConnResUnsupportedType:
-			return "Requested connection type is unsupported"
+	case ConnResUnsupportedType:
+		return "Requested connection type is unsupported"
 
-		case ConnResUnsupportedOption:
-			return "One of the requested options is unsupported"
+	case ConnResUnsupportedOption:
+		return "One of the requested options is unsupported"
 
-		case ConnResBusy:
-			return "No data channel is available"
+	case ConnResBusy:
+		return "No data channel is available"
 
-		default:
-			return fmt.Sprintf("Unknown status code %#x", uint8(status))
+	default:
+		return fmt.Sprintf("Unknown status code %#x", uint8(status))
 	}
 }
 
@@ -113,20 +114,20 @@ const (
 // String converts the connection state to a string.
 func (state ConnState) String() string {
 	switch state {
-		case ConnStateNormal:
-			return "Connection is intact"
+	case ConnStateNormal:
+		return "Connection is intact"
 
-		case ConnStateInactive:
-			return "Connection is inactive"
+	case ConnStateInactive:
+		return "Connection is inactive"
 
-		case ConnStateDataError:
-			return "Gateway encountered a data error"
+	case ConnStateDataError:
+		return "Gateway encountered a data error"
 
-		case ConnStateKNXError:
-			return "Gateway encountered a KNX error"
+	case ConnStateKNXError:
+		return "Gateway encountered a KNX error"
 
-		default:
-			return fmt.Sprintf("Unknown connection state %#x", uint8(state))
+	default:
+		return fmt.Sprintf("Unknown connection state %#x", uint8(state))
 	}
 }
 

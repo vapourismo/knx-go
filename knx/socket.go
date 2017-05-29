@@ -2,9 +2,10 @@ package knx
 
 import (
 	"bytes"
-	"github.com/vapourismo/knx-go/knx/proto"
 	"net"
 	"time"
+
+	"github.com/vapourismo/knx-go/knx/proto"
 )
 
 // A Socket is a socket, duh.
@@ -75,11 +76,7 @@ func (sock *udpSocket) Send(payload proto.ServiceWriterTo) error {
 
 	// Transmission of the buffer contents
 	_, err = sock.conn.Write(buffer.Bytes())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.

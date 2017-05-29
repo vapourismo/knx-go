@@ -20,29 +20,29 @@ type APCI uint8
 
 // These are usable APCI values.
 const (
-	GroupValueRead         APCI = 0
-	GroupValueResponse     APCI = 1
-	GroupValueWrite        APCI = 2
+	GroupValueRead     APCI = 0
+	GroupValueResponse APCI = 1
+	GroupValueWrite    APCI = 2
 
 	IndividualAddrWrite    APCI = 3
 	IndividualAddrRequest  APCI = 4
 	IndividualAddrResponse APCI = 5
 
-	AdcRead                APCI = 6
-	AdcResponse            APCI = 7
+	AdcRead     APCI = 6
+	AdcResponse APCI = 7
 
-	MemoryRead             APCI = 8
-	MemoryResponse         APCI = 9
-	MemoryWrite            APCI = 10
+	MemoryRead     APCI = 8
+	MemoryResponse APCI = 9
+	MemoryWrite    APCI = 10
 
-	UserMessage            APCI = 11
+	UserMessage APCI = 11
 
-	MaskVersionRead        APCI = 12
-	MaskVersionResponse    APCI = 13
+	MaskVersionRead     APCI = 12
+	MaskVersionResponse APCI = 13
 
-	Restart                APCI = 14
+	Restart APCI = 14
 
-	Escape                 APCI = 15
+	Escape APCI = 15
 )
 
 // TPDU is the Transport-layer Protocol Data Unit.
@@ -59,17 +59,17 @@ func MakeTPDU(apci APCI, data []byte) TPDU {
 	var buffer []byte
 
 	if len(data) > 0 {
-		buffer = make([]byte, len(data) + 1)
+		buffer = make([]byte, len(data)+1)
 		copy(buffer[1:], data)
 	} else {
 		buffer = make([]byte, 2)
 	}
 
 	buffer[0] |= byte(UnnumberedDataPacket) << 6
-	buffer[0] |= byte(apci >> 2) & 3
+	buffer[0] |= byte(apci>>2) & 3
 
 	buffer[1] &= 63
-	buffer[1] |= byte(apci & 3) << 6
+	buffer[1] |= byte(apci&3) << 6
 
 	return TPDU(buffer)
 }
@@ -88,14 +88,14 @@ func (tpdu TPDU) ExtractAPDU() (APCI, []byte, error) {
 
 	packetType := TPCI((tpdu[0] >> 6) & 3)
 	switch packetType {
-		case UnnumberedDataPacket, NumberedDataPacket:
-			apci := APCI((tpdu[0] & 3) << 2 | (tpdu[1] >> 6) & 3)
-			data := make([]byte, len(tpdu) - 1)
-			copy(data, tpdu[1:])
+	case UnnumberedDataPacket, NumberedDataPacket:
+		apci := APCI((tpdu[0]&3)<<2 | (tpdu[1]>>6)&3)
+		data := make([]byte, len(tpdu)-1)
+		copy(data, tpdu[1:])
 
-			data[0] &= 63
+		data[0] &= 63
 
-			return apci, data, nil
+		return apci, data, nil
 	}
 
 	return 0, nil, ErrNoDataPacket

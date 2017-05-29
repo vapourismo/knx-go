@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+
 	"github.com/vapourismo/knx-go/utilities/testutils"
 )
 
 func TestAddress_String(t *testing.T) {
-	t.Run("Ok", func (t *testing.T) {
+	t.Run("Ok", func(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			buffer := [4]byte{}
 			rand.Read(buffer[:])
@@ -29,7 +30,7 @@ func TestAddress_String(t *testing.T) {
 		}
 	})
 
-	t.Run("BadReader", func (t *testing.T) {
+	t.Run("BadReader", func(t *testing.T) {
 		var hi HostInfo
 		_, err := hi.ReadFrom(testutils.BadReader{})
 
@@ -38,7 +39,7 @@ func TestAddress_String(t *testing.T) {
 		}
 	})
 
-	t.Run("BadLength", func (t *testing.T) {
+	t.Run("BadLength", func(t *testing.T) {
 		var hi HostInfo
 		_, err := hi.ReadFrom(bytes.NewReader([]byte{0, 1, 0, 0, 0, 0, 0, 0}))
 
@@ -47,7 +48,7 @@ func TestAddress_String(t *testing.T) {
 		}
 	})
 
-	t.Run("BadProtocol", func (t *testing.T) {
+	t.Run("BadProtocol", func(t *testing.T) {
 		var hi HostInfo
 		_, err := hi.ReadFrom(bytes.NewReader([]byte{8, 2, 0, 0, 0, 0, 0, 0}))
 
@@ -87,7 +88,7 @@ func TestHostInfo_ReadFrom(t *testing.T) {
 			t.Errorf("Unexpected address: %v != %v", hi.Address, addrData)
 		}
 
-		portData := Port(data[4]) << 8 | Port(data[5])
+		portData := Port(data[4])<<8 | Port(data[5])
 		if hi.Port != portData {
 			t.Errorf("Unexpected port: %v != %v", hi.Port, portData)
 		}

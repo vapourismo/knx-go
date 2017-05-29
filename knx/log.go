@@ -1,8 +1,8 @@
 package knx
 
 import (
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 	l "log"
 )
 

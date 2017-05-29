@@ -3,6 +3,7 @@ package proto
 import (
 	"errors"
 	"io"
+
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/encoding"
 )

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
@@ -43,14 +44,14 @@ func Pack(w io.Writer, srv ServiceWriterTo) (int64, error) {
 	}
 
 	return encoding.WriteSome(
-		w, byte(6), byte(16), srv.Service(), uint16(dataBuffer.Len() + 6), &dataBuffer,
+		w, byte(6), byte(16), srv.Service(), uint16(dataBuffer.Len()+6), &dataBuffer,
 	)
 }
 
 // These are errors that might occur during unpacking.
 var (
-	ErrHeaderLength = errors.New("Header length is not 6")
-	ErrHeaderVersion = errors.New("Protocol version is not 16")
+	ErrHeaderLength   = errors.New("Header length is not 6")
+	ErrHeaderVersion  = errors.New("Protocol version is not 16")
 	ErrUnknownService = errors.New("Unknown service identifier")
 )
 
@@ -101,29 +102,29 @@ func Unpack(r io.Reader, srv *Service) (int64, error) {
 
 	var body serviceReaderFrom
 	switch srvID {
-		case ConnResService:
-			body = &ConnRes{}
+	case ConnResService:
+		body = &ConnRes{}
 
-		case ConnStateReqService:
-			body = &ConnStateReq{}
+	case ConnStateReqService:
+		body = &ConnStateReq{}
 
-		case ConnStateResService:
-			body = &ConnStateRes{}
+	case ConnStateResService:
+		body = &ConnStateRes{}
 
-		case DiscReqService:
-			body = &DiscReq{}
+	case DiscReqService:
+		body = &DiscReq{}
 
-		case DiscResService:
-			body = &DiscRes{}
+	case DiscResService:
+		body = &DiscRes{}
 
-		case TunnelReqService:
-			body = &TunnelReq{}
+	case TunnelReqService:
+		body = &TunnelReq{}
 
-		case TunnelResService:
-			body = &TunnelRes{}
+	case TunnelResService:
+		body = &TunnelRes{}
 
-		default:
-			return n, ErrUnknownService
+	default:
+		return n, ErrUnknownService
 	}
 
 	m, err := body.ReadFrom(r)

@@ -3,8 +3,9 @@ package knx
 import (
 	"container/list"
 	"errors"
-	"github.com/vapourismo/knx-go/knx/proto"
 	"sync"
+
+	"github.com/vapourismo/knx-go/knx/proto"
 )
 
 type dummySocket struct {

@@ -27,7 +27,7 @@ type HostInfo struct {
 
 // Equals check whether both structures are equal.
 func (info HostInfo) Equals(other HostInfo) bool {
-	return (info.Address == other.Address && info.Port == other.Port)
+	return info.Address == other.Address && info.Port == other.Port
 }
 
 // ReadFrom initializes the structure by reading from the given Reader.

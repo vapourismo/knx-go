@@ -2,7 +2,6 @@ package knx
 
 import (
 	"bytes"
-	"errors"
 	"net"
 	"time"
 	"github.com/vapourismo/knx-go/knx/proto"
@@ -11,7 +10,7 @@ import (
 // A Socket is a socket, duh.
 type Socket interface {
 	Send(payload proto.ServiceWriterTo) error
-	Receive() (proto.Service, error)
+	Inbound() <-chan proto.Service
 	Close() error
 }
 
@@ -48,15 +47,18 @@ func NewRoutingSocket(multicastAddress string) (Socket, error) {
 
 // UDP socket for KNXnet/IP packet exchange
 type udpSocket struct {
-	conn *net.UDPConn
-	addr *net.UDPAddr
+	conn    *net.UDPConn
+	inbound <-chan proto.Service
 }
 
 // makeUDPSocket configures the UDPConn and launches the receiver and sender workers.
 func makeUDPSocket(conn *net.UDPConn, addr *net.UDPAddr) *udpSocket {
 	conn.SetDeadline(time.Time{})
 
-	return &udpSocket{conn, addr}
+	inbound := make(chan proto.Service)
+	go udpSocketReceiver(conn, addr, inbound)
+
+	return &udpSocket{conn, inbound}
 }
 
 // Send transmits a KNXnet/IP packet.
@@ -80,36 +82,46 @@ func (sock *udpSocket) Send(payload proto.ServiceWriterTo) error {
 	return nil
 }
 
-// These are errors that can occur during calls to Receive.
-var (
-	ErrInvalidOrigin = errors.New("Invalid packet origin")
-)
-
-// Receive waits for an incoming KNXnet/IP packet.
-func (sock *udpSocket) Receive() (proto.Service, error) {
-	buffer := [1024]byte{}
-
-	len, sender, err := sock.conn.ReadFromUDP(buffer[:])
-	if err != nil {
-		return nil, err
-	}
-
-	// Validate sender origin if necessary
-	if sock.addr != nil && (!sock.addr.IP.Equal(sender.IP) || sock.addr.Port != sender.Port) {
-		return nil, ErrInvalidOrigin
-	}
-
-	var payload proto.Service
-	if _, err = proto.Unpack(bytes.NewReader(buffer[:len]), &payload); err != nil {
-		return nil, err
-	}
-
-	log(sock.conn, "udpSocket", "-> %T %+v", payload, payload)
-
-	return payload, nil
+// Inbound provides a channel from which you can retrieve incoming packets.
+func (sock *udpSocket) Inbound() <-chan proto.Service {
+	return sock.inbound
 }
 
 // Close shuts the socket down. This will indirectly terminate the associated workers.
 func (sock *udpSocket) Close() error {
 	return sock.conn.Close()
+}
+
+// udpSocketReceiver is the receiver worker for udpSocket.
+func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.Service) {
+	log(conn, "udpSocket", "Started receiver")
+	defer log(conn, "udpSocket", "Stopped receiver")
+	defer close(inbound)
+
+	buffer := [1024]byte{}
+
+	for {
+		len, sender, err := conn.ReadFromUDP(buffer[:])
+		if err != nil {
+			log(conn, "udpSocket", "Error during read: %v", err)
+			return
+		}
+
+		// Validate sender origin if necessary
+		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
+			log(conn, "udpSocket", "Origin validation failed: %v (expected %v)", sender, addr)
+			continue
+		}
+
+		var payload proto.Service
+		_, err = proto.Unpack(bytes.NewReader(buffer[:len]), &payload)
+		if err != nil {
+			log(conn, "udpSocket", "Error during packet parsing: %v", err)
+			continue
+		}
+
+		log(conn, "udpSocket", "-> %T %+v", payload, payload)
+
+		inbound <- payload
+	}
 }

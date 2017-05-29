@@ -2,9 +2,9 @@ package knx
 
 import (
 	"bytes"
+	"github.com/vapourismo/knx-go/knx/proto"
 	"net"
 	"time"
-	"github.com/vapourismo/knx-go/knx/proto"
 )
 
 // A Socket is a socket, duh.
@@ -26,7 +26,7 @@ func NewClientSocket(gatewayAddress string) (Socket, error) {
 		return nil, err
 	}
 
-	return makeUDPSocket(conn, addr), nil
+	return newUDPSocket(conn, addr), nil
 }
 
 // NewRoutingSocket creates a new Socket which can be used to exchange KNXnet/IP packets with a
@@ -42,7 +42,7 @@ func NewRoutingSocket(multicastAddress string) (Socket, error) {
 		return nil, err
 	}
 
-	return makeUDPSocket(conn, nil), nil
+	return newUDPSocket(conn, nil), nil
 }
 
 // UDP socket for KNXnet/IP packet exchange
@@ -51,8 +51,8 @@ type udpSocket struct {
 	inbound <-chan proto.Service
 }
 
-// makeUDPSocket configures the UDPConn and launches the receiver and sender workers.
-func makeUDPSocket(conn *net.UDPConn, addr *net.UDPAddr) *udpSocket {
+// newUDPSocket configures the UDPConn and launches the receiver and sender workers.
+func newUDPSocket(conn *net.UDPConn, addr *net.UDPAddr) *udpSocket {
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan proto.Service)

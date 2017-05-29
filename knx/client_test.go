@@ -2,17 +2,17 @@ package knx
 
 import (
 	"context"
-	"testing"
-	"github.com/vapourismo/knx-go/knx/proto"
 	"github.com/vapourismo/knx-go/knx/cemi"
+	"github.com/vapourismo/knx-go/knx/proto"
+	"testing"
 )
 
 func TestNewConn(t *testing.T) {
 	ctx := context.Background()
 
 	// Socket was closed before anything could be done.
-	t.Run("SendFails", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("SendFails", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer gateway.Close()
 
 		client.Close()
@@ -24,8 +24,8 @@ func TestNewConn(t *testing.T) {
 	})
 
 	// Context is done.
-	t.Run("CancelledContext", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("CancelledContext", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer client.Close()
 		defer gateway.Close()
 
@@ -39,10 +39,10 @@ func TestNewConn(t *testing.T) {
 	})
 
 	// Socket is closed before first resend.
-	t.Run("ResendFails", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("ResendFails", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			<-gateway.Inbound()
@@ -51,7 +51,7 @@ func TestNewConn(t *testing.T) {
 			gateway.Close()
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			config := DefaultClientConfig
@@ -65,10 +65,10 @@ func TestNewConn(t *testing.T) {
 	})
 
 	// The gateway responds to the connection request.
-	t.Run("Resend", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Resend", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -83,7 +83,7 @@ func TestNewConn(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -99,8 +99,8 @@ func TestNewConn(t *testing.T) {
 	})
 
 	// Inbound channel is closed.
-	t.Run("InboundClosed", func (t *testing.T) {
-		client, gatway := makeDummySockets()
+	t.Run("InboundClosed", func(t *testing.T) {
+		client, gatway := newDummySockets()
 		defer gatway.Close()
 		defer client.Close()
 
@@ -113,10 +113,10 @@ func TestNewConn(t *testing.T) {
 	})
 
 	// The gateway responds to the connection request.
-	t.Run("Ok", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Ok", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -129,7 +129,7 @@ func TestNewConn(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -142,10 +142,10 @@ func TestNewConn(t *testing.T) {
 	})
 
 	// The gateway is only busy for the first attempt.
-	t.Run("Busy", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Busy", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -165,7 +165,7 @@ func TestNewConn(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -181,10 +181,10 @@ func TestNewConn(t *testing.T) {
 	})
 
 	// The gateway doesn't supported the requested connection type.
-	t.Run("Unsupported", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Unsupported", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -197,7 +197,7 @@ func TestNewConn(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -213,8 +213,8 @@ func TestNewConn(t *testing.T) {
 func TestConnHandle_requestState(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("SendFails", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("SendFails", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer gateway.Close()
 
 		client.Close()
@@ -227,8 +227,8 @@ func TestConnHandle_requestState(t *testing.T) {
 		}
 	})
 
-	t.Run("CancelledContext", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("CancelledContext", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer client.Close()
 		defer gateway.Close()
 
@@ -243,10 +243,10 @@ func TestConnHandle_requestState(t *testing.T) {
 		}
 	})
 
-	t.Run("ResendFails", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("ResendFails", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -255,7 +255,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			client.closeOut()
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -272,13 +272,13 @@ func TestConnHandle_requestState(t *testing.T) {
 		})
 	})
 
-	t.Run("Resend", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Resend", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
 		const channel uint8 = 1
 		heartbeat := make(chan proto.ConnState)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -301,7 +301,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -318,8 +318,8 @@ func TestConnHandle_requestState(t *testing.T) {
 		})
 	})
 
-	t.Run("InboundClosed", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("InboundClosed", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer client.Close()
 		defer gateway.Close()
 
@@ -334,13 +334,13 @@ func TestConnHandle_requestState(t *testing.T) {
 		}
 	})
 
-	t.Run("Ok", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Ok", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
 		const channel uint8 = 1
 		heartbeat := make(chan proto.ConnState)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -361,7 +361,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -375,13 +375,13 @@ func TestConnHandle_requestState(t *testing.T) {
 		})
 	})
 
-	t.Run("Inactive", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Inactive", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
 		const channel uint8 = 1
 		heartbeat := make(chan proto.ConnState)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -402,7 +402,7 @@ func TestConnHandle_requestState(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -420,8 +420,8 @@ func TestConnHandle_requestState(t *testing.T) {
 func TestConnHandle_requestTunnel(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("SendFails", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("SendFails", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer gateway.Close()
 
 		client.Close()
@@ -434,8 +434,8 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		}
 	})
 
-	t.Run("ContextCancelled", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("ContextCancelled", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer client.Close()
 		defer gateway.Close()
 
@@ -450,10 +450,10 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		}
 	})
 
-	t.Run("ResendFails", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("ResendFails", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -462,7 +462,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			client.closeOut()
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -479,8 +479,8 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		})
 	})
 
-	t.Run("Resend", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Resend", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		ack := make(chan *proto.TunnelRes)
 
 		const (
@@ -488,7 +488,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			seqNumber uint8 = 0
 		)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -511,7 +511,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -528,8 +528,8 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		})
 	})
 
-	t.Run("ClosedAckChannel", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("ClosedAckChannel", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer client.Close()
 		defer gateway.Close()
 
@@ -544,8 +544,8 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		}
 	})
 
-	t.Run("InvalidSeqNumber", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("InvalidSeqNumber", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		ack := make(chan *proto.TunnelRes)
 		ctx, cancel := context.WithCancel(ctx)
 
@@ -554,7 +554,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			seqNumber uint8 = 0
 		)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -576,7 +576,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -590,8 +590,8 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		})
 	})
 
-	t.Run("BadStatus", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("BadStatus", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		ack := make(chan *proto.TunnelRes)
 
 		const (
@@ -599,7 +599,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			seqNumber uint8 = 0
 		)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -620,7 +620,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -634,8 +634,8 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		})
 	})
 
-	t.Run("Ok", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Ok", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		ack := make(chan *proto.TunnelRes)
 
 		const (
@@ -643,7 +643,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			seqNumber uint8 = 0
 		)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -664,7 +664,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -682,8 +682,8 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 func TestConnHandle_handleTunnelRequest(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("InvalidChannel", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("InvalidChannel", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer client.Close()
 		defer gateway.Close()
 
@@ -698,15 +698,15 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("InvalidSeqNumber", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("InvalidSeqNumber", func(t *testing.T) {
+		client, gateway := newDummySockets()
 
 		const (
 			channel       uint8 = 1
 			sendSeqNumber uint8 = 0
 		)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -729,7 +729,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			}
 		})
 
-		t.Run("Worker", func (t *testing.T) {
+		t.Run("Worker", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -744,14 +744,14 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if seqNumber != sendSeqNumber + 1 {
+			if seqNumber != sendSeqNumber+1 {
 				t.Error("Sequence number was modified")
 			}
 		})
 	})
 
-	t.Run("Ok", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Ok", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		inbound := make(chan *cemi.CEMI)
 
 		const (
@@ -759,7 +759,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			sendSeqNumber uint8 = 0
 		)
 
-		t.Run("Gateway", func (t *testing.T) {
+		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
 
 			defer gateway.Close()
@@ -782,7 +782,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			}
 		})
 
-		t.Run("Worker", func (t *testing.T) {
+		t.Run("Worker", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -797,12 +797,12 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if seqNumber != sendSeqNumber + 1 {
+			if seqNumber != sendSeqNumber+1 {
 				t.Error("Sequence number has not been increased")
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			<-inbound
@@ -813,8 +813,8 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 func TestConnHandle_handleTunnelResponse(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("InvalidChannel", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("InvalidChannel", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		defer client.Close()
 		defer gateway.Close()
 
@@ -827,11 +827,11 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 		}
 	})
 
-	t.Run("Ok", func (t *testing.T) {
-		client, gateway := makeDummySockets()
+	t.Run("Ok", func(t *testing.T) {
+		client, gateway := newDummySockets()
 		ack := make(chan *proto.TunnelRes)
 
-		t.Run("Worker", func (t *testing.T) {
+		t.Run("Worker", func(t *testing.T) {
 			t.Parallel()
 
 			defer client.Close()
@@ -846,7 +846,7 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 			}
 		})
 
-		t.Run("Client", func (t *testing.T) {
+		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
 			res := <-ack

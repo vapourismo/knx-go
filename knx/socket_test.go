@@ -3,8 +3,8 @@ package knx
 import (
 	"container/list"
 	"errors"
-	"sync"
 	"github.com/vapourismo/knx-go/knx/proto"
+	"sync"
 )
 
 type dummySocket struct {
@@ -37,8 +37,31 @@ func (sock *dummySocket) serveOne() bool {
 }
 
 func (sock *dummySocket) serveAll() {
-	for sock.serveOne() {}
+	for sock.serveOne() {
+	}
 	close(sock.inbound)
+}
+
+func (sock *dummySocket) sendAny(payload interface{}) error {
+	sock.cond.L.Lock()
+	defer sock.cond.L.Unlock()
+
+	if sock.out == nil {
+		return errors.New("Outbound is closed")
+	}
+
+	sock.out.PushBack(payload)
+	sock.cond.Broadcast()
+
+	return nil
+}
+
+func (sock *dummySocket) Send(payload proto.ServiceWriterTo) error {
+	return sock.sendAny(payload)
+}
+
+func (sock *dummySocket) Inbound() <-chan proto.Service {
+	return sock.inbound
 }
 
 func (sock *dummySocket) closeIn() {
@@ -59,24 +82,6 @@ func (sock *dummySocket) closeOut() {
 	sock.cond.Broadcast()
 }
 
-func (sock *dummySocket) Send(payload proto.ServiceWriterTo) error {
-	return sock.sendAny(payload)
-}
-
-func (sock *dummySocket) sendAny(payload interface{}) error {
-	sock.cond.L.Lock()
-	defer sock.cond.L.Unlock()
-
-	if sock.out == nil {
-		return errors.New("Outbound is closed")
-	}
-
-	sock.out.PushBack(payload)
-	sock.cond.Broadcast()
-
-	return nil
-}
-
 func (sock *dummySocket) Close() error {
 	sock.cond.L.Lock()
 	defer sock.cond.L.Unlock()
@@ -89,11 +94,7 @@ func (sock *dummySocket) Close() error {
 	return nil
 }
 
-func (sock *dummySocket) Inbound() <-chan proto.Service {
-	return sock.inbound
-}
-
-func makeDummySockets() (*dummySocket, *dummySocket) {
+func newDummySockets() (*dummySocket, *dummySocket) {
 	cond := sync.NewCond(&sync.Mutex{})
 	forGateway := list.New()
 	forClient := list.New()

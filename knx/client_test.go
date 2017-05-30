@@ -736,7 +736,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
 		req := &proto.TunnelReq{Channel: 2, SeqNumber: 0, Payload: cemi.CEMI{}}
 
-		err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan *cemi.CEMI))
+		err := conn.handleTunnelRequest(ctx, req, &seqNumber)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -783,7 +783,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
 			req := &proto.TunnelReq{Channel: channel, SeqNumber: sendSeqNumber, Payload: cemi.CEMI{}}
 
-			err := conn.handleTunnelRequest(ctx, req, &seqNumber, make(chan *cemi.CEMI))
+			err := conn.handleTunnelRequest(ctx, req, &seqNumber)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -834,13 +834,15 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber
 
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
+			conn.inbound = inbound
+
 			req := &proto.TunnelReq{
 				Channel:   channel,
 				SeqNumber: sendSeqNumber,
 				Payload:   cemi.CEMI{},
 			}
 
-			err := conn.handleTunnelRequest(ctx, req, &seqNumber, inbound)
+			err := conn.handleTunnelRequest(ctx, req, &seqNumber)
 			if err != nil {
 				t.Fatal(err)
 			}

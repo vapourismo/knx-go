@@ -65,6 +65,8 @@ type tunnelConn struct {
 	seqMu     *sync.Mutex
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
+
+	inbound chan *cemi.CEMI
 }
 
 // newTunnelConn repeatedly sends a connection request through the socket until the provided context gets
@@ -119,6 +121,7 @@ func newTunnelConn(
 						seqMu:     &sync.Mutex{},
 						seqNumber: 0,
 						ack:       make(chan *proto.TunnelRes),
+						inbound:   make(chan *cemi.CEMI),
 					}, nil
 
 				// The gateway is busy, but we don't stop yet.
@@ -300,7 +303,6 @@ func (conn *tunnelConn) handleTunnelRequest(
 	ctx context.Context,
 	req *proto.TunnelReq,
 	seqNumber *uint8,
-	inbound chan<- *cemi.CEMI,
 ) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
@@ -315,7 +317,7 @@ func (conn *tunnelConn) handleTunnelRequest(
 		go func() {
 			select {
 			case <-ctx.Done():
-			case inbound <- &req.Payload:
+			case conn.inbound <- &req.Payload:
 			}
 		}()
 	}
@@ -378,10 +380,9 @@ func (conn *tunnelConn) handleConnectionStateResponse(
 // serveInbound processes incoming packets.
 func (conn *tunnelConn) serveInbound(
 	ctx context.Context,
-	inbound chan<- *cemi.CEMI,
 ) error {
 	defer close(conn.ack)
-	defer close(inbound)
+	defer close(conn.inbound)
 
 	heartbeat := make(chan proto.ConnState)
 	timeout := make(chan struct{})
@@ -427,7 +428,7 @@ func (conn *tunnelConn) serveInbound(
 				log(conn, "conn", "Error while handling disconnect response %v: %v", msg, err)
 
 			case *proto.TunnelReq:
-				err := conn.handleTunnelRequest(ctx, msg, &seqNumber, inbound)
+				err := conn.handleTunnelRequest(ctx, msg, &seqNumber)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel request %v: %v", msg, err)
 				}
@@ -455,8 +456,6 @@ type Client struct {
 	cancel context.CancelFunc
 
 	conn *tunnelConn
-
-	inbound chan *cemi.CEMI
 }
 
 // Connect establishes a connection with a gateway. You can pass a zero initialized ClientConfig;
@@ -487,13 +486,12 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 		ctx,
 		cancel,
 		conn,
-		make(chan *cemi.CEMI),
 	}, nil
 }
 
 // Serve starts the internal connection server, which is needed to process incoming packets.
 func (client *Client) Serve() error {
-	return client.conn.serveInbound(client.ctx, client.inbound)
+	return client.conn.serveInbound(client.ctx)
 }
 
 // Close will terminate the connection.
@@ -503,7 +501,7 @@ func (client *Client) Close() {
 
 // Inbound retrieves the channel which transmits incoming data.
 func (client *Client) Inbound() <-chan *cemi.CEMI {
-	return client.inbound
+	return client.conn.inbound
 }
 
 // Send relays a tunnel request to the gateway with the given contents.

@@ -22,6 +22,7 @@ func makeTunnelConn(
 		seqMu:     &sync.Mutex{},
 		seqNumber: 0,
 		ack:       make(chan *proto.TunnelRes),
+		inbound:   make(chan *cemi.CEMI),
 	}
 }
 

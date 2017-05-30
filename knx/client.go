@@ -165,7 +165,7 @@ func (conn *tunnelConn) requestState(
 	}
 }
 
-//
+// requestTunnel sends a tunnel request to the gateway and waits for an appropriate acknowledgement.
 func (conn *tunnelConn) requestTunnel(
 	ctx context.Context,
 	seqNumber uint8,

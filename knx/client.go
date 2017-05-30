@@ -61,6 +61,10 @@ type tunnelConn struct {
 	sock    Socket
 	config  ClientConfig
 	channel uint8
+
+	seqMu     *sync.Mutex
+	seqNumber uint8
+	ack       chan *proto.TunnelRes
 }
 
 // newTunnelConn repeatedly sends a connection request through the socket until the provided context gets
@@ -108,7 +112,14 @@ func newTunnelConn(
 				switch res.Status {
 				// Conection has been established.
 				case proto.ConnResOk:
-					return &tunnelConn{sock, config, res.Channel}, nil
+					return &tunnelConn{
+						sock:      sock,
+						config:    config,
+						channel:   res.Channel,
+						seqMu:     &sync.Mutex{},
+						seqNumber: 0,
+						ack:       make(chan *proto.TunnelRes),
+					}, nil
 
 				// The gateway is busy, but we don't stop yet.
 				case proto.ConnResBusy:
@@ -168,13 +179,15 @@ func (conn *tunnelConn) requestState(
 // requestTunnel sends a tunnel request to the gateway and waits for an appropriate acknowledgement.
 func (conn *tunnelConn) requestTunnel(
 	ctx context.Context,
-	seqNumber uint8,
 	data cemi.CEMI,
-	ack <-chan *proto.TunnelRes,
 ) error {
+	// Sequence numbers cannot be reused, therefore we must protect against that.
+	conn.seqMu.Lock()
+	defer conn.seqMu.Unlock()
+
 	req := &proto.TunnelReq{
 		Channel:   conn.channel,
-		SeqNumber: seqNumber,
+		SeqNumber: conn.seqNumber,
 		Payload:   data,
 	}
 
@@ -202,15 +215,18 @@ func (conn *tunnelConn) requestTunnel(
 			}
 
 		// Received a tunnel response.
-		case res, open := <-ack:
+		case res, open := <-conn.ack:
 			if !open {
 				return errors.New("Ack channel is closed")
 			}
 
 			// Ignore mismatching sequence numbers.
-			if res.SeqNumber != seqNumber {
+			if res.SeqNumber != conn.seqNumber {
 				continue
 			}
+
+			// Gateway has received the request, therefore we can increase on our side.
+			conn.seqNumber++
 
 			// Check if the response confirms the tunnel request.
 			if res.Status == 0 {
@@ -317,7 +333,6 @@ func (conn *tunnelConn) handleTunnelRequest(
 func (conn *tunnelConn) handleTunnelResponse(
 	ctx context.Context,
 	res *proto.TunnelRes,
-	ack chan<- *proto.TunnelRes,
 ) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
@@ -329,7 +344,7 @@ func (conn *tunnelConn) handleTunnelResponse(
 		select {
 		case <-ctx.Done():
 		case <-time.After(conn.config.ResendInterval):
-		case ack <- res:
+		case conn.ack <- res:
 		}
 	}()
 
@@ -364,9 +379,8 @@ func (conn *tunnelConn) handleConnectionStateResponse(
 func (conn *tunnelConn) serveInbound(
 	ctx context.Context,
 	inbound chan<- *cemi.CEMI,
-	ack chan<- *proto.TunnelRes,
 ) error {
-	defer close(ack)
+	defer close(conn.ack)
 	defer close(inbound)
 
 	heartbeat := make(chan proto.ConnState)
@@ -419,7 +433,7 @@ func (conn *tunnelConn) serveInbound(
 				}
 
 			case *proto.TunnelRes:
-				err := conn.handleTunnelResponse(ctx, msg, ack)
+				err := conn.handleTunnelResponse(ctx, msg)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
 				}
@@ -441,10 +455,6 @@ type Client struct {
 	cancel context.CancelFunc
 
 	conn *tunnelConn
-
-	mu        sync.Mutex
-	seqNumber uint8
-	ack       chan *proto.TunnelRes
 
 	inbound chan *cemi.CEMI
 }
@@ -477,16 +487,13 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 		ctx,
 		cancel,
 		conn,
-		sync.Mutex{},
-		0,
-		make(chan *proto.TunnelRes),
 		make(chan *cemi.CEMI),
 	}, nil
 }
 
 // Serve starts the internal connection server, which is needed to process incoming packets.
 func (client *Client) Serve() error {
-	return client.conn.serveInbound(client.ctx, client.inbound, client.ack)
+	return client.conn.serveInbound(client.ctx, client.inbound)
 }
 
 // Close will terminate the connection.
@@ -501,22 +508,15 @@ func (client *Client) Inbound() <-chan *cemi.CEMI {
 
 // Send relays a tunnel request to the gateway with the given contents.
 func (client *Client) Send(data cemi.CEMI) error {
-	// Establish a lock so that nobody else can modify the sequence number.
-	client.mu.Lock()
-	defer client.mu.Unlock()
-
 	// Prepare a context, so that we won't wait forever for a tunnel response.
 	ctx, cancel := context.WithTimeout(client.ctx, client.conn.config.ResponseTimeout)
 	defer cancel()
 
 	// Send the tunnel reqest.
-	err := client.conn.requestTunnel(ctx, client.seqNumber, data, client.ack)
+	err := client.conn.requestTunnel(ctx, data)
 	if err != nil {
 		return err
 	}
-
-	// We are able to increase the sequence number of success.
-	client.seqNumber++
 
 	return nil
 }

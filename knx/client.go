@@ -101,7 +101,7 @@ func (conn *tunnelConn) requestConn(ctx context.Context) (err error) {
 		// A message has been received or the channel has been closed.
 		case msg, open := <-conn.sock.Inbound():
 			if !open {
-				return errors.New("Inbound channel has been closed")
+				return errors.New("Socket's inbound channel has been closed")
 			}
 
 			// We're only interested in connection responses.

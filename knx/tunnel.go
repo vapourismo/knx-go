@@ -465,7 +465,7 @@ type Tunnel struct {
 // the function will take care of filling in the default values.
 func Connect(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
-	sock, err := NewClientSocket(gatewayAddr)
+	sock, err := NewTunnelSocket(gatewayAddr)
 	if err != nil {
 		return nil, err
 	}

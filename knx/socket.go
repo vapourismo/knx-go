@@ -15,8 +15,8 @@ type Socket interface {
 	Close() error
 }
 
-// NewClientSocket creates a new Socket which can used to exchange KNXnet/IP packets with a gateway.
-func NewClientSocket(gatewayAddress string) (Socket, error) {
+// NewTunnelSocket creates a new Socket which can used to exchange KNXnet/IP packets with a gateway.
+func NewTunnelSocket(gatewayAddress string) (Socket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", gatewayAddress)
 	if err != nil {
 		return nil, err
@@ -27,7 +27,12 @@ func NewClientSocket(gatewayAddress string) (Socket, error) {
 		return nil, err
 	}
 
-	return newUDPSocket(conn, addr), nil
+	conn.SetDeadline(time.Time{})
+
+	inbound := make(chan proto.Service)
+	go serveUDPSocket(conn, addr, inbound)
+
+	return &tunnelSock{conn, inbound}, nil
 }
 
 // NewRoutingSocket creates a new Socket which can be used to exchange KNXnet/IP packets with a
@@ -43,27 +48,22 @@ func NewRoutingSocket(multicastAddress string) (Socket, error) {
 		return nil, err
 	}
 
-	return newUDPSocket(conn, nil), nil
+	conn.SetDeadline(time.Time{})
+
+	inbound := make(chan proto.Service)
+	go serveUDPSocket(conn, nil, inbound)
+
+	return &routerSock{conn, addr, inbound}, nil
 }
 
-// UDP socket for KNXnet/IP packet exchange
-type udpSocket struct {
+// tunnelSock is a UDP socket for KNXnet/IP packet exchange.
+type tunnelSock struct {
 	conn    *net.UDPConn
 	inbound <-chan proto.Service
 }
 
-// newUDPSocket configures the UDPConn and launches the receiver and sender workers.
-func newUDPSocket(conn *net.UDPConn, addr *net.UDPAddr) *udpSocket {
-	conn.SetDeadline(time.Time{})
-
-	inbound := make(chan proto.Service)
-	go udpSocketReceiver(conn, addr, inbound)
-
-	return &udpSocket{conn, inbound}
-}
-
 // Send transmits a KNXnet/IP packet.
-func (sock *udpSocket) Send(payload proto.ServiceWriterTo) error {
+func (sock *tunnelSock) Send(payload proto.ServiceWriterTo) error {
 	buffer := bytes.Buffer{}
 
 	// Packet serialization
@@ -72,7 +72,7 @@ func (sock *udpSocket) Send(payload proto.ServiceWriterTo) error {
 		return err
 	}
 
-	log(sock.conn, "udpSocket", "<- %T %+v", payload, payload)
+	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
 
 	// Transmission of the buffer contents
 	_, err = sock.conn.Write(buffer.Bytes())
@@ -80,19 +80,53 @@ func (sock *udpSocket) Send(payload proto.ServiceWriterTo) error {
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *udpSocket) Inbound() <-chan proto.Service {
+func (sock *tunnelSock) Inbound() <-chan proto.Service {
 	return sock.inbound
 }
 
 // Close shuts the socket down. This will indirectly terminate the associated workers.
-func (sock *udpSocket) Close() error {
+func (sock *tunnelSock) Close() error {
 	return sock.conn.Close()
 }
 
-// udpSocketReceiver is the receiver worker for udpSocket.
-func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.Service) {
-	log(conn, "udpSocket", "Started receiver")
-	defer log(conn, "udpSocket", "Stopped receiver")
+// routerSock is a UDP socket for KNXnet/IP packet exchange.
+type routerSock struct {
+	conn    *net.UDPConn
+	addr    *net.UDPAddr
+	inbound <-chan proto.Service
+}
+
+// Send transmits a KNXnet/IP packet.
+func (sock *routerSock) Send(payload proto.ServiceWriterTo) error {
+	buffer := bytes.Buffer{}
+
+	// Packet serialization
+	_, err := proto.Pack(&buffer, payload)
+	if err != nil {
+		return err
+	}
+
+	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
+
+	// Transmission of the buffer contents
+	_, err = sock.conn.WriteToUDP(buffer.Bytes(), sock.addr)
+	return err
+}
+
+// Inbound provides a channel from which you can retrieve incoming packets.
+func (sock *routerSock) Inbound() <-chan proto.Service {
+	return sock.inbound
+}
+
+// Close shuts the socket down. This will indirectly terminate the associated workers.
+func (sock *routerSock) Close() error {
+	return sock.conn.Close()
+}
+
+// serveUDPSocket is the receiver worker for a UDP socket.
+func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.Service) {
+	log(conn, "Socket", "Started receiver")
+	defer log(conn, "Socket", "Stopped receiver")
 
 	// A closed inbound channel indicates to its readers that the worker has terminated.
 	defer close(inbound)
@@ -102,24 +136,24 @@ func udpSocketReceiver(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- prot
 	for {
 		len, sender, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
-			log(conn, "udpSocket", "Error during read: %v", err)
+			log(conn, "Socket", "Error during read: %v", err)
 			return
 		}
 
 		// Validate sender origin if necessary
 		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
-			log(conn, "udpSocket", "Origin validation failed: %v (expected %v)", sender, addr)
+			log(conn, "Socket", "Origin validation failed: %v (expected %v)", sender, addr)
 			continue
 		}
 
 		var payload proto.Service
 		_, err = proto.Unpack(bytes.NewReader(buffer[:len]), &payload)
 		if err != nil {
-			log(conn, "udpSocket", "Error during packet parsing: %v", err)
+			log(conn, "Socket", "Error during packet parsing: %v", err)
 			continue
 		}
 
-		log(conn, "udpSocket", "-> %T %+v", payload, payload)
+		log(conn, "Socket", "-> %T %+v", payload, payload)
 
 		inbound <- payload
 	}

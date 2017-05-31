@@ -17,7 +17,7 @@ type ControlField1 uint8
 // MakeControlField1 generates a control field 1 value.
 func MakeControlField1(
 	stdFrame bool,
-	repeatOnErr bool,
+	isRepeated bool,
 	sysBroadcast bool,
 	prio Priority,
 	wantAck bool,
@@ -27,7 +27,7 @@ func MakeControlField1(
 		ret |= 1 << 7
 	}
 
-	if !repeatOnErr {
+	if !isRepeated {
 		ret |= 1 << 5
 	}
 

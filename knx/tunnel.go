@@ -497,10 +497,7 @@ func Connect(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 		return nil, err
 	}
 
-	go func() {
-		client.serve(client.ctx)
-		sock.Close()
-	}()
+	go client.serve(client.ctx)
 
 	return client, nil
 }
@@ -509,6 +506,7 @@ func Connect(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 func (client *Tunnel) Close() {
 	client.requestDisc()
 	client.cancel()
+	client.sock.Close()
 }
 
 // Inbound retrieves the channel which transmits incoming data.

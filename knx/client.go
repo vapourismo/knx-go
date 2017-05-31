@@ -375,7 +375,8 @@ func (conn *tunnelConn) handleConnStateRes(
 	return nil
 }
 
-// serve processes incoming packets.
+// serve processes incoming packets. It will return with nil when a disconnect request or
+// response has been received.
 func (conn *tunnelConn) serve(
 	ctx context.Context,
 ) error {
@@ -496,12 +497,9 @@ func Connect(gatewayAddr string, config ClientConfig) (*Conn, error) {
 		return nil, err
 	}
 
-	return client, nil
-}
+	go client.serve(client.ctx)
 
-// Serve starts the internal connection server, which is needed to process incoming packets.
-func (client *Conn) Serve() error {
-	return client.serve(client.ctx)
+	return client, nil
 }
 
 // Close will terminate the connection.

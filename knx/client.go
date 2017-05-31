@@ -167,7 +167,7 @@ func (conn *tunnelConn) requestConnState(
 		// Received a connection state response.
 		case res, open := <-heartbeat:
 			if !open {
-				return proto.ConnStateInactive, errors.New("Heartbeat channel is closed")
+				return proto.ConnStateInactive, errors.New("Connection server has terminated")
 			}
 
 			return res, nil
@@ -216,7 +216,7 @@ func (conn *tunnelConn) requestTunnel(
 		// Received a tunnel response.
 		case res, open := <-conn.ack:
 			if !open {
-				return errors.New("Ack channel is closed")
+				return errors.New("Connection server has terminated")
 			}
 
 			// Ignore mismatching sequence numbers.
@@ -381,6 +381,8 @@ func (conn *tunnelConn) serveInbound(
 	defer close(conn.inbound)
 
 	heartbeat := make(chan proto.ConnState)
+	defer close(heartbeat)
+
 	timeout := make(chan struct{})
 
 	var seqNumber uint8

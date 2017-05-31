@@ -67,15 +67,6 @@ type tunnelConn struct {
 	inbound   chan *cemi.CEMI
 }
 
-// init initializes the tunnelConn struct.
-func (conn *tunnelConn) init(sock Socket, config ClientConfig) {
-	conn.sock = sock
-	conn.config = checkClientConfig(config)
-	conn.seqMu = &sync.Mutex{}
-	conn.ack = make(chan *proto.TunnelRes)
-	conn.inbound = make(chan *cemi.CEMI)
-}
-
 // requestConn repeatedly sends a connection request through the socket until the provided context gets
 // canceled, or a response is received. A response that renders the gateway as busy will not stop
 // requestConn.
@@ -472,12 +463,16 @@ func Connect(gatewayAddr string, config ClientConfig) (*Conn, error) {
 
 	// Initialize the Client structure.
 	client := &Conn{
+		tunnelConn: tunnelConn{
+			sock:    sock,
+			config:  checkClientConfig(config),
+			seqMu:   &sync.Mutex{},
+			ack:     make(chan *proto.TunnelRes),
+			inbound: make(chan *cemi.CEMI),
+		},
 		ctx:    ctx,
 		cancel: cancel,
 	}
-
-	// Initialize the tunnel connection structure.
-	client.init(sock, config)
 
 	// Prepare a context, so that the connection request cannot run forever.
 	connectCtx, cancelConnect := context.WithTimeout(ctx, client.config.ResponseTimeout)

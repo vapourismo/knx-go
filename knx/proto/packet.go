@@ -21,6 +21,9 @@ const (
 	DiscResService      ServiceID = 0x020a
 	TunnelReqService    ServiceID = 0x0420
 	TunnelResService    ServiceID = 0x0421
+	RoutingIndService   ServiceID = 0x0530
+	RoutingLostService  ServiceID = 0x0531
+	RoutingBusyService  ServiceID = 0x0532
 )
 
 // Service describes a KNXnet/IP service.
@@ -122,6 +125,15 @@ func Unpack(r io.Reader, srv *Service) (int64, error) {
 
 	case TunnelResService:
 		body = &TunnelRes{}
+
+	case RoutingIndService:
+		body = &RoutingInd{}
+
+	case RoutingLostService:
+		body = &RoutingLost{}
+
+	case RoutingBusyService:
+		body = &RoutingBusy{}
 
 	default:
 		return n, ErrUnknownService

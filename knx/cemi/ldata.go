@@ -9,8 +9,8 @@ import (
 
 // A LData is a link-layer data frame.
 type LData struct {
-	Control1    uint8
-	Control2    uint8
+	Control1    ControlField1
+	Control2    ControlField2
 	Source      uint16
 	Destination uint16
 	Data        TPDU

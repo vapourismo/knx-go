@@ -22,7 +22,7 @@ func makeTunnelConn(
 		seqMu:     &sync.Mutex{},
 		seqNumber: 0,
 		ack:       make(chan *proto.TunnelRes),
-		inbound:   make(chan *cemi.CEMI),
+		inbound:   make(chan cemi.CEMI),
 	}
 }
 
@@ -836,7 +836,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 
 	t.Run("Ok", func(t *testing.T) {
 		client, gateway := newDummySockets()
-		inbound := make(chan *cemi.CEMI)
+		inbound := make(chan cemi.CEMI)
 
 		const (
 			channel       uint8 = 1

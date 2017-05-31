@@ -64,7 +64,7 @@ type tunnelConn struct {
 	seqMu     *sync.Mutex
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
-	inbound   chan *cemi.CEMI
+	inbound   chan cemi.CEMI
 }
 
 // requestConn repeatedly sends a connection request through the socket until the provided context gets
@@ -304,7 +304,7 @@ func (conn *tunnelConn) handleTunnelReq(
 		go func() {
 			select {
 			case <-ctx.Done():
-			case conn.inbound <- &req.Payload:
+			case conn.inbound <- req.Payload:
 			}
 		}()
 	}
@@ -468,7 +468,7 @@ func Connect(gatewayAddr string, config ClientConfig) (*Conn, error) {
 			config:  checkClientConfig(config),
 			seqMu:   &sync.Mutex{},
 			ack:     make(chan *proto.TunnelRes),
-			inbound: make(chan *cemi.CEMI),
+			inbound: make(chan cemi.CEMI),
 		},
 		ctx:    ctx,
 		cancel: cancel,
@@ -499,7 +499,7 @@ func (client *Conn) Close() {
 }
 
 // Inbound retrieves the channel which transmits incoming data.
-func (client *Conn) Inbound() <-chan *cemi.CEMI {
+func (client *Conn) Inbound() <-chan cemi.CEMI {
 	return client.inbound
 }
 

@@ -373,8 +373,8 @@ func (conn *tunnelConn) handleConnStateRes(
 	return nil
 }
 
-// serveInbound processes incoming packets.
-func (conn *tunnelConn) serveInbound(
+// serve processes incoming packets.
+func (conn *tunnelConn) serve(
 	ctx context.Context,
 ) error {
 	defer close(conn.ack)
@@ -440,16 +440,18 @@ func (conn *tunnelConn) serveInbound(
 			case *proto.ConnStateRes:
 				err := conn.handleConnStateRes(ctx, msg, heartbeat)
 				if err != nil {
-					log(conn, "conn",
-						"Error while handling connection state response: %v", err)
+					log(
+						conn, "conn",
+						"Error while handling connection state response: %v", err,
+					)
 				}
 			}
 		}
 	}
 }
 
-// Client represents the client endpoint in a connection with a gateway.
-type Client struct {
+// Conn represents the client endpoint in a connection with a gateway.
+type Conn struct {
 	tunnelConn
 
 	ctx    context.Context
@@ -458,7 +460,7 @@ type Client struct {
 
 // Connect establishes a connection with a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
+func Connect(gatewayAddr string, config ClientConfig) (*Conn, error) {
 	// Create socket which will be used for communication.
 	sock, err := NewClientSocket(gatewayAddr)
 	if err != nil {
@@ -469,7 +471,7 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Initialize the Client structure.
-	client := &Client{
+	client := &Conn{
 		ctx:    ctx,
 		cancel: cancel,
 	}
@@ -492,22 +494,22 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 }
 
 // Serve starts the internal connection server, which is needed to process incoming packets.
-func (client *Client) Serve() error {
-	return client.serveInbound(client.ctx)
+func (client *Conn) Serve() error {
+	return client.serve(client.ctx)
 }
 
 // Close will terminate the connection.
-func (client *Client) Close() {
+func (client *Conn) Close() {
 	client.cancel()
 }
 
 // Inbound retrieves the channel which transmits incoming data.
-func (client *Client) Inbound() <-chan *cemi.CEMI {
+func (client *Conn) Inbound() <-chan *cemi.CEMI {
 	return client.inbound
 }
 
 // Send relays a tunnel request to the gateway with the given contents.
-func (client *Client) Send(data cemi.CEMI) error {
+func (client *Conn) Send(data cemi.CEMI) error {
 	// Prepare a context, so that we won't wait forever for a tunnel response.
 	ctx, cancel := context.WithTimeout(client.ctx, client.config.ResponseTimeout)
 	defer cancel()

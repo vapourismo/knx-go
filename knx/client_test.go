@@ -12,7 +12,7 @@ import (
 
 func makeTunnelConn(
 	sock Socket,
-	config ClientConfig,
+	config TunnelConfig,
 	channel uint8,
 ) *tunnelConn {
 	return &tunnelConn{

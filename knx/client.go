@@ -11,8 +11,8 @@ import (
 	"github.com/vapourismo/knx-go/knx/proto"
 )
 
-// ClientConfig allows you to configure the client's behavior.
-type ClientConfig struct {
+// TunnelConfig allows you to configure the client's behavior.
+type TunnelConfig struct {
 	// ResendInterval is how long to wait for a response, until the request is resend. A interval
 	// <= 0 can't be used. The default value will be used instead.
 	ResendInterval time.Duration
@@ -32,7 +32,7 @@ var (
 	defaultHeartbeatDelay  = 10 * time.Second
 	defaultResponseTimeout = 10 * time.Second
 
-	DefaultClientConfig = ClientConfig{
+	DefaultClientConfig = TunnelConfig{
 		defaultResendInterval,
 		defaultHeartbeatDelay,
 		defaultResponseTimeout,
@@ -40,7 +40,7 @@ var (
 )
 
 // checkClientConfig makes sure that the configuration is actually usable.
-func checkClientConfig(config ClientConfig) ClientConfig {
+func checkClientConfig(config TunnelConfig) TunnelConfig {
 	if config.ResendInterval <= 0 {
 		config.ResendInterval = defaultResendInterval
 	}
@@ -59,7 +59,7 @@ func checkClientConfig(config ClientConfig) ClientConfig {
 // tunnelConn is a handle for a tunnel connection.
 type tunnelConn struct {
 	sock      Socket
-	config    ClientConfig
+	config    TunnelConfig
 	channel   uint8
 	control   proto.HostInfo
 	seqMu     *sync.Mutex
@@ -463,7 +463,7 @@ type Conn struct {
 
 // Connect establishes a connection with a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func Connect(gatewayAddr string, config ClientConfig) (*Conn, error) {
+func Connect(gatewayAddr string, config TunnelConfig) (*Conn, error) {
 	// Create socket which will be used for communication.
 	sock, err := NewClientSocket(gatewayAddr)
 	if err != nil {

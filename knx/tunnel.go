@@ -453,8 +453,8 @@ func (conn *tunnelConn) serve(
 	}
 }
 
-// Conn represents the client endpoint in a connection with a gateway.
-type Conn struct {
+// Tunnel represents the client endpoint in a connection with a gateway.
+type Tunnel struct {
 	tunnelConn
 
 	ctx    context.Context
@@ -463,7 +463,7 @@ type Conn struct {
 
 // Connect establishes a connection with a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func Connect(gatewayAddr string, config TunnelConfig) (*Conn, error) {
+func Connect(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
 	sock, err := NewClientSocket(gatewayAddr)
 	if err != nil {
@@ -474,7 +474,7 @@ func Connect(gatewayAddr string, config TunnelConfig) (*Conn, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Initialize the Client structure.
-	client := &Conn{
+	client := &Tunnel{
 		tunnelConn: tunnelConn{
 			sock:    sock,
 			config:  checkClientConfig(config),
@@ -503,18 +503,18 @@ func Connect(gatewayAddr string, config TunnelConfig) (*Conn, error) {
 }
 
 // Close will terminate the connection.
-func (client *Conn) Close() {
+func (client *Tunnel) Close() {
 	client.requestDisc()
 	client.cancel()
 }
 
 // Inbound retrieves the channel which transmits incoming data.
-func (client *Conn) Inbound() <-chan cemi.CEMI {
+func (client *Tunnel) Inbound() <-chan cemi.CEMI {
 	return client.inbound
 }
 
 // Send relays a tunnel request to the gateway with the given contents.
-func (client *Conn) Send(data cemi.CEMI) error {
+func (client *Tunnel) Send(data cemi.CEMI) error {
 	// Prepare a context, so that we won't wait forever for a tunnel response.
 	ctx, cancel := context.WithTimeout(client.ctx, client.config.ResponseTimeout)
 	defer cancel()

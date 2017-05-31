@@ -5,6 +5,7 @@ import (
 	"github.com/vapourismo/knx-go/knx/proto"
 )
 
+// serveRouter listens for incoming routing-related packets.
 func serveRouter(sock Socket, inbound chan<- cemi.CEMI) {
 	defer close(inbound)
 
@@ -15,11 +16,13 @@ func serveRouter(sock Socket, inbound chan<- cemi.CEMI) {
 	}
 }
 
+// A Router is a participant in a KNXnet/IP multicast group.
 type Router struct {
 	sock    Socket
 	inbound <-chan cemi.CEMI
 }
 
+// NewRouter creates a new Router that joins the given multicast group.
 func NewRouter(multicastAddress string) (*Router, error) {
 	sock, err := NewRoutingSocket(multicastAddress)
 	if err != nil {
@@ -36,14 +39,17 @@ func NewRouter(multicastAddress string) (*Router, error) {
 	}, nil
 }
 
+// Send transmits a packet.
 func (router *Router) Send(data cemi.CEMI) error {
 	return router.sock.Send(&proto.RoutingInd{Payload: data})
 }
 
+// Inbound returns the channel which transmits incoming data.
 func (router *Router) Inbound() <-chan cemi.CEMI {
 	return router.inbound
 }
 
+// Close closes the underlying socket and terminates the Router thereby.
 func (router *Router) Close() {
 	router.sock.Close()
 }

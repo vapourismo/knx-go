@@ -61,6 +61,7 @@ type tunnelConn struct {
 	sock      Socket
 	config    ClientConfig
 	channel   uint8
+	control   proto.HostInfo
 	seqMu     *sync.Mutex
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
@@ -109,6 +110,7 @@ func (conn *tunnelConn) requestConn(ctx context.Context) (err error) {
 				// Conection has been established.
 				case proto.ConnResOk:
 					conn.channel = res.Channel
+					conn.control = res.Control
 					return nil
 
 				// The gateway is busy, but we don't stop yet.
@@ -164,6 +166,15 @@ func (conn *tunnelConn) requestConnState(
 			return res, nil
 		}
 	}
+}
+
+// requestDisc sends a disconnect request to the gateway.
+func (conn *tunnelConn) requestDisc() error {
+	return conn.sock.Send(&proto.DiscReq{
+		Channel: conn.channel,
+		Status:  0,
+		Control: conn.control,
+	})
 }
 
 // requestTunnel sends a tunnel request to the gateway and waits for an appropriate acknowledgement.
@@ -495,6 +506,7 @@ func (client *Conn) Serve() error {
 
 // Close will terminate the connection.
 func (client *Conn) Close() {
+	client.requestDisc()
 	client.cancel()
 }
 

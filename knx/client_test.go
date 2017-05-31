@@ -36,7 +36,12 @@ func TestNewConn(t *testing.T) {
 
 		client.Close()
 
-		_, err := newTunnelConn(ctx, client, DefaultClientConfig)
+		conn := tunnelConn{
+			sock:   client,
+			config: DefaultClientConfig,
+		}
+
+		err := conn.requestConn(ctx)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -51,7 +56,12 @@ func TestNewConn(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		_, err := newTunnelConn(ctx, client, DefaultClientConfig)
+		conn := tunnelConn{
+			sock:   client,
+			config: DefaultClientConfig,
+		}
+
+		err := conn.requestConn(ctx)
 		if err != ctx.Err() {
 			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
@@ -76,7 +86,12 @@ func TestNewConn(t *testing.T) {
 			config := DefaultClientConfig
 			config.ResendInterval = 1
 
-			_, err := newTunnelConn(ctx, client, config)
+			conn := tunnelConn{
+				sock:   client,
+				config: config,
+			}
+
+			err := conn.requestConn(ctx)
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -114,7 +129,12 @@ func TestNewConn(t *testing.T) {
 			config := DefaultClientConfig
 			config.ResendInterval = 1
 
-			_, err := newTunnelConn(ctx, client, config)
+			conn := tunnelConn{
+				sock:   client,
+				config: config,
+			}
+
+			err := conn.requestConn(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -129,7 +149,12 @@ func TestNewConn(t *testing.T) {
 
 		client.closeIn()
 
-		_, err := newTunnelConn(ctx, client, DefaultClientConfig)
+		conn := tunnelConn{
+			sock:   client,
+			config: DefaultClientConfig,
+		}
+
+		err := conn.requestConn(ctx)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -161,7 +186,12 @@ func TestNewConn(t *testing.T) {
 
 			defer client.Close()
 
-			_, err := newTunnelConn(ctx, client, DefaultClientConfig)
+			conn := tunnelConn{
+				sock:   client,
+				config: DefaultClientConfig,
+			}
+
+			err := conn.requestConn(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -204,7 +234,12 @@ func TestNewConn(t *testing.T) {
 			config := DefaultClientConfig
 			config.ResendInterval = 1
 
-			_, err := newTunnelConn(ctx, client, config)
+			conn := tunnelConn{
+				sock:   client,
+				config: config,
+			}
+
+			err := conn.requestConn(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -237,7 +272,12 @@ func TestNewConn(t *testing.T) {
 
 			defer client.Close()
 
-			_, err := newTunnelConn(ctx, client, DefaultClientConfig)
+			conn := tunnelConn{
+				sock:   client,
+				config: DefaultClientConfig,
+			}
+
+			err := conn.requestConn(ctx)
 			if err != proto.ConnResUnsupportedType {
 				t.Fatalf("Expected error %v, got %v", proto.ConnResUnsupportedType, err)
 			}
@@ -256,7 +296,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
 
-		_, err := conn.requestState(ctx, make(chan proto.ConnState))
+		_, err := conn.requestConnState(ctx, make(chan proto.ConnState))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -272,7 +312,7 @@ func TestConnHandle_requestState(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		_, err := conn.requestState(ctx, make(chan proto.ConnState))
+		_, err := conn.requestConnState(ctx, make(chan proto.ConnState))
 		if err != ctx.Err() {
 			t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 		}
@@ -300,7 +340,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := makeTunnelConn(client, config, 1)
 
-			_, err := conn.requestState(ctx, make(chan proto.ConnState))
+			_, err := conn.requestConnState(ctx, make(chan proto.ConnState))
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -346,7 +386,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := makeTunnelConn(client, config, channel)
 
-			state, err := conn.requestState(ctx, heartbeat)
+			state, err := conn.requestConnState(ctx, heartbeat)
 
 			if err != nil {
 				t.Fatal(err)
@@ -368,7 +408,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
 
-		_, err := conn.requestState(ctx, heartbeat)
+		_, err := conn.requestConnState(ctx, heartbeat)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -408,7 +448,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
 
-			state, err := conn.requestState(ctx, heartbeat)
+			state, err := conn.requestConnState(ctx, heartbeat)
 
 			if err != nil {
 				t.Fatal(err)
@@ -454,7 +494,7 @@ func TestConnHandle_requestState(t *testing.T) {
 
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
 
-			state, err := conn.requestState(ctx, heartbeat)
+			state, err := conn.requestConnState(ctx, heartbeat)
 
 			if err != nil {
 				t.Fatal(err)
@@ -736,7 +776,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
 		req := &proto.TunnelReq{Channel: 2, SeqNumber: 0, Payload: cemi.CEMI{}}
 
-		err := conn.handleTunnelRequest(ctx, req, &seqNumber)
+		err := conn.handleTunnelReq(ctx, req, &seqNumber)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -783,7 +823,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
 			req := &proto.TunnelReq{Channel: channel, SeqNumber: sendSeqNumber, Payload: cemi.CEMI{}}
 
-			err := conn.handleTunnelRequest(ctx, req, &seqNumber)
+			err := conn.handleTunnelReq(ctx, req, &seqNumber)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -842,7 +882,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 				Payload:   cemi.CEMI{},
 			}
 
-			err := conn.handleTunnelRequest(ctx, req, &seqNumber)
+			err := conn.handleTunnelReq(ctx, req, &seqNumber)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -871,7 +911,7 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
 
 		res := &proto.TunnelRes{Channel: 2, SeqNumber: 0, Status: 0}
-		err := conn.handleTunnelResponse(ctx, res)
+		err := conn.handleTunnelRes(ctx, res)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -892,7 +932,7 @@ func TestConnHandle_handleTunnelResponse(t *testing.T) {
 
 			res := &proto.TunnelRes{Channel: 1, SeqNumber: 0, Status: 0}
 
-			err := conn.handleTunnelResponse(ctx, res)
+			err := conn.handleTunnelRes(ctx, res)
 			if err != nil {
 				t.Fatal(err)
 			}

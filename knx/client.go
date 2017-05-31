@@ -58,35 +58,38 @@ func checkClientConfig(config ClientConfig) ClientConfig {
 
 // tunnelConn is a handle for a tunnel connection.
 type tunnelConn struct {
-	sock    Socket
-	config  ClientConfig
-	channel uint8
-
+	sock      Socket
+	config    ClientConfig
+	channel   uint8
 	seqMu     *sync.Mutex
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
-
-	inbound chan *cemi.CEMI
+	inbound   chan *cemi.CEMI
 }
 
-// newTunnelConn repeatedly sends a connection request through the socket until the provided context gets
+// init initializes the tunnelConn struct.
+func (conn *tunnelConn) init(sock Socket, config ClientConfig) {
+	conn.sock = sock
+	conn.config = checkClientConfig(config)
+	conn.seqMu = &sync.Mutex{}
+	conn.ack = make(chan *proto.TunnelRes)
+	conn.inbound = make(chan *cemi.CEMI)
+}
+
+// requestConn repeatedly sends a connection request through the socket until the provided context gets
 // canceled, or a response is received. A response that renders the gateway as busy will not stop
-// newTunnelConn.
-func newTunnelConn(
-	ctx context.Context,
-	sock Socket,
-	config ClientConfig,
-) (*tunnelConn, error) {
+// requestConn.
+func (conn *tunnelConn) requestConn(ctx context.Context) (err error) {
 	req := &proto.ConnReq{}
 
 	// Send the initial request.
-	err := sock.Send(req)
+	err = conn.sock.Send(req)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	// Create a resend timer.
-	ticker := time.NewTicker(config.ResendInterval)
+	ticker := time.NewTicker(conn.config.ResendInterval)
 	defer ticker.Stop()
 
 	// Cycle until a request gets a response.
@@ -94,19 +97,19 @@ func newTunnelConn(
 		select {
 		// Termination has been requested.
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return ctx.Err()
 
 		// Resend timer triggered.
 		case <-ticker.C:
-			err := sock.Send(req)
+			err = conn.sock.Send(req)
 			if err != nil {
-				return nil, err
+				return
 			}
 
 		// A message has been received or the channel has been closed.
-		case msg, open := <-sock.Inbound():
+		case msg, open := <-conn.sock.Inbound():
 			if !open {
-				return nil, errors.New("Inbound channel has been closed")
+				return errors.New("Inbound channel has been closed")
 			}
 
 			// We're only interested in connection responses.
@@ -114,15 +117,8 @@ func newTunnelConn(
 				switch res.Status {
 				// Conection has been established.
 				case proto.ConnResOk:
-					return &tunnelConn{
-						sock:      sock,
-						config:    config,
-						channel:   res.Channel,
-						seqMu:     &sync.Mutex{},
-						seqNumber: 0,
-						ack:       make(chan *proto.TunnelRes),
-						inbound:   make(chan *cemi.CEMI),
-					}, nil
+					conn.channel = res.Channel
+					return nil
 
 				// The gateway is busy, but we don't stop yet.
 				case proto.ConnResBusy:
@@ -130,16 +126,16 @@ func newTunnelConn(
 
 				// Connection request has been denied.
 				default:
-					return nil, res.Status
+					return res.Status
 				}
 			}
 		}
 	}
 }
 
-// requestState periodically sends a connection state request to the gateway until it has
+// requestConnState periodically sends a connection state request to the gateway until it has
 // received a response or the context is done.
-func (conn *tunnelConn) requestState(
+func (conn *tunnelConn) requestConnState(
 	ctx context.Context,
 	heartbeat <-chan proto.ConnState,
 ) (proto.ConnState, error) {
@@ -148,7 +144,7 @@ func (conn *tunnelConn) requestState(
 	// Send first connection state request
 	err := conn.sock.Send(req)
 	if err != nil {
-		return 0, err
+		return proto.ConnStateInactive, err
 	}
 
 	// Start the resend timer.
@@ -159,19 +155,19 @@ func (conn *tunnelConn) requestState(
 		select {
 		// Termination has been requested.
 		case <-ctx.Done():
-			return 0, ctx.Err()
+			return proto.ConnStateInactive, ctx.Err()
 
 		// Resend timer fired.
 		case <-ticker.C:
 			err := conn.sock.Send(req)
 			if err != nil {
-				return 0, err
+				return proto.ConnStateInactive, err
 			}
 
 		// Received a connection state response.
 		case res, open := <-heartbeat:
 			if !open {
-				return 0, errors.New("Heartbeat channel is closed")
+				return proto.ConnStateInactive, errors.New("Heartbeat channel is closed")
 			}
 
 			return res, nil
@@ -252,7 +248,7 @@ func (conn *tunnelConn) performHeartbeat(
 	defer cancel()
 
 	// Request the connction state.
-	state, err := conn.requestState(childCtx, heartbeat)
+	state, err := conn.requestConnState(childCtx, heartbeat)
 	if err != nil || state != proto.ConnStateNormal {
 		if err != nil {
 			log(conn, "conn", "Error while requesting connection state: %v", err)
@@ -268,8 +264,8 @@ func (conn *tunnelConn) performHeartbeat(
 	}
 }
 
-// handleDisconnectRequest validates the request.
-func (conn *tunnelConn) handleDisconnectRequest(
+// handleDiscReq validates the request.
+func (conn *tunnelConn) handleDiscReq(
 	ctx context.Context,
 	req *proto.DiscReq,
 ) error {
@@ -284,8 +280,8 @@ func (conn *tunnelConn) handleDisconnectRequest(
 	return nil
 }
 
-// handleDisconnectResponse validates the response.
-func (conn *tunnelConn) handleDisconnectResponse(
+// handleDiscRes validates the response.
+func (conn *tunnelConn) handleDiscRes(
 	ctx context.Context,
 	res *proto.DiscRes,
 ) error {
@@ -297,9 +293,9 @@ func (conn *tunnelConn) handleDisconnectResponse(
 	return nil
 }
 
-// handleTunnelRequest validates the request, pushes the data to the client and acknowledges the
+// handleTunnelReq validates the request, pushes the data to the client and acknowledges the
 // request for the gateway.
-func (conn *tunnelConn) handleTunnelRequest(
+func (conn *tunnelConn) handleTunnelReq(
 	ctx context.Context,
 	req *proto.TunnelReq,
 	seqNumber *uint8,
@@ -330,9 +326,9 @@ func (conn *tunnelConn) handleTunnelRequest(
 	})
 }
 
-// handleTunnelResponse validates the response and relays it to a sender that is awaiting an
+// handleTunnelRes validates the response and relays it to a sender that is awaiting an
 // acknowledgement.
-func (conn *tunnelConn) handleTunnelResponse(
+func (conn *tunnelConn) handleTunnelRes(
 	ctx context.Context,
 	res *proto.TunnelRes,
 ) error {
@@ -353,9 +349,9 @@ func (conn *tunnelConn) handleTunnelResponse(
 	return nil
 }
 
-// handleConnectionStateResponse validates the response and sends it to the heartbeat routine, if
+// handleConnStateRes validates the response and sends it to the heartbeat routine, if
 // there is a waiting one.
-func (conn *tunnelConn) handleConnectionStateResponse(
+func (conn *tunnelConn) handleConnStateRes(
 	ctx context.Context,
 	res *proto.ConnStateRes,
 	heartbeat chan<- proto.ConnState,
@@ -412,7 +408,7 @@ func (conn *tunnelConn) serveInbound(
 			// Determine what to do with the message.
 			switch msg := msg.(type) {
 			case *proto.DiscReq:
-				err := conn.handleDisconnectRequest(ctx, msg)
+				err := conn.handleDiscReq(ctx, msg)
 				if err == nil {
 					return nil
 				}
@@ -420,7 +416,7 @@ func (conn *tunnelConn) serveInbound(
 				log(conn, "conn", "Error while handling disconnect request %v: %v", msg, err)
 
 			case *proto.DiscRes:
-				err := conn.handleDisconnectResponse(ctx, msg)
+				err := conn.handleDiscRes(ctx, msg)
 				if err == nil {
 					return nil
 				}
@@ -428,19 +424,19 @@ func (conn *tunnelConn) serveInbound(
 				log(conn, "conn", "Error while handling disconnect response %v: %v", msg, err)
 
 			case *proto.TunnelReq:
-				err := conn.handleTunnelRequest(ctx, msg, &seqNumber)
+				err := conn.handleTunnelReq(ctx, msg, &seqNumber)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel request %v: %v", msg, err)
 				}
 
 			case *proto.TunnelRes:
-				err := conn.handleTunnelResponse(ctx, msg)
+				err := conn.handleTunnelRes(ctx, msg)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
 				}
 
 			case *proto.ConnStateRes:
-				err := conn.handleConnectionStateResponse(ctx, msg, heartbeat)
+				err := conn.handleConnStateRes(ctx, msg, heartbeat)
 				if err != nil {
 					log(conn, "conn",
 						"Error while handling connection state response: %v", err)
@@ -452,10 +448,10 @@ func (conn *tunnelConn) serveInbound(
 
 // Client represents the client endpoint in a connection with a gateway.
 type Client struct {
+	tunnelConn
+
 	ctx    context.Context
 	cancel context.CancelFunc
-
-	conn *tunnelConn
 }
 
 // Connect establishes a connection with a gateway. You can pass a zero initialized ClientConfig;
@@ -467,31 +463,35 @@ func Connect(gatewayAddr string, config ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
-	config = checkClientConfig(config)
-
-	// Prepare a context, so that the connection request cannot run forever.
-	connectCtx, cancelConnect := context.WithTimeout(context.Background(), config.ResponseTimeout)
-	defer cancelConnect()
-
-	// Connect to the gateway.
-	conn, err := newTunnelConn(connectCtx, sock, config)
-	if err != nil {
-		return nil, err
-	}
-
 	// Prepare a context for the inbound server.
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &Client{
-		ctx,
-		cancel,
-		conn,
-	}, nil
+	// Initialize the Client structure.
+	client := &Client{
+		ctx:    ctx,
+		cancel: cancel,
+	}
+
+	// Initialize the tunnel connection structure.
+	client.init(sock, config)
+
+	// Prepare a context, so that the connection request cannot run forever.
+	connectCtx, cancelConnect := context.WithTimeout(ctx, client.config.ResponseTimeout)
+	defer cancelConnect()
+
+	// Connect to the gateway.
+	err = client.requestConn(connectCtx)
+	if err != nil {
+		sock.Close()
+		return nil, err
+	}
+
+	return client, nil
 }
 
 // Serve starts the internal connection server, which is needed to process incoming packets.
 func (client *Client) Serve() error {
-	return client.conn.serveInbound(client.ctx)
+	return client.serveInbound(client.ctx)
 }
 
 // Close will terminate the connection.
@@ -501,17 +501,17 @@ func (client *Client) Close() {
 
 // Inbound retrieves the channel which transmits incoming data.
 func (client *Client) Inbound() <-chan *cemi.CEMI {
-	return client.conn.inbound
+	return client.inbound
 }
 
 // Send relays a tunnel request to the gateway with the given contents.
 func (client *Client) Send(data cemi.CEMI) error {
 	// Prepare a context, so that we won't wait forever for a tunnel response.
-	ctx, cancel := context.WithTimeout(client.ctx, client.conn.config.ResponseTimeout)
+	ctx, cancel := context.WithTimeout(client.ctx, client.config.ResponseTimeout)
 	defer cancel()
 
 	// Send the tunnel reqest.
-	err := client.conn.requestTunnel(ctx, data)
+	err := client.requestTunnel(ctx, data)
 	if err != nil {
 		return err
 	}

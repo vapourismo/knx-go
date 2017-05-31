@@ -497,7 +497,10 @@ func Connect(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 		return nil, err
 	}
 
-	go client.serve(client.ctx)
+	go func() {
+		client.serve(client.ctx)
+		sock.Close()
+	}()
 
 	return client, nil
 }

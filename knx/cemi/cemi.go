@@ -1,7 +1,6 @@
 package cemi
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
@@ -62,15 +61,10 @@ func (cemi *CEMI) ReadFrom(r io.Reader) (n int64, err error) {
 
 	switch cemi.Code {
 	case LBusmonInd:
-		buffer := bytes.Buffer{}
-		len, err = buffer.ReadFrom(r)
-		n += len
+		m, body := encoding.ReadAll(r)
+		n += m
 
-		if err != nil {
-			return n, err
-		}
-
-		cemi.Body = LBusmon(buffer.Bytes())
+		cemi.Body = LBusmon(body)
 
 		return
 
@@ -88,15 +82,10 @@ func (cemi *CEMI) ReadFrom(r io.Reader) (n int64, err error) {
 		return
 
 	default:
-		buffer := bytes.Buffer{}
-		len, err = buffer.ReadFrom(r)
-		n += len
+		m, body := encoding.ReadAll(r)
+		n += m
 
-		if err != nil {
-			return n, err
-		}
-
-		cemi.Body = UnsupportedMessage(buffer.Bytes())
+		cemi.Body = UnsupportedMessage(body)
 
 		return
 	}

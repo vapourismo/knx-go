@@ -491,9 +491,9 @@ type Tunnel struct {
 	cancel context.CancelFunc
 }
 
-// Connect establishes a connection with a gateway. You can pass a zero initialized ClientConfig;
+// NewTunnel establishes a connection with a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func Connect(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
+func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
 	sock, err := NewTunnelSocket(gatewayAddr)
 	if err != nil {

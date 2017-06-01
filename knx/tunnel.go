@@ -180,7 +180,8 @@ func (conn *tunnelConn) requestDisc() error {
 // requestTunnel sends a tunnel request to the gateway and waits for an appropriate acknowledgement.
 func (conn *tunnelConn) requestTunnel(
 	ctx context.Context,
-	data cemi.Message) error {
+	data cemi.Message,
+) error {
 	// Sequence numbers cannot be reused, therefore we must protect against that.
 	conn.seqMu.Lock()
 	defer conn.seqMu.Unlock()

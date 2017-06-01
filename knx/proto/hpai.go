@@ -37,7 +37,7 @@ type HostInfo struct {
 	Port     Port
 }
 
-// Equals check whether both structures are equal.
+// Equals checks whether both structures are equal.
 func (info HostInfo) Equals(other HostInfo) bool {
 	return info.Protocol == other.Protocol &&
 		info.Address == other.Address &&

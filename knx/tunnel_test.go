@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"sync"
-
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/proto"
 )
@@ -16,13 +14,11 @@ func makeTunnelConn(
 	channel uint8,
 ) *tunnelConn {
 	return &tunnelConn{
-		sock:      sock,
-		config:    config,
-		channel:   channel,
-		seqMu:     &sync.Mutex{},
-		seqNumber: 0,
-		ack:       make(chan *proto.TunnelRes),
-		inbound:   make(chan cemi.Message),
+		sock:    sock,
+		config:  config,
+		channel: channel,
+		ack:     make(chan *proto.TunnelRes),
+		inbound: make(chan cemi.Message),
 	}
 }
 

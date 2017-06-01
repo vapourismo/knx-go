@@ -62,7 +62,7 @@ type tunnelConn struct {
 	config    TunnelConfig
 	channel   uint8
 	control   proto.HostInfo
-	seqMu     *sync.Mutex
+	seqMu     sync.Mutex
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
 	inbound   chan cemi.Message
@@ -521,7 +521,6 @@ func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 		tunnelConn: tunnelConn{
 			sock:    sock,
 			config:  checkClientConfig(config),
-			seqMu:   &sync.Mutex{},
 			ack:     make(chan *proto.TunnelRes),
 			inbound: make(chan cemi.Message),
 		},

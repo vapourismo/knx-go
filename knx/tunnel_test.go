@@ -790,48 +790,26 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			sendSeqNumber uint8 = 0
 		)
 
-		t.Run("Gateway", func(t *testing.T) {
-			t.Parallel()
+		defer client.Close()
+		defer gateway.Close()
 
-			defer gateway.Close()
+		seqNumber := sendSeqNumber
 
-			msg := <-gateway.Inbound()
-			if res, ok := msg.(*proto.TunnelRes); ok {
-				if res.Channel != channel {
-					t.Error("Mismatching channel")
-				}
+		conn := makeTunnelConn(client, DefaultClientConfig, channel)
+		req := &proto.TunnelReq{
+			Channel:   channel,
+			SeqNumber: seqNumber + 1,
+			Payload:   cemi.Message{},
+		}
 
-				if res.SeqNumber != sendSeqNumber {
-					t.Error("Mismatching sequence number")
-				}
+		err := conn.handleTunnelReq(ctx, req, &seqNumber)
+		if err == nil {
+			t.Error("Should not succeed")
+		}
 
-				if res.Status != 0 {
-					t.Error("Invalid response status")
-				}
-			} else {
-				t.Fatalf("Unexpected type %T", msg)
-			}
-		})
-
-		t.Run("Worker", func(t *testing.T) {
-			t.Parallel()
-
-			defer client.Close()
-
-			seqNumber := sendSeqNumber + 1
-
-			conn := makeTunnelConn(client, DefaultClientConfig, channel)
-			req := &proto.TunnelReq{Channel: channel, SeqNumber: sendSeqNumber, Payload: cemi.Message{}}
-
-			err := conn.handleTunnelReq(ctx, req, &seqNumber)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if seqNumber != sendSeqNumber+1 {
-				t.Error("Sequence number was modified")
-			}
-		})
+		if seqNumber != sendSeqNumber {
+			t.Error("Sequence number was modified")
+		}
 	})
 
 	t.Run("Ok", func(t *testing.T) {

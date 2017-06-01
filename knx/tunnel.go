@@ -307,8 +307,10 @@ func (conn *tunnelConn) handleTunnelReq(
 		return errors.New("Invalid communication channel in tunnel request")
 	}
 
+	expected := *seqNumber
+
 	// Is the sequence number what we expected?
-	if req.SeqNumber == *seqNumber {
+	if req.SeqNumber == expected {
 		*seqNumber++
 
 		// Send tunnel data to the client.
@@ -318,6 +320,9 @@ func (conn *tunnelConn) handleTunnelReq(
 			case conn.inbound <- req.Payload:
 			}
 		}()
+	} else if req.SeqNumber != expected-1 {
+		// The sequence number is out of the range which we would have to acknowledge.
+		return errors.New("Out of sequence tunnel acknowledgement")
 	}
 
 	// Send the acknowledgement.

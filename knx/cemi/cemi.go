@@ -12,9 +12,15 @@ type MessageCode uint8
 
 // Supported message codes
 const (
-	LDataReq MessageCode = 0x11
-	LDataInd MessageCode = 0x29
-	LDataCon MessageCode = 0x2e
+	LBusmonInd   MessageCode = 0x2B
+	LDataReq     MessageCode = 0x11
+	LDataInd     MessageCode = 0x29
+	LDataCon     MessageCode = 0x2E
+	LRawReq      MessageCode = 0x10
+	LRawInd      MessageCode = 0x2D
+	LRawCon      MessageCode = 0x2F
+	LPollDataReq MessageCode = 0x13
+	LPollDataCon MessageCode = 0x25
 )
 
 // Segment is a protocol segment.

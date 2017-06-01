@@ -25,7 +25,8 @@ const (
 	// APDUs greater than 15 bytes.
 	Control1StdFrame ControlField1 = 1 << 7
 
-	// Control1NoRepeat causes the frame not to be repeated on the medium in case of an error.
+	// Control1NoRepeat causes the repeated frame not to be sent on the medium. If you send two
+	// identical frames, than one of them will not be sent on the medium when this flag is present.
 	Control1NoRepeat ControlField1 = 1 << 5
 
 	// Control1NoSysBroadcast causes the frame to be transmitted in normal broadcast mode, instead

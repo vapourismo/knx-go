@@ -111,6 +111,11 @@ func (conn *tunnelConn) requestConn(ctx context.Context) (err error) {
 				case proto.ConnResOk:
 					conn.channel = res.Channel
 					conn.control = res.Control
+
+					conn.seqMu.Lock()
+					defer conn.seqMu.Unlock()
+					conn.seqNumber = 0
+
 					return nil
 
 				// The gateway is busy, but we don't stop yet.

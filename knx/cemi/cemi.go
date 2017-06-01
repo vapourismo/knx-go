@@ -13,18 +13,24 @@ const (
 	// LBusmonIndCode is the message code for L_Busmon.ind.
 	LBusmonIndCode MessageCode = 0x2B
 
-	// LDataReqCode is the message code for L_Data.Req.
+	// LDataReqCode is the message code for L_Data.req.
 	LDataReqCode MessageCode = 0x11
 
-	// LDataIndCode is the message code for L_Data.Ind.
+	// LDataIndCode is the message code for L_Data.ind.
 	LDataIndCode MessageCode = 0x29
 
-	// LDataConCode is the message code for L_Data.Con.
+	// LDataConCode is the message code for L_Data.con.
 	LDataConCode MessageCode = 0x2E
 
-	// LRawReqCode      MessageCode = 0x10
-	// LRawIndCode      MessageCode = 0x2D
-	// LRawConCode      MessageCode = 0x2F
+	// LRawReqCode is the message code for L_Raw.req.
+	LRawReqCode MessageCode = 0x10
+
+	// LRawIndCode is the message code for L_Raw.ind.
+	LRawIndCode MessageCode = 0x2D
+
+	// LRawConCode is the message code for L_Raw.con.
+	LRawConCode MessageCode = 0x2F
+
 	// LPollDataReqCode MessageCode = 0x13
 	// LPollDataConCode MessageCode = 0x25
 )
@@ -105,6 +111,15 @@ func (cemi *Message) ReadFrom(r io.Reader) (n int64, err error) {
 
 	case LDataIndCode:
 		body = &LDataInd{}
+
+	case LRawReqCode:
+		body = &LRawReq{}
+
+	case LRawConCode:
+		body = &LRawCon{}
+
+	case LRawIndCode:
+		body = &LRawInd{}
 
 	default:
 		body = &UnsupportedMessageBody{Code: code}

@@ -14,7 +14,7 @@ func (LBusmonInd) MessageCode() MessageCode {
 	return LBusmonIndCode
 }
 
-// WriteTo serializes the LBusmonInd structure and writes it to the given Writer.
+// WriteTo serializes the structure and writes it to the given Writer.
 func (lbm *LBusmonInd) WriteTo(w io.Writer) (int64, error) {
 	len, err := w.Write([]byte(*lbm))
 	return int64(len), err

@@ -3,62 +3,60 @@ package cemi
 // A Priority determines the priority.
 type Priority uint8
 
-// These are known priorities.
 const (
-	PrioritySystem Priority = 0
-	PriorityNormal Priority = 1
-	PriorityUrgent Priority = 2
-	PriorityLow    Priority = 3
+	// PrioSystem is for high priority, configuration and management frames.
+	PrioSystem Priority = 0
+
+	// PrioNormal indicates normal priority. Ideal for short frames.
+	PrioNormal Priority = 1
+
+	// PrioUrgent indicates urgent priority.
+	PrioUrgent Priority = 2
+
+	// PrioLow indicates low priority. Ideal for long frames.
+	PrioLow Priority = 3
 )
 
 // ControlField1 contains various control information.
 type ControlField1 uint8
 
-// MakeControlField1 generates a control field 1 value.
-func MakeControlField1(
-	stdFrame bool,
-	isRepeated bool,
-	sysBroadcast bool,
-	prio Priority,
-	wantAck bool,
-	isErr bool,
-) (ret ControlField1) {
-	if stdFrame {
-		ret |= 1 << 7
-	}
+const (
+	// Control1StdFrame indicate that the frame is not an extended frame. Extended frames contain
+	// APDUs greater than 15 bytes.
+	Control1StdFrame ControlField1 = 1 << 7
 
-	if !isRepeated {
-		ret |= 1 << 5
-	}
+	// Control1NoRepeat causes the frame not to be repeated on the medium in case of an error.
+	Control1NoRepeat ControlField1 = 1 << 5
 
-	if !sysBroadcast {
-		ret |= 1 << 4
-	}
+	// Control1NoSysBroadcast causes the frame to be transmitted in normal broadcast mode, instead
+	// of system broadcast mode.
+	Control1NoSysBroadcast ControlField1 = 1 << 4
 
-	ret |= ControlField1(prio&3) << 2
+	// Control1WantAck requests an acknowledgement. Only works for L_Data.req.
+	Control1WantAck ControlField1 = 1 << 1
 
-	if wantAck {
-		ret |= 1 << 1
-	}
+	// Control1HasError indicates an error. Only relevant in L_Data.con.
+	Control1HasError ControlField1 = 1
+)
 
-	if isErr {
-		ret |= 1
-	}
-
-	return
+// Control1Prio generates the control field 1 flag for the given priority.
+func Control1Prio(prio Priority) ControlField1 {
+	return ControlField1(prio&3) << 2
 }
 
 // ControlField2 contains various control information.
 type ControlField2 uint8
 
-// MakeControlField2 generates a control field 2 value.
-func MakeControlField2(isGroupAddr bool, hopCount uint8, frameFormat uint8) (ret ControlField2) {
-	if isGroupAddr {
-		ret |= 1 << 7
-	}
+const (
+	// Control2GrpAddr determines that the destination address inside the frame is a group address,
+	// instead of an individual address.
+	Control2GrpAddr ControlField2 = 1 << 7
 
-	ret |= ControlField2(hopCount&7) << 4
-	ret |= ControlField2(frameFormat) & 15
+	// Control2LTEFrame indicates that the frame is a LTE-frame.
+	Control2LTEFrame ControlField2 = 1 << 2
+)
 
-	return
+// Control2Hops generates the control field 2 flag for the given number of hops.
+func Control2Hops(hops uint8) ControlField2 {
+	return Control2Hops(hops&7) << 4
 }

@@ -5,13 +5,31 @@ import (
 	"github.com/vapourismo/knx-go/knx/proto"
 )
 
+// tryPushInbound sends the message through the channel. If the sending blocks, it will launch a
+// goroutine which will do the sending.
+func tryPushInbound(msg cemi.Message, inbound chan<- cemi.Message) {
+	select {
+	case inbound <- msg:
+
+	default:
+		go func() { inbound <- msg }()
+	}
+}
+
 // serveRouter listens for incoming routing-related packets.
 func serveRouter(sock Socket, inbound chan<- cemi.Message) {
 	defer close(inbound)
 
 	for msg := range sock.Inbound() {
-		if ind, ok := msg.(*proto.RoutingInd); ok {
-			inbound <- ind.Payload
+		switch msg := msg.(type) {
+		case *proto.RoutingInd:
+			tryPushInbound(msg.Payload, inbound)
+
+		case *proto.RoutingBusy:
+			// TODO: Inhibit sending for msg.WaitTime.
+
+		case *proto.RoutingLost:
+			// TODO: Resend the last msg.Count frames.
 		}
 	}
 }

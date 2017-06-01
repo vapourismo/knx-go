@@ -17,9 +17,9 @@ type TunnelConfig struct {
 	// <= 0 can't be used. The default value will be used instead.
 	ResendInterval time.Duration
 
-	// HeartbeatDelay specifies the time which has to elapse without any incoming communication,
+	// HeartbeatInterval specifies the time which has to elapse without any incoming communication,
 	// until a heartbeat is triggered. A delay <= 0 will result in the use of a default value.
-	HeartbeatDelay time.Duration
+	HeartbeatInterval time.Duration
 
 	// ResponseTimeout specifies how long to wait for a response. A timeout <= 0 will not be
 	// accepted. Instead, the default value will be used.
@@ -28,13 +28,13 @@ type TunnelConfig struct {
 
 // Default configuration elements
 var (
-	defaultResendInterval  = 500 * time.Millisecond
-	defaultHeartbeatDelay  = 10 * time.Second
-	defaultResponseTimeout = 10 * time.Second
+	defaultResendInterval    = 500 * time.Millisecond
+	defaultHeartbeatInterval = 10 * time.Second
+	defaultResponseTimeout   = 10 * time.Second
 
 	DefaultClientConfig = TunnelConfig{
 		defaultResendInterval,
-		defaultHeartbeatDelay,
+		defaultHeartbeatInterval,
 		defaultResponseTimeout,
 	}
 )
@@ -45,8 +45,8 @@ func checkClientConfig(config TunnelConfig) TunnelConfig {
 		config.ResendInterval = defaultResendInterval
 	}
 
-	if config.HeartbeatDelay <= 0 {
-		config.HeartbeatDelay = defaultHeartbeatDelay
+	if config.HeartbeatInterval <= 0 {
+		config.HeartbeatInterval = defaultHeartbeatInterval
 	}
 
 	if config.ResponseTimeout <= 0 {
@@ -400,6 +400,9 @@ func (conn *tunnelConn) process(ctx context.Context) error {
 
 	var seqNumber uint8
 
+	heartbeatInterval := time.NewTicker(conn.config.HeartbeatInterval)
+	defer heartbeatInterval.Stop()
+
 	for {
 		select {
 		// Termination has been requested.
@@ -410,8 +413,8 @@ func (conn *tunnelConn) process(ctx context.Context) error {
 		case <-timeout:
 			return errHeartbeatFailed
 
-		// There were no incoming packets for some time.
-		case <-time.After(conn.config.HeartbeatDelay):
+		// Heartbeat check is due.
+		case <-heartbeatInterval.C:
 			go conn.performHeartbeat(ctx, heartbeat, timeout)
 
 		// A message has been received or the channel is closed.

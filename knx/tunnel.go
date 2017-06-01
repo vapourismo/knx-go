@@ -375,14 +375,14 @@ func (conn *tunnelConn) handleConnStateRes(
 	return nil
 }
 
-// serve processes incoming packets. It will return with nil when a disconnect request or
-// response has been received.
-func (conn *tunnelConn) serve(
-	ctx context.Context,
-) error {
-	defer close(conn.ack)
-	defer close(conn.inbound)
+var (
+	errHeartbeatFailed = errors.New("Heartbeat did not succeed")
+	errInboundClosed   = errors.New("Socket's inbound channel is closed")
+	errDisconnected    = errors.New("Gateway terminated the connection")
+)
 
+// process processes incoming packets.
+func (conn *tunnelConn) process(ctx context.Context) error {
 	heartbeat := make(chan proto.ConnState)
 	defer close(heartbeat)
 
@@ -398,7 +398,7 @@ func (conn *tunnelConn) serve(
 
 		// Heartbeat worker signals a result.
 		case <-timeout:
-			return errors.New("Heartbeat did not succeed")
+			return errHeartbeatFailed
 
 		// There were no incoming packets for some time.
 		case <-time.After(conn.config.HeartbeatDelay):
@@ -407,7 +407,7 @@ func (conn *tunnelConn) serve(
 		// A message has been received or the channel is closed.
 		case msg, open := <-conn.sock.Inbound():
 			if !open {
-				return errors.New("Socket's inbound channel is closed")
+				return errInboundClosed
 			}
 
 			// Determine what to do with the message.
@@ -415,7 +415,7 @@ func (conn *tunnelConn) serve(
 			case *proto.DiscReq:
 				err := conn.handleDiscReq(ctx, msg)
 				if err == nil {
-					return nil
+					return errDisconnected
 				}
 
 				log(conn, "conn", "Error while handling disconnect request %v: %v", msg, err)
@@ -450,6 +450,36 @@ func (conn *tunnelConn) serve(
 				}
 			}
 		}
+	}
+}
+
+// serve serves the tunnel connection. It can sustain certain failures. This function will try to
+// reconnect in case of a heartbeat failure or disconnect.
+func (conn *tunnelConn) serve(ctx context.Context) (err error) {
+	defer close(conn.ack)
+	defer close(conn.inbound)
+
+	for {
+		err = conn.process(ctx)
+		log(conn, "conn", "Server terminated with error: %v", err)
+
+		// Check if we can try again.
+		if err == errDisconnected || err == errHeartbeatFailed {
+			log(conn, "conn", "Attempting reconnect")
+
+			reconnCtx, cancelReconn := context.WithTimeout(ctx, conn.config.ResponseTimeout)
+			reconnErr := conn.requestConn(reconnCtx)
+			cancelReconn()
+
+			if reconnErr == nil {
+				log(conn, "conn", "Reconnect succeeded")
+				continue
+			}
+
+			log(conn, "conn", "Reconnect failed: %v", reconnErr)
+		}
+
+		return
 	}
 }
 

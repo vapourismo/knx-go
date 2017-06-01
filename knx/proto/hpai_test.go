@@ -50,7 +50,7 @@ func TestAddress_String(t *testing.T) {
 
 	t.Run("BadProtocol", func(t *testing.T) {
 		var hi HostInfo
-		_, err := hi.ReadFrom(bytes.NewReader([]byte{8, 2, 0, 0, 0, 0, 0, 0}))
+		_, err := hi.ReadFrom(bytes.NewReader([]byte{8, 255, 0, 0, 0, 0, 0, 0}))
 
 		if err == nil {
 			t.Fatal("Should not succeed")
@@ -67,7 +67,8 @@ func makeRandBuffer(size int) []byte {
 func TestHostInfo_ReadFrom(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		data := makeRandBuffer(6)
-		reader := bytes.NewReader(append([]byte{8, 1}, data...))
+		proto := byte(1 + (rand.Int() % 2))
+		reader := bytes.NewReader(append([]byte{8, proto}, data...))
 
 		var hi HostInfo
 		len, err := hi.ReadFrom(reader)
@@ -79,6 +80,10 @@ func TestHostInfo_ReadFrom(t *testing.T) {
 
 		if len != 8 {
 			t.Errorf("Unexpected number of bytes read: %v", len)
+		}
+
+		if hi.Protocol != Protocol(proto) {
+			t.Errorf("Unexpected protocol: %v != %v", hi.Protocol, data[1])
 		}
 
 		if !bytes.Equal(hi.Address[:], data[:4]) {
@@ -97,9 +102,11 @@ func TestHostInfo_ReadFrom(t *testing.T) {
 
 func TestHostInfo_WriteTo(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		var hi HostInfo
+		hi := HostInfo{
+			Protocol: Protocol(1 + (rand.Int() % 2)),
+			Port:     Port(rand.Int()),
+		}
 		copy(hi.Address[:], makeRandBuffer(4))
-		hi.Port = Port(rand.Int())
 
 		buffer := bytes.Buffer{}
 		len, err := hi.WriteTo(&buffer)

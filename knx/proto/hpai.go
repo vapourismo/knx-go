@@ -8,6 +8,17 @@ import (
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
+// Protocol specifies a host protocol to use.
+type Protocol uint8
+
+const (
+	// UDP4 indicates a communication using UDP over IPv4.
+	UDP4 Protocol = 1
+
+	// TCP4 indicates a communication using TCP over IPv4.
+	TCP4 Protocol = 2
+)
+
 // Address is a IPv4 address.
 type Address [4]byte
 
@@ -21,19 +32,22 @@ type Port uint16
 
 // HostInfo contains information about a host.
 type HostInfo struct {
-	Address Address
-	Port    Port
+	Protocol Protocol
+	Address  Address
+	Port     Port
 }
 
 // Equals check whether both structures are equal.
 func (info HostInfo) Equals(other HostInfo) bool {
-	return info.Address == other.Address && info.Port == other.Port
+	return info.Protocol == other.Protocol &&
+		info.Address == other.Address &&
+		info.Port == other.Port
 }
 
 // ReadFrom initializes the structure by reading from the given Reader.
 func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
-	var length, proto uint8
-	n, err = encoding.ReadSome(r, &length, &proto, &info.Address, &info.Port)
+	var length uint8
+	n, err = encoding.ReadSome(r, &length, &info.Protocol, &info.Address, &info.Port)
 	if err != nil {
 		return
 	}
@@ -42,14 +56,16 @@ func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
 		return n, errors.New("Host info structure length is invalid")
 	}
 
-	if proto != 1 {
-		return n, errors.New("Host info protocol is not UDP")
-	}
+	switch info.Protocol {
+	case UDP4, TCP4:
+		return
 
-	return
+	default:
+		return n, errors.New("Unknown host protocol")
+	}
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (info HostInfo) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, []byte{8, 1}, info.Address, info.Port)
+	return encoding.WriteSome(w, byte(8), info.Protocol, info.Address, info.Port)
 }

@@ -61,6 +61,19 @@ func (cemi *CEMI) ReadFrom(r io.Reader) (n int64, err error) {
 	}
 
 	switch cemi.Code {
+	case LBusmonInd:
+		buffer := bytes.Buffer{}
+		len, err = buffer.ReadFrom(r)
+		n += len
+
+		if err != nil {
+			return n, err
+		}
+
+		cemi.Body = LBusmon(buffer.Bytes())
+
+		return
+
 	case LDataReq, LDataInd, LDataCon:
 		ldata := &LData{}
 		len, err = ldata.ReadFrom(r)

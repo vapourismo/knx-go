@@ -26,7 +26,7 @@ func makeTunnelConn(
 	}
 }
 
-func TestNewConn(t *testing.T) {
+func TestTunnelConn_requestConn(t *testing.T) {
 	ctx := context.Background()
 
 	// Socket was closed before anything could be done.
@@ -285,7 +285,7 @@ func TestNewConn(t *testing.T) {
 	})
 }
 
-func TestConnHandle_requestState(t *testing.T) {
+func TestTunnelConn_requestState(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("SendFails", func(t *testing.T) {
@@ -507,7 +507,7 @@ func TestConnHandle_requestState(t *testing.T) {
 	})
 }
 
-func TestConnHandle_requestTunnel(t *testing.T) {
+func TestTunnelConn_requestTunnel(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("SendFails", func(t *testing.T) {
@@ -763,7 +763,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 	})
 }
 
-func TestConnHandle_handleTunnelRequest(t *testing.T) {
+func TestTunnelConn_handleTunnelReq(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("InvalidChannel", func(t *testing.T) {
@@ -878,7 +878,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 	})
 }
 
-func TestConnHandle_handleTunnelResponse(t *testing.T) {
+func TestTunnelConn_handleTunnelRes(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("InvalidChannel", func(t *testing.T) {

@@ -59,5 +59,5 @@ const (
 
 // Control2Hops generates the control field 2 flag for the given number of hops.
 func Control2Hops(hops uint8) ControlField2 {
-	return Control2Hops(hops&7) << 4
+	return ControlField2(hops&7) << 4
 }

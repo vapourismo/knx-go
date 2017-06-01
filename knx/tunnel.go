@@ -72,7 +72,7 @@ type tunnelConn struct {
 // canceled, or a response is received. A response that renders the gateway as busy will not stop
 // requestConn.
 func (conn *tunnelConn) requestConn(ctx context.Context) (err error) {
-	req := &proto.ConnReq{}
+	req := &proto.ConnReq{Layer: proto.TunnelLayerData}
 
 	// Send the initial request.
 	err = conn.sock.Send(req)

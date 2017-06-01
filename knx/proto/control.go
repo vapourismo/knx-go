@@ -1,16 +1,32 @@
 package proto
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
+// TunnelLayer identifies the tunnelling layer for a tunnelling connection.
+type TunnelLayer uint8
+
+const (
+	// TunnelLayerData establishes a data-link layer tunnel.
+	TunnelLayerData TunnelLayer = 0x02
+
+	// TunnelLayerRaw establishes a raw tunnel.
+	TunnelLayerRaw TunnelLayer = 0x04
+
+	// TunnelLayerBusmon establishes a bus monitor tunnel.
+	TunnelLayerBusmon TunnelLayer = 0x80
+)
+
 // A ConnReq requests a connection to a gateway.
 type ConnReq struct {
 	Control HostInfo
 	Tunnel  HostInfo
+	Layer   TunnelLayer
 }
 
 // Service returns the service identifier for connection requests.
@@ -18,11 +34,42 @@ func (ConnReq) Service() ServiceID {
 	return ConnReqService
 }
 
-var connReqInfo = [4]byte{4, 4, 2, 0}
+// ReadFrom initializes the structure by reading from the given Reader.
+func (req *ConnReq) ReadFrom(r io.Reader) (n int64, err error) {
+	var length, connType, reserved uint8
+
+	n, err = encoding.ReadSome(
+		r, &req.Control, &req.Tunnel, &length, &connType, &req.Layer, &reserved,
+	)
+	if err != nil {
+		return
+	}
+
+	if length != 4 {
+		return n, errors.New("Invalid connection request info structure length")
+	}
+
+	if connType != 4 {
+		return n, errors.New("Invalid connection type")
+	}
+
+	switch req.Layer {
+	case TunnelLayerData, TunnelLayerRaw, TunnelLayerBusmon:
+		return
+
+	default:
+		return n, errors.New("Invalid connection tunnel layer")
+	}
+}
+
+var connReqInfo = [4]byte{4, 4, 0, 0}
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (req *ConnReq) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, &req.Control, &req.Tunnel, connReqInfo)
+	cri := connReqInfo
+	cri[2] = byte(req.Layer)
+
+	return encoding.WriteSome(w, &req.Control, &req.Tunnel, cri[:])
 }
 
 // ConnResStatus is the type of status code carried in a connection response.

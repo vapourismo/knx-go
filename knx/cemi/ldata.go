@@ -7,7 +7,8 @@ import (
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
-// A LData is a link-layer data frame.
+// A LData is a link-layer data frame. Represents L_Data.req, L_Data.con and L_Data.ind since they
+// all share the same structure.
 type LData struct {
 	Control1    ControlField1
 	Control2    ControlField2
@@ -19,7 +20,7 @@ type LData struct {
 // ReadFrom initializes the LData structure by reading from the given Reader.
 func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
 	var tpduLen8 uint8
-	len, err := encoding.ReadSome(
+	n, err = encoding.ReadSome(
 		r,
 		&ldata.Control1,
 		&ldata.Control2,
@@ -27,18 +28,17 @@ func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
 		&ldata.Destination,
 		&tpduLen8,
 	)
-	n += len
 
 	if err != nil {
-		return n, err
+		return
 	}
 
 	tpdu := make([]byte, int(tpduLen8)+1)
-	len, err = encoding.Read(r, tpdu)
-	n += len
+	m, err := encoding.Read(r, tpdu)
+	n += m
 
 	if err != nil {
-		return n, err
+		return
 	}
 
 	ldata.Data = TPDU(tpdu)

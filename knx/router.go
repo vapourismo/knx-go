@@ -6,7 +6,7 @@ import (
 )
 
 // serveRouter listens for incoming routing-related packets.
-func serveRouter(sock Socket, inbound chan<- cemi.CEMI) {
+func serveRouter(sock Socket, inbound chan<- cemi.Message) {
 	defer close(inbound)
 
 	for msg := range sock.Inbound() {
@@ -19,7 +19,7 @@ func serveRouter(sock Socket, inbound chan<- cemi.CEMI) {
 // A Router is a participant in a KNXnet/IP multicast group.
 type Router struct {
 	sock    Socket
-	inbound <-chan cemi.CEMI
+	inbound <-chan cemi.Message
 }
 
 // NewRouter creates a new Router that joins the given multicast group.
@@ -29,7 +29,7 @@ func NewRouter(multicastAddress string) (*Router, error) {
 		return nil, err
 	}
 
-	inbound := make(chan cemi.CEMI)
+	inbound := make(chan cemi.Message)
 
 	go serveRouter(sock, inbound)
 
@@ -40,12 +40,12 @@ func NewRouter(multicastAddress string) (*Router, error) {
 }
 
 // Send transmits a packet.
-func (router *Router) Send(data cemi.CEMI) error {
+func (router *Router) Send(data cemi.Message) error {
 	return router.sock.Send(&proto.RoutingInd{Payload: data})
 }
 
 // Inbound returns the channel which transmits incoming data.
-func (router *Router) Inbound() <-chan cemi.CEMI {
+func (router *Router) Inbound() <-chan cemi.Message {
 	return router.inbound
 }
 

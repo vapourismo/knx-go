@@ -65,7 +65,7 @@ type tunnelConn struct {
 	seqMu     *sync.Mutex
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
-	inbound   chan cemi.CEMI
+	inbound   chan cemi.Message
 }
 
 // requestConn repeatedly sends a connection request through the socket until the provided context gets
@@ -180,8 +180,7 @@ func (conn *tunnelConn) requestDisc() error {
 // requestTunnel sends a tunnel request to the gateway and waits for an appropriate acknowledgement.
 func (conn *tunnelConn) requestTunnel(
 	ctx context.Context,
-	data cemi.CEMI,
-) error {
+	data cemi.Message) error {
 	// Sequence numbers cannot be reused, therefore we must protect against that.
 	conn.seqMu.Lock()
 	defer conn.seqMu.Unlock()
@@ -510,7 +509,7 @@ func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 			config:  checkClientConfig(config),
 			seqMu:   &sync.Mutex{},
 			ack:     make(chan *proto.TunnelRes),
-			inbound: make(chan cemi.CEMI),
+			inbound: make(chan cemi.Message),
 		},
 		ctx:    ctx,
 		cancel: cancel,
@@ -540,12 +539,12 @@ func (client *Tunnel) Close() {
 }
 
 // Inbound retrieves the channel which transmits incoming data.
-func (client *Tunnel) Inbound() <-chan cemi.CEMI {
+func (client *Tunnel) Inbound() <-chan cemi.Message {
 	return client.inbound
 }
 
 // Send relays a tunnel request to the gateway with the given contents.
-func (client *Tunnel) Send(data cemi.CEMI) error {
+func (client *Tunnel) Send(data cemi.Message) error {
 	// Prepare a context, so that we won't wait forever for a tunnel response.
 	ctx, cancel := context.WithTimeout(client.ctx, client.config.ResponseTimeout)
 	defer cancel()

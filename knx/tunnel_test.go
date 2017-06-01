@@ -22,7 +22,7 @@ func makeTunnelConn(
 		seqMu:     &sync.Mutex{},
 		seqNumber: 0,
 		ack:       make(chan *proto.TunnelRes),
-		inbound:   make(chan cemi.CEMI),
+		inbound:   make(chan cemi.Message),
 	}
 }
 
@@ -518,7 +518,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
 
-		err := conn.requestTunnel(ctx, cemi.CEMI{})
+		err := conn.requestTunnel(ctx, cemi.Message{})
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -534,7 +534,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		err := conn.requestTunnel(ctx, cemi.CEMI{})
+		err := conn.requestTunnel(ctx, cemi.Message{})
 		if err != ctx.Err() {
 			t.Fatalf("Expected %v, got %v", ctx.Err(), err)
 		}
@@ -562,7 +562,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 
 			conn := makeTunnelConn(client, config, 1)
 
-			err := conn.requestTunnel(ctx, cemi.CEMI{})
+			err := conn.requestTunnel(ctx, cemi.Message{})
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -609,7 +609,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			conn := makeTunnelConn(client, config, channel)
 			conn.ack = ack
 
-			err := conn.requestTunnel(ctx, cemi.CEMI{})
+			err := conn.requestTunnel(ctx, cemi.Message{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -624,7 +624,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
 		close(conn.ack)
 
-		err := conn.requestTunnel(ctx, cemi.CEMI{})
+		err := conn.requestTunnel(ctx, cemi.Message{})
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -671,7 +671,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
 			conn.ack = ack
 
-			err := conn.requestTunnel(ctx, cemi.CEMI{})
+			err := conn.requestTunnel(ctx, cemi.Message{})
 			if err != ctx.Err() {
 				t.Fatalf("Expected error %v, got %v", ctx.Err(), err)
 			}
@@ -713,7 +713,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
 			conn.ack = ack
 
-			err := conn.requestTunnel(ctx, cemi.CEMI{})
+			err := conn.requestTunnel(ctx, cemi.Message{})
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -755,7 +755,7 @@ func TestConnHandle_requestTunnel(t *testing.T) {
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
 			conn.ack = ack
 
-			err := conn.requestTunnel(ctx, cemi.CEMI{})
+			err := conn.requestTunnel(ctx, cemi.Message{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -774,7 +774,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 		var seqNumber uint8
 
 		conn := makeTunnelConn(client, DefaultClientConfig, 1)
-		req := &proto.TunnelReq{Channel: 2, SeqNumber: 0, Payload: cemi.CEMI{}}
+		req := &proto.TunnelReq{Channel: 2, SeqNumber: 0, Payload: cemi.Message{}}
 
 		err := conn.handleTunnelReq(ctx, req, &seqNumber)
 		if err == nil {
@@ -821,7 +821,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			seqNumber := sendSeqNumber + 1
 
 			conn := makeTunnelConn(client, DefaultClientConfig, channel)
-			req := &proto.TunnelReq{Channel: channel, SeqNumber: sendSeqNumber, Payload: cemi.CEMI{}}
+			req := &proto.TunnelReq{Channel: channel, SeqNumber: sendSeqNumber, Payload: cemi.Message{}}
 
 			err := conn.handleTunnelReq(ctx, req, &seqNumber)
 			if err != nil {
@@ -836,7 +836,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 
 	t.Run("Ok", func(t *testing.T) {
 		client, gateway := newDummySockets()
-		inbound := make(chan cemi.CEMI)
+		inbound := make(chan cemi.Message)
 
 		const (
 			channel       uint8 = 1
@@ -879,7 +879,7 @@ func TestConnHandle_handleTunnelRequest(t *testing.T) {
 			req := &proto.TunnelReq{
 				Channel:   channel,
 				SeqNumber: sendSeqNumber,
-				Payload:   cemi.CEMI{},
+				Payload:   cemi.Message{},
 			}
 
 			err := conn.handleTunnelReq(ctx, req, &seqNumber)

@@ -7,8 +7,7 @@ import (
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
-// A LData is a link-layer data frame. Represents L_Data.req, L_Data.con and L_Data.ind since they
-// all share the same structure.
+// A LData is a link-layer data frame. L_Data.req, L_Data.con and L_Data.ind share this structure.
 type LData struct {
 	Control1    ControlField1
 	Control2    ControlField2
@@ -63,4 +62,34 @@ func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 		byte(len(ldata.Data)-1),
 		ldata.Data,
 	)
+}
+
+// A LDataReq represents a L_Data.req message body.
+type LDataReq struct {
+	LData
+}
+
+// MessageCode returns the message code for L_Data.req.
+func (LDataReq) MessageCode() MessageCode {
+	return LDataReqCode
+}
+
+// A LDataCon represents a L_Data.con message body.
+type LDataCon struct {
+	LData
+}
+
+// MessageCode returns the message code for L_Data.con.
+func (LDataCon) MessageCode() MessageCode {
+	return LDataConCode
+}
+
+// A LDataInd represents a L_Data.ind message body.
+type LDataInd struct {
+	LData
+}
+
+// MessageCode returns the message code for L_Data.ind.
+func (LDataInd) MessageCode() MessageCode {
+	return LDataConCode
 }

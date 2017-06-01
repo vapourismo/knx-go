@@ -12,7 +12,7 @@ import (
 // A RoutingInd indicates to one or more routers that the contents shall be routed.
 type RoutingInd struct {
 	// Data to be routed
-	Payload cemi.CEMI
+	Payload cemi.Message
 }
 
 // Service returns the service identifiers for routing indication.

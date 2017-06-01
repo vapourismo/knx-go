@@ -17,7 +17,7 @@ type TunnelReq struct {
 	SeqNumber uint8
 
 	// Data to be tunneled
-	Payload cemi.CEMI
+	Payload cemi.Message
 }
 
 // Service returns the service identifiers for tunnel requests.

@@ -5,6 +5,8 @@ import (
 
 	"sync"
 
+	"time"
+
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/proto"
 )
@@ -71,7 +73,8 @@ func (router *Router) serve() {
 			tryPushInbound(msg.Payload, router.inbound)
 
 		case *proto.RoutingBusy:
-			// TODO: Inhibit sending for msg.WaitTime.
+			router.sendMu.Lock()
+			time.AfterFunc(msg.WaitTime, router.sendMu.Unlock)
 
 		case *proto.RoutingLost:
 			// TODO: Resend the last msg.Count frames.

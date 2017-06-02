@@ -318,13 +318,8 @@ func (conn *tunnelConn) handleTunnelReq(
 	if req.SeqNumber == expected {
 		*seqNumber++
 
-		// Send tunnel data to the client.
-		go func() {
-			select {
-			case <-ctx.Done():
-			case conn.inbound <- req.Payload:
-			}
-		}()
+		// Send tunnel data to the client without blocking this goroutine to long.
+		tryPushInbound(req.Payload, conn.inbound)
 	} else if req.SeqNumber != expected-1 {
 		// The sequence number is out of the range which we would have to acknowledge.
 		return errors.New("Out of sequence tunnel acknowledgement")

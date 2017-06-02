@@ -32,15 +32,15 @@ var (
 	defaultHeartbeatInterval = 10 * time.Second
 	defaultResponseTimeout   = 10 * time.Second
 
-	DefaultClientConfig = TunnelConfig{
+	DefaultTunnelConfig = TunnelConfig{
 		defaultResendInterval,
 		defaultHeartbeatInterval,
 		defaultResponseTimeout,
 	}
 )
 
-// checkClientConfig makes sure that the configuration is actually usable.
-func checkClientConfig(config TunnelConfig) TunnelConfig {
+// checkTunnelConfig makes sure that the configuration is actually usable.
+func checkTunnelConfig(config TunnelConfig) TunnelConfig {
 	if config.ResendInterval <= 0 {
 		config.ResendInterval = defaultResendInterval
 	}
@@ -520,7 +520,7 @@ func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 	client := &Tunnel{
 		tunnelConn: tunnelConn{
 			sock:    sock,
-			config:  checkClientConfig(config),
+			config:  checkTunnelConfig(config),
 			ack:     make(chan *proto.TunnelRes),
 			inbound: make(chan cemi.Message),
 		},

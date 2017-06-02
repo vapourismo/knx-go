@@ -34,7 +34,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 		conn := tunnelConn{
 			sock:   client,
-			config: DefaultClientConfig,
+			config: DefaultTunnelConfig,
 		}
 
 		err := conn.requestConn(ctx)
@@ -54,7 +54,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 		conn := tunnelConn{
 			sock:   client,
-			config: DefaultClientConfig,
+			config: DefaultTunnelConfig,
 		}
 
 		err := conn.requestConn(ctx)
@@ -79,7 +79,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 		t.Run("Client", func(t *testing.T) {
 			t.Parallel()
 
-			config := DefaultClientConfig
+			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
 			conn := tunnelConn{
@@ -122,7 +122,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 			defer client.Close()
 
-			config := DefaultClientConfig
+			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
 			conn := tunnelConn{
@@ -147,7 +147,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 		conn := tunnelConn{
 			sock:   client,
-			config: DefaultClientConfig,
+			config: DefaultTunnelConfig,
 		}
 
 		err := conn.requestConn(ctx)
@@ -184,7 +184,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 			conn := tunnelConn{
 				sock:   client,
-				config: DefaultClientConfig,
+				config: DefaultTunnelConfig,
 			}
 
 			err := conn.requestConn(ctx)
@@ -227,7 +227,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 			defer client.Close()
 
-			config := DefaultClientConfig
+			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
 			conn := tunnelConn{
@@ -270,7 +270,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 			conn := tunnelConn{
 				sock:   client,
-				config: DefaultClientConfig,
+				config: DefaultTunnelConfig,
 			}
 
 			err := conn.requestConn(ctx)
@@ -290,7 +290,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 		client.Close()
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
 		_, err := conn.requestConnState(ctx, make(chan proto.ConnState))
 		if err == nil {
@@ -303,7 +303,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 		defer client.Close()
 		defer gateway.Close()
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
@@ -331,7 +331,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 			defer client.Close()
 
-			config := DefaultClientConfig
+			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
 			conn := makeTunnelConn(client, config, 1)
@@ -377,7 +377,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 			defer client.Close()
 
-			config := DefaultClientConfig
+			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
 			conn := makeTunnelConn(client, config, channel)
@@ -402,7 +402,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 		heartbeat := make(chan proto.ConnState)
 		close(heartbeat)
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
 		_, err := conn.requestConnState(ctx, heartbeat)
 		if err == nil {
@@ -442,7 +442,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 			defer client.Close()
 
-			conn := makeTunnelConn(client, DefaultClientConfig, channel)
+			conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
 
 			state, err := conn.requestConnState(ctx, heartbeat)
 
@@ -488,7 +488,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 			defer client.Close()
 
-			conn := makeTunnelConn(client, DefaultClientConfig, channel)
+			conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
 
 			state, err := conn.requestConnState(ctx, heartbeat)
 
@@ -512,7 +512,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 
 		client.Close()
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
 		err := conn.requestTunnel(ctx, cemi.Message{})
 		if err == nil {
@@ -525,7 +525,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 		defer client.Close()
 		defer gateway.Close()
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
@@ -553,7 +553,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 
 			defer client.Close()
 
-			config := DefaultClientConfig
+			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
 			conn := makeTunnelConn(client, config, 1)
@@ -599,7 +599,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 
 			defer client.Close()
 
-			config := DefaultClientConfig
+			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
 			conn := makeTunnelConn(client, config, channel)
@@ -617,7 +617,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 		defer client.Close()
 		defer gateway.Close()
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 		close(conn.ack)
 
 		err := conn.requestTunnel(ctx, cemi.Message{})
@@ -664,7 +664,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 
 			defer client.Close()
 
-			conn := makeTunnelConn(client, DefaultClientConfig, channel)
+			conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
 			conn.ack = ack
 
 			err := conn.requestTunnel(ctx, cemi.Message{})
@@ -706,7 +706,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 
 			defer client.Close()
 
-			conn := makeTunnelConn(client, DefaultClientConfig, channel)
+			conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
 			conn.ack = ack
 
 			err := conn.requestTunnel(ctx, cemi.Message{})
@@ -748,7 +748,7 @@ func TestTunnelConn_requestTunnel(t *testing.T) {
 
 			defer client.Close()
 
-			conn := makeTunnelConn(client, DefaultClientConfig, channel)
+			conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
 			conn.ack = ack
 
 			err := conn.requestTunnel(ctx, cemi.Message{})
@@ -769,7 +769,7 @@ func TestTunnelConn_handleTunnelReq(t *testing.T) {
 
 		var seqNumber uint8
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 		req := &proto.TunnelReq{Channel: 2, SeqNumber: 0, Payload: cemi.Message{}}
 
 		err := conn.handleTunnelReq(ctx, req, &seqNumber)
@@ -791,7 +791,7 @@ func TestTunnelConn_handleTunnelReq(t *testing.T) {
 
 		seqNumber := sendSeqNumber
 
-		conn := makeTunnelConn(client, DefaultClientConfig, channel)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
 		req := &proto.TunnelReq{
 			Channel:   channel,
 			SeqNumber: seqNumber + 1,
@@ -847,7 +847,7 @@ func TestTunnelConn_handleTunnelReq(t *testing.T) {
 
 			seqNumber := sendSeqNumber
 
-			conn := makeTunnelConn(client, DefaultClientConfig, channel)
+			conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
 			conn.inbound = inbound
 
 			req := &proto.TunnelReq{
@@ -882,7 +882,7 @@ func TestTunnelConn_handleTunnelRes(t *testing.T) {
 		defer client.Close()
 		defer gateway.Close()
 
-		conn := makeTunnelConn(client, DefaultClientConfig, 1)
+		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
 		res := &proto.TunnelRes{Channel: 2, SeqNumber: 0, Status: 0}
 		err := conn.handleTunnelRes(ctx, res)
@@ -901,7 +901,7 @@ func TestTunnelConn_handleTunnelRes(t *testing.T) {
 			defer client.Close()
 			defer gateway.Close()
 
-			conn := makeTunnelConn(client, DefaultClientConfig, 1)
+			conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 			conn.ack = ack
 
 			res := &proto.TunnelRes{Channel: 1, SeqNumber: 0, Status: 0}

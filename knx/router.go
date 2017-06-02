@@ -12,7 +12,13 @@ func tryPushInbound(msg cemi.Message, inbound chan<- cemi.Message) {
 	case inbound <- msg:
 
 	default:
-		go func() { inbound <- msg }()
+		go func() {
+			// Since this goroutine decouples from the server goroutine, it might try to send when
+			// the server closed the inbound channel. Sending to a closed channel will panic. But we
+			// don't care, because cool guys don't look at explosions.
+			defer func() { recover() }()
+			inbound <- msg
+		}()
 	}
 }
 

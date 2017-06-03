@@ -1,3 +1,4 @@
+// Package cemi provides the functionality to parse and generate KNX CEMI-encoded frames.
 package cemi
 
 import (
@@ -6,7 +7,7 @@ import (
 	"github.com/vapourismo/knx-go/knx/encoding"
 )
 
-// MessageCode is used to identify the contents of a Message.
+// MessageCode is used to identify the contents of a CEMI frame.
 type MessageCode uint8
 
 const (
@@ -76,7 +77,7 @@ type Message interface {
 	MessageCode() MessageCode
 }
 
-// An UnsupportedMessage is the raw representation of a CEMI message.
+// An UnsupportedMessage is the raw representation of a message inside a CEMI-encoded frame.
 type UnsupportedMessage struct {
 	Code MessageCode
 	Data []byte

@@ -1,3 +1,4 @@
+// Package proto provides the means to parse and generate frames of the KNXnet/IP protocol.
 package proto
 
 import (

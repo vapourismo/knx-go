@@ -11,7 +11,7 @@ import (
 
 // A RoutingInd indicates to one or more routers that the contents shall be routed.
 type RoutingInd struct {
-	// Data to be routed
+	// L_Data.ind to be routed
 	Payload cemi.Message
 }
 
@@ -22,12 +22,12 @@ func (RoutingInd) Service() ServiceID {
 
 // ReadFrom initializes the structure by reading from the given Reader.
 func (ind *RoutingInd) ReadFrom(r io.Reader) (int64, error) {
-	return ind.Payload.ReadFrom(r)
+	return cemi.Unpack(r, &ind.Payload)
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (ind *RoutingInd) WriteTo(w io.Writer) (int64, error) {
-	return ind.Payload.WriteTo(w)
+	return cemi.Pack(w, ind.Payload)
 }
 
 // DeviceState indicates the state of a device.

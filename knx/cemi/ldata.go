@@ -9,6 +9,7 @@ import (
 
 // A LData is a link-layer data frame. L_Data.req, L_Data.con and L_Data.ind share this structure.
 type LData struct {
+	Info        Info
 	Control1    ControlField1
 	Control2    ControlField2
 	Source      uint16
@@ -21,6 +22,7 @@ func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
 	var tpduLen8 uint8
 	n, err = encoding.ReadSome(
 		r,
+		&ldata.Info,
 		&ldata.Control1,
 		&ldata.Control2,
 		&ldata.Source,
@@ -55,6 +57,7 @@ func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 
 	return encoding.WriteSome(
 		w,
+		ldata.Info,
 		ldata.Control1,
 		ldata.Control2,
 		ldata.Source,

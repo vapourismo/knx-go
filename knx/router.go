@@ -2,9 +2,8 @@ package knx
 
 import (
 	"container/list"
-
+	"errors"
 	"sync"
-
 	"time"
 
 	"github.com/vapourismo/knx-go/knx/cemi"
@@ -34,23 +33,6 @@ func checkRouterConfig(config RouterConfig) RouterConfig {
 	}
 
 	return config
-}
-
-// tryPushInbound sends the message through the channel. If the sending blocks, it will launch a
-// goroutine which will do the sending.
-func tryPushInbound(msg cemi.Message, inbound chan<- cemi.Message) {
-	select {
-	case inbound <- msg:
-
-	default:
-		go func() {
-			// Since this goroutine decouples from the server goroutine, it might try to send when
-			// the server closed the inbound channel. Sending to a closed channel will panic. But we
-			// don't care, because cool guys don't look at explosions.
-			defer func() { recover() }()
-			inbound <- msg
-		}()
-	}
 }
 
 // A Router is a participant in a KNXnet/IP multicast group.
@@ -90,6 +72,23 @@ func (router *Router) resendLost(count uint16) {
 	go router.sendMultiple(messages)
 }
 
+// pushInbound sends the message through the inbound channel. If the sending blocks, it will launch
+// a goroutine which will do the sending.
+func (router *Router) pushInbound(msg cemi.Message) {
+	select {
+	case router.inbound <- msg:
+
+	default:
+		go func() {
+			// Since this goroutine decouples from the server goroutine, it might try to send when
+			// the server closed the inbound channel. Sending to a closed channel will panic. But we
+			// don't care, because cool guys don't look at explosions.
+			defer func() { recover() }()
+			router.inbound <- msg
+		}()
+	}
+}
+
 // serve listens for incoming routing-related packets.
 func (router *Router) serve() {
 	defer close(router.inbound)
@@ -98,7 +97,7 @@ func (router *Router) serve() {
 		switch msg := msg.(type) {
 		case *proto.RoutingInd:
 			// Try to push it to the client without blocking this goroutine to long.
-			tryPushInbound(msg.Payload, router.inbound)
+			router.pushInbound(msg.Payload)
 
 		case *proto.RoutingBusy:
 			// Inhibit sending for the given time.
@@ -135,6 +134,10 @@ func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
 
 // Send transmits a packet.
 func (router *Router) Send(data cemi.Message) error {
+	if data == nil {
+		return errors.New("Nil-pointers are not sendable")
+	}
+
 	// We lock this before doing any sending so the server goroutine can adjust the flow control.
 	router.sendMu.Lock()
 	defer router.sendMu.Unlock()
@@ -143,6 +146,8 @@ func (router *Router) Send(data cemi.Message) error {
 
 	if err == nil {
 		// Store this for potential resending.
+		// TODO: Ensure that the retained value is independent from the parameter, i.e. not modified
+		//       when the user changes a member of data.
 		router.retainer.PushBack(data)
 
 		// We don't want to keep more messages than necessary. The overhead needs to be removed.

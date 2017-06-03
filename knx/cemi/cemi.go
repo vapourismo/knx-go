@@ -1,7 +1,6 @@
 package cemi
 
 import (
-	"errors"
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
@@ -36,67 +35,28 @@ const (
 	// LPollDataConCode MessageCode = 0x25
 )
 
-// MessageBody is the body of a Message.
-type MessageBody interface {
-	io.WriterTo
-	MessageCode() MessageCode
-}
+// Info is the additional info segment of a CEMI-encoded frame.
+type Info []byte
 
-// An UnsupportedMessageBody is the raw representation of a CEMI message body.
-type UnsupportedMessageBody struct {
-	Code MessageCode
-	Data []byte
-}
+// ReadFrom extracts an additional information segment.
+func (info *Info) ReadFrom(r io.Reader) (n int64, err error) {
+	var length uint8
 
-// MessageCode returns the message code.
-func (body *UnsupportedMessageBody) MessageCode() MessageCode {
-	return body.Code
-}
-
-// ReadFrom initializes the structure by reading from the given Reader.
-func (body *UnsupportedMessageBody) ReadFrom(r io.Reader) (n int64, err error) {
-	n, body.Data = encoding.ReadAll(r)
-	return
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (body *UnsupportedMessageBody) WriteTo(w io.Writer) (int64, error) {
-	len, err := w.Write(body.Data)
-	return int64(len), err
-}
-
-// Message represents the Common External Message Interface.
-type Message struct {
-	Info []byte
-	Body MessageBody
-}
-
-type messageBodyReaderFrom interface {
-	io.ReaderFrom
-	MessageBody
-}
-
-// readCEMIHeader unpacks the CEMI header.
-func readCEMIHeader(r io.Reader, code *MessageCode, info *[]byte) (n int64, err error) {
-	var infoLen uint8
-
-	// Retrieve CEMI header.
-	n, err = encoding.ReadSome(r, code, &infoLen)
+	n, err = encoding.Read(r, &length)
 	if err != nil {
 		return
 	}
 
-	if infoLen > 0 {
-		infoSlice := make([]byte, infoLen)
+	if length > 0 {
+		buf := make([]byte, length)
 
-		// Read additional info
-		m, err := encoding.Read(r, infoSlice)
+		m, err := encoding.Read(r, buf)
 		n += m
 		if err != nil {
 			return n, err
 		}
 
-		*info = infoSlice
+		*info = Info(buf)
 	} else {
 		*info = nil
 	}
@@ -104,20 +64,59 @@ func readCEMIHeader(r io.Reader, code *MessageCode, info *[]byte) (n int64, err 
 	return
 }
 
+// WriteTo writes an additional information segment.
+func (info Info) WriteTo(w io.Writer) (int64, error) {
+	length := uint8(len(info))
+	return encoding.WriteSome(w, length, []byte(info[:length]))
+}
+
+// Message is the body of a Message.
+type Message interface {
+	io.WriterTo
+	MessageCode() MessageCode
+}
+
+// An UnsupportedMessage is the raw representation of a CEMI message.
+type UnsupportedMessage struct {
+	Code MessageCode
+	Data []byte
+}
+
+// MessageCode returns the message code.
+func (body *UnsupportedMessage) MessageCode() MessageCode {
+	return body.Code
+}
+
 // ReadFrom initializes the structure by reading from the given Reader.
-func (cemi *Message) ReadFrom(r io.Reader) (n int64, err error) {
+func (body *UnsupportedMessage) ReadFrom(r io.Reader) (n int64, err error) {
+	n, body.Data = encoding.ReadAll(r)
+	return
+}
+
+// WriteTo serializes the structure and writes it to the given Writer.
+func (body *UnsupportedMessage) WriteTo(w io.Writer) (int64, error) {
+	len, err := w.Write(body.Data)
+	return int64(len), err
+}
+
+type messageReaderFrom interface {
+	io.ReaderFrom
+	Message
+}
+
+// Unpack extracts the message from a CEMI-encoded frame.
+func Unpack(r io.Reader, message *Message) (n int64, err error) {
 	var code MessageCode
-	var info []byte
 
 	// Read header.
-	n, err = readCEMIHeader(r, &code, &info)
+	n, err = encoding.Read(r, &code)
 	if err != nil {
 		return
 	}
 
-	var body messageBodyReaderFrom
+	var body messageReaderFrom
 
-	// Decide which message body is appropriate.
+	// Decide which message is appropriate.
 	switch code {
 	case LBusmonIndCode:
 		body = &LBusmonInd{}
@@ -141,63 +140,20 @@ func (cemi *Message) ReadFrom(r io.Reader) (n int64, err error) {
 		body = &LRawInd{}
 
 	default:
-		body = &UnsupportedMessageBody{Code: code}
+		body = &UnsupportedMessage{Code: code}
 	}
 
-	// Parse the message body.
+	// Parse the message.
 	m, err := body.ReadFrom(r)
+
 	if err == nil {
-		cemi.Body = body
+		*message = body
 	}
 
 	return n + m, err
 }
 
-// WriteTo serializes the CEMI frame and writes it to the given Writer.
-func (cemi *Message) WriteTo(w io.Writer) (int64, error) {
-	var infoLen uint8
-	var info []byte
-
-	if len(cemi.Info) > 255 {
-		infoLen = 255
-		info = cemi.Info[:256]
-	} else {
-		infoLen = uint8(len(info))
-		info = cemi.Info
-	}
-
-	return encoding.WriteSome(w, cemi.Body.MessageCode(), infoLen, info, cemi.Body)
-}
-
-// ReadSpecific reads a specific CEMI-encoding frame.
-func ReadSpecific(r io.Reader, code MessageCode, body io.ReaderFrom) (n int64, err error) {
-	var cmpCode MessageCode
-	var info []byte
-
-	n, err = readCEMIHeader(r, &cmpCode, &info)
-	if err != nil {
-		return
-	}
-
-	if cmpCode != code {
-		return n, errors.New("Unexpected message code")
-	}
-
-	m, err := body.ReadFrom(r)
-	n += m
-
-	return
-}
-
-// WriteSpecific a specific CEMI-encoded frame.
-func WriteSpecific(w io.Writer, code MessageCode, body io.WriterTo) (n int64, err error) {
-	n, err = encoding.WriteSome(w, code, byte(0))
-	if err != nil {
-		return
-	}
-
-	m, err := body.WriteTo(w)
-	n += m
-
-	return
+// Pack assembles a CEMI-encoded frame using the given message.
+func Pack(w io.Writer, message Message) (int64, error) {
+	return encoding.WriteSome(w, message.MessageCode(), message)
 }

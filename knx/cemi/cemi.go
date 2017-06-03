@@ -1,6 +1,7 @@
 package cemi
 
 import (
+	"errors"
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
@@ -75,23 +76,41 @@ type messageBodyReaderFrom interface {
 	MessageBody
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (cemi *Message) ReadFrom(r io.Reader) (n int64, err error) {
+// readCEMIHeader unpacks the CEMI header.
+func readCEMIHeader(r io.Reader, code *MessageCode, info *[]byte) (n int64, err error) {
 	var infoLen uint8
-	var code MessageCode
 
 	// Retrieve CEMI header.
-	n, err = encoding.ReadSome(r, &code, &infoLen)
+	n, err = encoding.ReadSome(r, code, &infoLen)
 	if err != nil {
 		return
 	}
 
-	cemi.Info = make([]byte, infoLen)
+	if infoLen > 0 {
+		infoSlice := make([]byte, infoLen)
 
-	// Extract the additional info segment.
-	len, err := encoding.Read(r, cemi.Info)
-	n += len
+		// Read additional info
+		m, err := encoding.Read(r, infoSlice)
+		n += m
+		if err != nil {
+			return n, err
+		}
 
+		*info = infoSlice
+	} else {
+		*info = nil
+	}
+
+	return
+}
+
+// ReadFrom initializes the structure by reading from the given Reader.
+func (cemi *Message) ReadFrom(r io.Reader) (n int64, err error) {
+	var code MessageCode
+	var info []byte
+
+	// Read header.
+	n, err = readCEMIHeader(r, &code, &info)
 	if err != nil {
 		return
 	}
@@ -126,13 +145,12 @@ func (cemi *Message) ReadFrom(r io.Reader) (n int64, err error) {
 	}
 
 	// Parse the message body.
-	len, err = body.ReadFrom(r)
-
+	m, err := body.ReadFrom(r)
 	if err == nil {
 		cemi.Body = body
 	}
 
-	return n + len, err
+	return n + m, err
 }
 
 // WriteTo serializes the CEMI frame and writes it to the given Writer.
@@ -149,4 +167,37 @@ func (cemi *Message) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	return encoding.WriteSome(w, cemi.Body.MessageCode(), infoLen, info, cemi.Body)
+}
+
+// ReadSpecific reads a specific CEMI-encoding frame.
+func ReadSpecific(r io.Reader, code MessageCode, body io.ReaderFrom) (n int64, err error) {
+	var cmpCode MessageCode
+	var info []byte
+
+	n, err = readCEMIHeader(r, &cmpCode, &info)
+	if err != nil {
+		return
+	}
+
+	if cmpCode != code {
+		return n, errors.New("Unexpected message code")
+	}
+
+	m, err := body.ReadFrom(r)
+	n += m
+
+	return
+}
+
+// WriteSpecific a specific CEMI-encoded frame.
+func WriteSpecific(w io.Writer, code MessageCode, body io.WriterTo) (n int64, err error) {
+	n, err = encoding.WriteSome(w, code, byte(0))
+	if err != nil {
+		return
+	}
+
+	m, err := body.WriteTo(w)
+	n += m
+
+	return
 }

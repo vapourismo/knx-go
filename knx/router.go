@@ -62,6 +62,34 @@ type Router struct {
 	retainer *list.List
 }
 
+// sendMultiple sends each message from the slice. Doesn't matter if one fails, all will be tried.
+func (router *Router) sendMultiple(messages []cemi.Message) {
+	for _, message := range messages {
+		router.Send(message)
+	}
+}
+
+// resendLost resends the last count messages.
+func (router *Router) resendLost(count uint16) {
+	router.sendMu.Lock()
+	defer router.sendMu.Unlock()
+
+	// Make sure not to overflow our retainer list.
+	if int(count) > router.retainer.Len() {
+		count = uint16(router.retainer.Len())
+	}
+
+	messages := make([]cemi.Message, count)
+
+	// Retrieve the messages in reverse. This enables us to resend them in the order in which the
+	// have been sent initially.
+	for i := len(messages) - 1; i >= 0; i-- {
+		messages[i] = router.retainer.Remove(router.retainer.Back()).(cemi.Message)
+	}
+
+	go router.sendMultiple(messages)
+}
+
 // serve listens for incoming routing-related packets.
 func (router *Router) serve() {
 	defer close(router.inbound)
@@ -73,11 +101,15 @@ func (router *Router) serve() {
 			tryPushInbound(msg.Payload, router.inbound)
 
 		case *proto.RoutingBusy:
+			// Inhibit sending for the given time.
 			router.sendMu.Lock()
 			time.AfterFunc(msg.WaitTime, router.sendMu.Unlock)
 
+			// TODO: Slow down pace after busy indication.
+
 		case *proto.RoutingLost:
-			// TODO: Resend the last msg.Count frames.
+			// Resend the last msg.Count messages.
+			router.resendLost(msg.Count)
 		}
 	}
 }

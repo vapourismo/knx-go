@@ -300,6 +300,23 @@ func (conn *tunnelConn) handleDiscRes(
 	return nil
 }
 
+// pushInbound sends the message through the inbound channel. If the sending blocks, it will launch
+// a goroutine which will do the sending.
+func (conn *tunnelConn) pushInbound(msg cemi.Message) {
+	select {
+	case conn.inbound <- msg:
+
+	default:
+		go func() {
+			// Since this goroutine decouples from the server goroutine, it might try to send when
+			// the server closed the inbound channel. Sending to a closed channel will panic. But we
+			// don't care, because cool guys don't look at explosions.
+			defer func() { recover() }()
+			conn.inbound <- msg
+		}()
+	}
+}
+
 // handleTunnelReq validates the request, pushes the data to the client and acknowledges the
 // request for the gateway.
 func (conn *tunnelConn) handleTunnelReq(
@@ -319,7 +336,7 @@ func (conn *tunnelConn) handleTunnelReq(
 		*seqNumber++
 
 		// Send tunnel data to the client without blocking this goroutine to long.
-		tryPushInbound(req.Payload, conn.inbound)
+		conn.pushInbound(req.Payload)
 	} else if req.SeqNumber != expected-1 {
 		// The sequence number is out of the range which we would have to acknowledge.
 		return errors.New("Out of sequence tunnel acknowledgement")

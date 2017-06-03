@@ -64,6 +64,16 @@ func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 	)
 }
 
+// Copy returns a copy of the LData frame where all struct members are independent from the method
+// receiver's members.
+func (ldata LData) Copy() LData {
+	data := make([]byte, len(ldata.Data))
+	copy(data, ldata.Data)
+	ldata.Data = data
+
+	return ldata
+}
+
 // A LDataReq represents a L_Data.req message body.
 type LDataReq struct {
 	LData

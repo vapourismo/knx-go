@@ -12,8 +12,8 @@ func makeTunnelConn(
 	sock Socket,
 	config TunnelConfig,
 	channel uint8,
-) *tunnelConn {
-	return &tunnelConn{
+) *Tunnel {
+	return &Tunnel{
 		sock:    sock,
 		config:  config,
 		channel: channel,
@@ -32,7 +32,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 		client.Close()
 
-		conn := tunnelConn{
+		conn := Tunnel{
 			sock:   client,
 			config: DefaultTunnelConfig,
 		}
@@ -52,7 +52,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 
-		conn := tunnelConn{
+		conn := Tunnel{
 			sock:   client,
 			config: DefaultTunnelConfig,
 		}
@@ -82,7 +82,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
-			conn := tunnelConn{
+			conn := Tunnel{
 				sock:   client,
 				config: config,
 			}
@@ -125,7 +125,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
-			conn := tunnelConn{
+			conn := Tunnel{
 				sock:   client,
 				config: config,
 			}
@@ -145,7 +145,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 		client.closeIn()
 
-		conn := tunnelConn{
+		conn := Tunnel{
 			sock:   client,
 			config: DefaultTunnelConfig,
 		}
@@ -182,7 +182,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 			defer client.Close()
 
-			conn := tunnelConn{
+			conn := Tunnel{
 				sock:   client,
 				config: DefaultTunnelConfig,
 			}
@@ -230,7 +230,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			config := DefaultTunnelConfig
 			config.ResendInterval = 1
 
-			conn := tunnelConn{
+			conn := Tunnel{
 				sock:   client,
 				config: config,
 			}
@@ -268,7 +268,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 			defer client.Close()
 
-			conn := tunnelConn{
+			conn := Tunnel{
 				sock:   client,
 				config: DefaultTunnelConfig,
 			}

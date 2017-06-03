@@ -35,7 +35,8 @@ func checkRouterConfig(config RouterConfig) RouterConfig {
 	return config
 }
 
-// A Router is a participant in a KNXnet/IP multicast group.
+// A Router provides the means to communicate with zero or more KNXnet/IP routers in a IP multicast
+// group. It supports sending and receiving CEMI-encoded frames, aswell as basic flow control.
 type Router struct {
 	sock     Socket
 	config   RouterConfig

@@ -87,6 +87,13 @@ func Unpack(data []byte, output interface{}) (uint, error) {
 		*output = int64(u)
 		return n, err
 
+	case []byte:
+		if len(output) > len(data) {
+			return 0, io.ErrUnexpectedEOF
+		}
+
+		return uint(copy(output, data)), nil
+
 	case Unpackable:
 		return output.Unpack(data)
 	}

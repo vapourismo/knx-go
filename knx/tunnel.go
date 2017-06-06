@@ -135,8 +135,8 @@ func (conn *Tunnel) requestConn() (err error) {
 					conn.control = res.Control
 
 					conn.seqMu.Lock()
-					defer conn.seqMu.Unlock()
 					conn.seqNumber = 0
+					conn.seqMu.Unlock()
 
 					return nil
 
@@ -156,7 +156,7 @@ func (conn *Tunnel) requestConn() (err error) {
 // requestConnState periodically sends a connection state request to the gateway until it has
 // received a response or the response timeout is reached.
 func (conn *Tunnel) requestConnState(heartbeat <-chan proto.ConnState) (proto.ConnState, error) {
-	req := &proto.ConnStateReq{Channel: conn.channel, Status: 0, Control: proto.HostInfo{}}
+	req := &proto.ConnStateReq{Channel: conn.channel, Status: 0, Control: conn.control}
 
 	// Send first connection state request
 	err := conn.sock.Send(req)

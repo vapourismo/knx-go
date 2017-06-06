@@ -1,11 +1,6 @@
 package cemi
 
-import (
-	"io"
-
-	"github.com/vapourismo/knx-go/knx/encoding"
-	"github.com/vapourismo/knx-go/knx/util"
-)
+import "github.com/vapourismo/knx-go/knx/util"
 
 // A LData is a link-layer data frame. L_Data.req, L_Data.con and L_Data.ind share this structure.
 type LData struct {
@@ -39,7 +34,6 @@ func (ldata *LData) Unpack(data []byte) (n uint, err error) {
 // Size returns the packed size.
 func (ldata *LData) Size() uint {
 	return ldata.Info.Size() + 6 + ldata.Data.Size()
-
 }
 
 // Pack the message body into the buffer.
@@ -49,19 +43,6 @@ func (ldata *LData) Pack(buffer []byte) {
 		ldata.Info,
 		uint8(ldata.Control1),
 		uint8(ldata.Control2),
-		ldata.Source,
-		ldata.Destination,
-		ldata.Data,
-	)
-}
-
-// WriteTo serializes the LData structure and writes it to the given Writer.
-func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(
-		w,
-		ldata.Info,
-		ldata.Control1,
-		ldata.Control2,
 		ldata.Source,
 		ldata.Destination,
 		ldata.Data,

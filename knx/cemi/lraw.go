@@ -1,15 +1,7 @@
 package cemi
 
-import "io"
-
 // A LRaw is a raw link-layer frame. L_Raw.req, L_Raw.con and L_Raw.ind share this structure.
 type LRaw []byte
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (lraw *LRaw) WriteTo(w io.Writer) (int64, error) {
-	len, err := w.Write([]byte(*lraw))
-	return int64(len), err
-}
 
 // Size returns the packed size.
 func (lraw LRaw) Size() uint {

@@ -3,9 +3,7 @@ package cemi
 
 import (
 	"fmt"
-	"io"
 
-	"github.com/vapourismo/knx-go/knx/encoding"
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
@@ -110,15 +108,8 @@ func (info *Info) Unpack(data []byte) (n uint, err error) {
 	return
 }
 
-// WriteTo writes an additional information segment.
-func (info Info) WriteTo(w io.Writer) (int64, error) {
-	length := uint8(len(info))
-	return encoding.WriteSome(w, length, []byte(info[:length]))
-}
-
 // Message is the body of a CEMI-encoded frame.
 type Message interface {
-	io.WriterTo
 	util.Packable
 	MessageCode() MessageCode
 }
@@ -134,14 +125,14 @@ func (body *UnsupportedMessage) Size() uint {
 	return uint(len(body.Data))
 }
 
-// Pack the message body into the buffer.
-func (body *UnsupportedMessage) Pack(buffer []byte) {
-	copy(buffer, body.Data)
-}
-
 // MessageCode returns the message code.
 func (body *UnsupportedMessage) MessageCode() MessageCode {
 	return body.Code
+}
+
+// Pack the message body into the buffer.
+func (body *UnsupportedMessage) Pack(buffer []byte) {
+	copy(buffer, body.Data)
 }
 
 // Unpack initializes the structure by parsing the given data.
@@ -151,12 +142,6 @@ func (body *UnsupportedMessage) Unpack(data []byte) (uint, error) {
 	}
 
 	return uint(copy(body.Data, data)), nil
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (body *UnsupportedMessage) WriteTo(w io.Writer) (int64, error) {
-	len, err := w.Write(body.Data)
-	return int64(len), err
 }
 
 type messageUnpackable interface {

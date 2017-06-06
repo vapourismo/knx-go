@@ -24,8 +24,8 @@ func (ldata *LData) Unpack(data []byte) (n uint, err error) {
 		&ldata.Info,
 		(*uint8)(&ldata.Control1),
 		(*uint8)(&ldata.Control2),
-		(*uint16)(&ldata.Source),
-		(*uint16)(&ldata.Destination),
+		&ldata.Source,
+		&ldata.Destination,
 	); err != nil {
 		return
 	}

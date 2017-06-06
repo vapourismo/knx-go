@@ -92,7 +92,7 @@ func Unpack(data []byte, srv *Service) (uint, error) {
 	var srvID ServiceID
 	var totalLen uint16
 
-	n, err := util.UnpackSome(data, &headerLen, &version, &srvID, &totalLen)
+	n, err := util.UnpackSome(data, &headerLen, &version, (*uint16)(&srvID), &totalLen)
 	if err != nil {
 		return n, err
 	}

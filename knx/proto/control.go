@@ -117,7 +117,7 @@ func (ConnRes) Service() ServiceID {
 
 // Unpack initializes the structure by parsing the given data.
 func (res *ConnRes) Unpack(data []byte) (uint, error) {
-	return util.UnpackSome(data, &res.Channel, &res.Status, &res.Control)
+	return util.UnpackSome(data, &res.Channel, (*uint8)(&res.Status), &res.Control)
 }
 
 // A ConnStateReq requests the the connection state from a gateway.

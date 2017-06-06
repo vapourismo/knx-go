@@ -72,7 +72,7 @@ func (TunnelRes) Service() ServiceID {
 func (res *TunnelRes) Unpack(data []byte) (n uint, err error) {
 	var length uint8
 
-	n, err = util.UnpackSome(data, &length, &res.Channel, &res.SeqNumber, &res.Status)
+	n, err = util.UnpackSome(data, &length, &res.Channel, &res.SeqNumber, (*uint8)(&res.Status))
 	if err != nil {
 		return
 	}

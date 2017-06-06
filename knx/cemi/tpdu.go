@@ -95,7 +95,7 @@ type TransportUnit interface {
 }
 
 // UnpackTransportUnit parses the given data in order to extract the transport unit that it encodes.
-func UnpackTransportUnit(data []byte, unit *TransportUnit) (n uint, err error) {
+func UnpackTransportUnit(data []byte, unit *TransportUnit) (uint, error) {
 	if len(data) < 2 {
 		return 0, io.ErrUnexpectedEOF
 	}

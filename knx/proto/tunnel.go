@@ -58,6 +58,15 @@ func (req *TunnelReq) WriteTo(w io.Writer) (n int64, err error) {
 	return
 }
 
+// A TunnelResStatus is the status in a tunnel response.
+type TunnelResStatus uint8
+
+const (
+	// TunnelResUnsupported indicates that the CEMI-encoded frame inside the tunnel request was not
+	// understood or is not supported.
+	TunnelResUnsupported TunnelResStatus = 0x29
+)
+
 // A TunnelRes is a response to a TunnelRequest. It acts as an acknowledgement.
 type TunnelRes struct {
 	// Communication channel
@@ -67,7 +76,7 @@ type TunnelRes struct {
 	SeqNumber uint8
 
 	// Status code, determines whether the tunneling succeeded or not
-	Status uint8
+	Status TunnelResStatus
 }
 
 // Service returns the service identifier for tunnel responses.

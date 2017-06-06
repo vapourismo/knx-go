@@ -47,8 +47,15 @@ func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
-func (req *TunnelReq) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, byte(4), req.Channel, req.SeqNumber, byte(0), &req.Payload)
+func (req *TunnelReq) WriteTo(w io.Writer) (n int64, err error) {
+	if n, err = encoding.WriteSome(w, byte(4), req.Channel, req.SeqNumber, byte(0)); err != nil {
+		return
+	}
+
+	m, err := cemi.Pack(w, req.Payload)
+	n += m
+
+	return
 }
 
 // A TunnelRes is a response to a TunnelRequest. It acts as an acknowledgement.

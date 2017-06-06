@@ -40,25 +40,25 @@ const (
 func (code MessageCode) String() string {
 	switch code {
 	case LBusmonIndCode:
-		return "LBusmonInd"
+		return "LBusmon.ind"
 
 	case LDataReqCode:
-		return "LDataReq"
+		return "LData.req"
 
 	case LDataIndCode:
-		return "LDataInd"
+		return "LData.ind"
 
 	case LDataConCode:
-		return "LDataCon"
+		return "LData.con"
 
 	case LRawReqCode:
-		return "LRawReq"
+		return "LRaw.req"
 
 	case LRawIndCode:
-		return "LRawInd"
+		return "LRaw.ind"
 
 	case LRawConCode:
-		return "LRawCon"
+		return "LRaw.con"
 
 	default:
 		return fmt.Sprintf("%#x", uint8(code))

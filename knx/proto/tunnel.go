@@ -2,6 +2,7 @@ package proto
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/util"
@@ -62,10 +63,26 @@ func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 type TunnelResStatus uint8
 
 const (
+	// TunnelResOk indicates that everything went as expected.
+	TunnelResOk TunnelResStatus = 0x00
+
 	// TunnelResUnsupported indicates that the CEMI-encoded frame inside the tunnel request was not
 	// understood or is not supported.
 	TunnelResUnsupported TunnelResStatus = 0x29
 )
+
+func (status TunnelResStatus) String() string {
+	switch status {
+	case TunnelResOk:
+		return "Ok"
+
+	case TunnelResUnsupported:
+		return "Unsupported"
+
+	default:
+		return fmt.Sprintf("%#x", uint8(status))
+	}
+}
 
 // A TunnelRes is a response to a TunnelRequest. It acts as an acknowledgement.
 type TunnelRes struct {

@@ -38,14 +38,18 @@ type DeviceState uint8
 
 // These are known device states.
 const (
-	DeviceStateReserved DeviceState = 0xfc
+	DeviceStateOk       DeviceState = 0x00
 	DeviceStateKNXError DeviceState = 0x01
 	DeviceStateIPError  DeviceState = 0x02
+	DeviceStateReserved DeviceState = 0xfc
 )
 
 // String converts the device status to a s tring.
 func (status DeviceState) String() string {
 	switch status {
+	case DeviceStateOk:
+		return "Ok"
+
 	case DeviceStateReserved:
 		return "Reserved"
 

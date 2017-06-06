@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/vapourismo/knx-go/utilities/testutils"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 type writeCase struct {
@@ -103,9 +103,9 @@ func TestWrite(t *testing.T) {
 	})
 
 	t.Run("BadWriter", func(t *testing.T) {
-		len, err := Write(testutils.BadWriter{}, uint8(42))
+		len, err := Write(util.BadWriter{}, uint8(42))
 
-		if err != testutils.ErrBadWrite {
+		if err != util.ErrBadWrite {
 			t.Error("Unexpected error:", err)
 		}
 
@@ -135,8 +135,8 @@ func TestWriteSome(t *testing.T) {
 	})
 
 	t.Run("BadWriter", func(t *testing.T) {
-		len, err := WriteSome(testutils.BadWriter{}, uint16(0x1337), uint8(0x42))
-		if err != testutils.ErrBadWrite {
+		len, err := WriteSome(util.BadWriter{}, uint16(0x1337), uint8(0x42))
+		if err != util.ErrBadWrite {
 			t.Fatal("Unexpected error:", err)
 		}
 

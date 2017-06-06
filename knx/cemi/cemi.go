@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // MessageCode is used to identify the contents of a CEMI frame.
@@ -39,24 +40,18 @@ const (
 // Info is the additional info segment of a CEMI-encoded frame.
 type Info []byte
 
-// ReadFrom extracts an additional information segment.
-func (info *Info) ReadFrom(r io.Reader) (n int64, err error) {
+// Unpack initializes the structure by parsing the given data.
+func (info *Info) Unpack(data []byte) (n uint, err error) {
 	var length uint8
 
-	n, err = encoding.Read(r, &length)
+	n, err = util.Unpack(data, &length)
 	if err != nil {
 		return
 	}
 
 	if length > 0 {
 		buf := make([]byte, length)
-
-		m, err := encoding.Read(r, buf)
-		n += m
-		if err != nil {
-			return n, err
-		}
-
+		n += uint(copy(buf, data[n:n+uint(length)]))
 		*info = Info(buf)
 	} else {
 		*info = nil
@@ -88,10 +83,13 @@ func (body *UnsupportedMessage) MessageCode() MessageCode {
 	return body.Code
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (body *UnsupportedMessage) ReadFrom(r io.Reader) (n int64, err error) {
-	n, body.Data = encoding.ReadAll(r)
-	return
+// Unpack initializes the structure by parsing the given data.
+func (body *UnsupportedMessage) Unpack(data []byte) (uint, error) {
+	if len(body.Data) < len(data) {
+		body.Data = make([]byte, len(data))
+	}
+
+	return uint(copy(body.Data, data)), nil
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
@@ -100,22 +98,22 @@ func (body *UnsupportedMessage) WriteTo(w io.Writer) (int64, error) {
 	return int64(len), err
 }
 
-type messageReaderFrom interface {
-	io.ReaderFrom
+type messageUnpackable interface {
+	util.Unpackable
 	Message
 }
 
-// Unpack extracts the message from a CEMI-encoded frame.
-func Unpack(r io.Reader, message *Message) (n int64, err error) {
+// Unpack a message from a CEMI-encoded frame.
+func Unpack(data []byte, message *Message) (n uint, err error) {
 	var code MessageCode
 
 	// Read header.
-	n, err = encoding.Read(r, &code)
+	n, err = util.Unpack(data, (*uint8)(&code))
 	if err != nil {
 		return
 	}
 
-	var body messageReaderFrom
+	var body messageUnpackable
 
 	// Decide which message is appropriate.
 	switch code {
@@ -145,7 +143,7 @@ func Unpack(r io.Reader, message *Message) (n int64, err error) {
 	}
 
 	// Parse the message.
-	m, err := body.ReadFrom(r)
+	m, err := body.Unpack(data[n:])
 
 	if err == nil {
 		*message = body

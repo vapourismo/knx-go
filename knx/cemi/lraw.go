@@ -1,23 +1,27 @@
 package cemi
 
-import (
-	"io"
-
-	"github.com/vapourismo/knx-go/knx/encoding"
-)
+import "io"
 
 // A LRaw is a raw link-layer frame. L_Raw.req, L_Raw.con and L_Raw.ind share this structure.
 type LRaw []byte
 
 // WriteTo serializes the structure and writes it to the given Writer.
-func (lbm *LRaw) WriteTo(w io.Writer) (int64, error) {
-	len, err := w.Write([]byte(*lbm))
+func (lraw *LRaw) WriteTo(w io.Writer) (int64, error) {
+	len, err := w.Write([]byte(*lraw))
 	return int64(len), err
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (lbm *LRaw) ReadFrom(r io.Reader) (n int64, err error) {
-	n, *lbm = encoding.ReadAll(r)
+// Unpack initializes the structure by parsing the given data.
+func (lraw *LRaw) Unpack(data []byte) (n uint, err error) {
+	target := []byte(*lraw)
+
+	if len(target) < len(data) {
+		target = make([]byte, len(data))
+	}
+
+	n = uint(copy(target, data))
+	*lraw = LRaw(target)
+
 	return
 }
 

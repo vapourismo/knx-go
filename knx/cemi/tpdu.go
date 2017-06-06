@@ -2,6 +2,8 @@ package cemi
 
 import (
 	"errors"
+
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // A TPCI is the Transport-layer Protocol Control Information.
@@ -47,6 +49,26 @@ const (
 
 // TPDU is the Transport-layer Protocol Data Unit.
 type TPDU []byte
+
+// Unpack the TPDU including its leading length byte.
+func (tpdu *TPDU) Unpack(data []byte) (n uint, err error) {
+	var length8 uint8
+
+	if n, err = util.Unpack(data, &length8); err != nil {
+		return
+	}
+
+	length := int(length8) + 1
+
+	if len(*tpdu) < length {
+		*tpdu = make([]byte, length)
+	}
+
+	m, err := util.Unpack(data[n:], ([]byte)(*tpdu))
+	n += m
+
+	return
+}
 
 // MakeTPDU generates a TPDU that contains an APDU with the given APCI and data. In order to be able
 // to properly format the APDU, the given data must have a certain length.

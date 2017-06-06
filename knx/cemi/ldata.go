@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // A LData is a link-layer data frame. L_Data.req, L_Data.con and L_Data.ind share this structure.
@@ -17,34 +18,17 @@ type LData struct {
 	Data        TPDU
 }
 
-// ReadFrom initializes the LData structure by reading from the given Reader.
-func (ldata *LData) ReadFrom(r io.Reader) (n int64, err error) {
-	var tpduLen8 uint8
-	n, err = encoding.ReadSome(
-		r,
+// Unpack initializes the structure by parsing the given data.
+func (ldata *LData) Unpack(data []byte) (n uint, err error) {
+	return util.UnpackSome(
+		data,
 		&ldata.Info,
-		&ldata.Control1,
-		&ldata.Control2,
-		&ldata.Source,
-		&ldata.Destination,
-		&tpduLen8,
+		(*uint8)(&ldata.Control1),
+		(*uint8)(&ldata.Control2),
+		(*uint16)(&ldata.Source),
+		(*uint16)(&ldata.Destination),
+		&ldata.Data,
 	)
-
-	if err != nil {
-		return
-	}
-
-	tpdu := make([]byte, int(tpduLen8)+1)
-	m, err := encoding.Read(r, tpdu)
-	n += m
-
-	if err != nil {
-		return
-	}
-
-	ldata.Data = TPDU(tpdu)
-
-	return
 }
 
 // WriteTo serializes the LData structure and writes it to the given Writer.

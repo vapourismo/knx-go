@@ -1,10 +1,6 @@
 package cemi
 
-import (
-	"io"
-
-	"github.com/vapourismo/knx-go/knx/encoding"
-)
+import "io"
 
 // A LBusmonInd represents a L_Busmon.ind message.
 type LBusmonInd []byte
@@ -20,8 +16,16 @@ func (lbm *LBusmonInd) WriteTo(w io.Writer) (int64, error) {
 	return int64(len), err
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (lbm *LBusmonInd) ReadFrom(r io.Reader) (n int64, err error) {
-	n, *lbm = encoding.ReadAll(r)
+// Unpack initializes the structure by parsing the given data.
+func (lbm *LBusmonInd) Unpack(data []byte) (n uint, err error) {
+	target := []byte(*lbm)
+
+	if len(target) < len(data) {
+		target = make([]byte, len(data))
+	}
+
+	n = uint(copy(target, data))
+	*lbm = LBusmonInd(target)
+
 	return
 }

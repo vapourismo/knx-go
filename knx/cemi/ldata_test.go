@@ -74,16 +74,5 @@ func TestLData_Unpack(t *testing.T) {
 		if binary.BigEndian.Uint16(data[4:]) != ldata.Destination {
 			t.Error("Unexpected destination:", binary.BigEndian.Uint16(data[4:]), ldata.Destination, data)
 		}
-
-		// data = data[6:]
-
-		// if int(data[0])+1 != len(ldata.Data) {
-		// 	t.Error("Unexpected TPDU length:", int(data[0])+1 != len(ldata.Data))
-		// 	continue
-		// }
-
-		// if !bytes.Equal(data[1:], []byte(ldata.Data)) {
-		// 	t.Error("Unexpected TPDU:", data[1:], []byte(ldata.Data), data)
-		// }
 	}
 }

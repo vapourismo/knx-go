@@ -36,6 +36,25 @@ func (ldata *LData) Unpack(data []byte) (n uint, err error) {
 	return
 }
 
+// Size returns the packed size.
+func (ldata *LData) Size() uint {
+	return ldata.Info.Size() + 6 + ldata.Data.Size()
+
+}
+
+// Pack the message body into the buffer.
+func (ldata *LData) Pack(buffer []byte) {
+	util.PackSome(
+		buffer,
+		ldata.Info,
+		uint8(ldata.Control1),
+		uint8(ldata.Control2),
+		ldata.Source,
+		ldata.Destination,
+		ldata.Data,
+	)
+}
+
 // WriteTo serializes the LData structure and writes it to the given Writer.
 func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 	return encoding.WriteSome(
@@ -45,7 +64,7 @@ func (ldata *LData) WriteTo(w io.Writer) (int64, error) {
 		ldata.Control2,
 		ldata.Source,
 		ldata.Destination,
-		ldata.Data.Pack(),
+		ldata.Data,
 	)
 }
 

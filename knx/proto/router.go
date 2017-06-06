@@ -27,7 +27,11 @@ func (ind *RoutingInd) Unpack(data []byte) (uint, error) {
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (ind *RoutingInd) WriteTo(w io.Writer) (int64, error) {
-	return cemi.Pack(w, ind.Payload)
+	payload := make([]byte, cemi.Size(ind.Payload))
+	cemi.Pack(payload, ind.Payload)
+
+	n, err := w.Write(payload)
+	return int64(n), err
 }
 
 // DeviceState indicates the state of a device.

@@ -48,14 +48,10 @@ func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 
 // WriteTo serializes the structure and writes it to the given Writer.
 func (req *TunnelReq) WriteTo(w io.Writer) (n int64, err error) {
-	if n, err = encoding.WriteSome(w, byte(4), req.Channel, req.SeqNumber, byte(0)); err != nil {
-		return
-	}
+	payload := make([]byte, cemi.Size(req.Payload))
+	cemi.Pack(payload, req.Payload)
 
-	m, err := cemi.Pack(w, req.Payload)
-	n += m
-
-	return
+	return encoding.WriteSome(w, byte(4), req.Channel, req.SeqNumber, byte(0), payload)
 }
 
 // A TunnelResStatus is the status in a tunnel response.

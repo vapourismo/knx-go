@@ -16,6 +16,16 @@ func (lbm *LBusmonInd) WriteTo(w io.Writer) (int64, error) {
 	return int64(len), err
 }
 
+// Size returns the packed size.
+func (lbm LBusmonInd) Size() uint {
+	return uint(len(lbm))
+}
+
+// Pack the message body into the buffer.
+func (lbm LBusmonInd) Pack(buffer []byte) {
+	copy(buffer, lbm)
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (lbm *LBusmonInd) Unpack(data []byte) (n uint, err error) {
 	target := []byte(*lbm)

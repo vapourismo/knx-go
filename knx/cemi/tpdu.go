@@ -1,6 +1,10 @@
 package cemi
 
-import "io"
+import (
+	"io"
+
+	"github.com/vapourismo/knx-go/knx/util"
+)
 
 // A TPCI is the Transport-layer Protocol Control Information.
 type TPCI uint8
@@ -44,18 +48,30 @@ type AppData struct {
 	Data      []byte
 }
 
-// Pack the structure.
-func (app *AppData) Pack() []byte {
-	length := len(app.Data)
+// Size retrieves the packed size.
+func (app *AppData) Size() uint {
+	dataLength := uint(len(app.Data))
 
-	if length > 255 {
-		length = 255
-	} else if length < 1 {
-		length = 1
+	if dataLength > 255 {
+		dataLength = 255
+	} else if dataLength < 1 {
+		dataLength = 1
 	}
 
-	buffer := make([]byte, length+2)
-	buffer[0] = byte(length)
+	return 2 + dataLength
+}
+
+// Pack the structure.
+func (app *AppData) Pack(buffer []byte) {
+	dataLength := len(app.Data)
+
+	if dataLength > 255 {
+		dataLength = 255
+	} else if dataLength < 1 {
+		dataLength = 1
+	}
+
+	buffer[0] = byte(dataLength)
 
 	if app.Numbered {
 		buffer[1] |= 1<<6 | (app.SeqNumber&15)<<2
@@ -67,8 +83,6 @@ func (app *AppData) Pack() []byte {
 
 	buffer[2] &= 63
 	buffer[2] |= byte(app.Command&3) << 6
-
-	return buffer
 }
 
 // A ControlData encodes control information in a transport unit.
@@ -78,20 +92,24 @@ type ControlData struct {
 	Command   uint8
 }
 
+// Size retrieves the packed size.
+func (ControlData) Size() uint {
+	return 2
+}
+
 // Pack the structure.
-func (control *ControlData) Pack() []byte {
-	buffer := []byte{0, 1<<7 | (control.Command & 3)}
+func (control *ControlData) Pack(buffer []byte) {
+	buffer[0] = 0
+	buffer[1] = 1<<7 | (control.Command & 3)
 
 	if control.Numbered {
 		buffer[1] |= 1<<6 | (control.SeqNumber&15)<<2
 	}
-
-	return buffer
 }
 
 // A TransportUnit is responsive to transport data.
 type TransportUnit interface {
-	Pack() []byte
+	util.Packable
 }
 
 // UnpackTransportUnit parses the given data in order to extract the transport unit that it encodes.

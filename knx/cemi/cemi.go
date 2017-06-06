@@ -70,6 +70,26 @@ func (code MessageCode) String() string {
 // Info is the additional info segment of a CEMI-encoded frame.
 type Info []byte
 
+// Size returns the packed size.
+func (info Info) Size() uint {
+	if len(info) > 255 {
+		return 256
+	}
+
+	return 1 + uint(len(info))
+}
+
+// Pack the info structure into the buffer.
+func (info Info) Pack(buffer []byte) {
+	if len(info) > 255 {
+		buffer[0] = 255
+	} else {
+		buffer[0] = byte(len(info))
+	}
+
+	copy(buffer[1:], info[:buffer[0]])
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (info *Info) Unpack(data []byte) (n uint, err error) {
 	var length uint8
@@ -96,9 +116,10 @@ func (info Info) WriteTo(w io.Writer) (int64, error) {
 	return encoding.WriteSome(w, length, []byte(info[:length]))
 }
 
-// Message is the body of a Message.
+// Message is the body of a CEMI-encoded frame.
 type Message interface {
 	io.WriterTo
+	util.Packable
 	MessageCode() MessageCode
 }
 
@@ -106,6 +127,16 @@ type Message interface {
 type UnsupportedMessage struct {
 	Code MessageCode
 	Data []byte
+}
+
+// Size returns the packed size.
+func (body *UnsupportedMessage) Size() uint {
+	return uint(len(body.Data))
+}
+
+// Pack the message body into the buffer.
+func (body *UnsupportedMessage) Pack(buffer []byte) {
+	copy(buffer, body.Data)
 }
 
 // MessageCode returns the message code.
@@ -182,7 +213,12 @@ func Unpack(data []byte, message *Message) (n uint, err error) {
 	return n + m, err
 }
 
+// Size returns the size for a CEMI-encoded frame with the given message.
+func Size(message Message) uint {
+	return 1 + message.Size()
+}
+
 // Pack assembles a CEMI-encoded frame using the given message.
-func Pack(w io.Writer, message Message) (int64, error) {
-	return encoding.WriteSome(w, message.MessageCode(), message)
+func Pack(buffer []byte, message Message) {
+	util.PackSome(buffer, uint8(message.MessageCode()), message)
 }

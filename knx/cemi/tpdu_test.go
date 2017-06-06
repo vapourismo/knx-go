@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"math/rand"
 	"testing"
+
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 func TestAppData_Pack(t *testing.T) {
@@ -19,7 +21,7 @@ func TestAppData_Pack(t *testing.T) {
 			app.Data[0] &= 63
 		}
 
-		data := app.Pack()
+		data := util.AllocAndPack(&app)
 
 		if len(data) < 3 {
 			t.Error("Unexpected length:", len(data), app)
@@ -70,7 +72,7 @@ func TestControlData_Pack(t *testing.T) {
 			Command:   uint8(rand.Int()) % 3,
 		}
 
-		data := control.Pack()
+		data := util.AllocAndPack(&control)
 
 		if len(data) < 2 {
 			t.Error("Unexpected length:", len(data), control)

@@ -210,7 +210,7 @@ func (res *ConnStateRes) Pack(buffer []byte) {
 
 // Unpack initializes the structure by parsing the given data.
 func (res *ConnStateRes) Unpack(data []byte) (uint, error) {
-	return util.UnpackSome(data, &res.Channel, &res.Status)
+	return util.UnpackSome(data, &res.Channel, (*uint8)(&res.Status))
 }
 
 // A DiscReq requests a connection to be terminated.

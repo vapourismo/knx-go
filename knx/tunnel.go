@@ -61,15 +61,23 @@ var (
 
 // Tunnel is a handle for a tunnel connection.
 type Tunnel struct {
-	sock      Socket
-	config    TunnelConfig
-	channel   uint8
-	control   proto.HostInfo
+	// Communication methods
+	sock   Socket
+	config TunnelConfig
+
+	// Connection information
+	channel uint8
+	control proto.HostInfo
+
+	// For outgoing requests
 	seqMu     sync.Mutex
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
-	inbound   chan cemi.Message
 
+	// Incoming requests
+	inbound chan cemi.Message
+
+	// Goroutine controller
 	done chan struct{}
 	once sync.Once
 	wait sync.WaitGroup

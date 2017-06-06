@@ -147,7 +147,7 @@ func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.S
 		}
 
 		var payload proto.Service
-		_, err = proto.Unpack(bytes.NewReader(buffer[:len]), &payload)
+		_, err = proto.Unpack(buffer[:len], &payload)
 		if err != nil {
 			log(conn, "Socket", "Error during packet parsing: %v", err)
 			continue

@@ -76,7 +76,11 @@ type Tunnel struct {
 // reponse timeout is reached or a response is received. A response that renders the gateway as busy
 // will not stop requestConn.
 func (conn *Tunnel) requestConn() (err error) {
-	req := &proto.ConnReq{Layer: proto.TunnelLayerData}
+	req := &proto.ConnReq{
+		Layer:   proto.TunnelLayerData,
+		Control: proto.HostInfo{Protocol: proto.UDP4},
+		Tunnel:  proto.HostInfo{Protocol: proto.UDP4},
+	}
 
 	// Send the initial request.
 	err = conn.sock.Send(req)
@@ -484,7 +488,10 @@ func (conn *Tunnel) serve(done <-chan struct{}) {
 
 	for {
 		err := conn.process(done)
-		log(conn, "conn", "Server terminated with error: %v", err)
+
+		if err != nil {
+			log(conn, "conn", "Server terminated with error: %v", err)
+		}
 
 		// Check if we can try again.
 		if err == errDisconnected || err == errHeartbeatFailed {
@@ -535,6 +542,7 @@ func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 
 // Close will terminate the connection and wait for the server routine to exit.
 func (conn *Tunnel) Close() {
+	conn.requestDisc()
 	conn.handle.stop()
 	conn.handle.wait()
 	conn.sock.Close()
@@ -548,10 +556,5 @@ func (conn *Tunnel) Inbound() <-chan cemi.Message {
 // Send relays a tunnel request to the gateway with the given contents.
 func (conn *Tunnel) Send(data cemi.Message) error {
 	// Send the tunnel reqest.
-	err := conn.requestTunnel(data)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return conn.requestTunnel(data)
 }

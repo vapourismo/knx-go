@@ -3,9 +3,7 @@ package proto
 import (
 	"errors"
 	"fmt"
-	"io"
 
-	"github.com/vapourismo/knx-go/knx/encoding"
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
@@ -45,6 +43,22 @@ func (info HostInfo) Equals(other HostInfo) bool {
 		info.Port == other.Port
 }
 
+// Size returns the packed size.
+func (HostInfo) Size() uint {
+	return 8
+}
+
+// Pack the structure into the buffer.
+func (info *HostInfo) Pack(buffer []byte) {
+	util.PackSome(
+		buffer,
+		byte(8),
+		uint8(info.Protocol),
+		info.Address[:],
+		uint16(info.Port),
+	)
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (info *HostInfo) Unpack(data []byte) (n uint, err error) {
 	var length uint8
@@ -60,9 +74,4 @@ func (info *HostInfo) Unpack(data []byte) (n uint, err error) {
 	}
 
 	return
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (info HostInfo) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, byte(8), info.Protocol, info.Address, info.Port)
 }

@@ -57,7 +57,7 @@ func (sock *dummySocket) sendAny(payload interface{}) error {
 	return nil
 }
 
-func (sock *dummySocket) Send(payload proto.ServiceWriterTo) error {
+func (sock *dummySocket) Send(payload proto.ServicePackable) error {
 	return sock.sendAny(payload)
 }
 

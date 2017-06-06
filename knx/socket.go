@@ -1,7 +1,6 @@
 package knx
 
 import (
-	"bytes"
 	"net"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 
 // A Socket is a socket, duh.
 type Socket interface {
-	Send(payload proto.ServiceWriterTo) error
+	Send(payload proto.ServicePackable) error
 	Inbound() <-chan proto.Service
 	Close() error
 }
@@ -63,19 +62,14 @@ type tunnelSock struct {
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *tunnelSock) Send(payload proto.ServiceWriterTo) error {
-	buffer := bytes.Buffer{}
-
-	// Packet serialization
-	_, err := proto.Pack(&buffer, payload)
-	if err != nil {
-		return err
-	}
+func (sock *tunnelSock) Send(payload proto.ServicePackable) error {
+	buffer := make([]byte, proto.Size(payload))
+	proto.Pack(buffer, payload)
 
 	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
 
 	// Transmission of the buffer contents
-	_, err = sock.conn.Write(buffer.Bytes())
+	_, err := sock.conn.Write(buffer)
 	return err
 }
 
@@ -97,19 +91,14 @@ type routerSock struct {
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *routerSock) Send(payload proto.ServiceWriterTo) error {
-	buffer := bytes.Buffer{}
-
-	// Packet serialization
-	_, err := proto.Pack(&buffer, payload)
-	if err != nil {
-		return err
-	}
+func (sock *routerSock) Send(payload proto.ServicePackable) error {
+	buffer := make([]byte, proto.Size(payload))
+	proto.Pack(buffer, payload)
 
 	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
 
 	// Transmission of the buffer contents
-	_, err = sock.conn.WriteToUDP(buffer.Bytes(), sock.addr)
+	_, err := sock.conn.WriteToUDP(buffer, sock.addr)
 	return err
 }
 

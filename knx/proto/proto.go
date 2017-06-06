@@ -2,11 +2,8 @@
 package proto
 
 import (
-	"bytes"
 	"errors"
-	"io"
 
-	"github.com/vapourismo/knx-go/knx/encoding"
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
@@ -33,24 +30,24 @@ type Service interface {
 	Service() ServiceID
 }
 
-// ServiceWriterTo combines WriterTo and Service.
-type ServiceWriterTo interface {
+// ServicePackable combines WriterTo and Service.
+type ServicePackable interface {
+	util.Packable
 	Service
-	io.WriterTo
+}
+
+// Size returns the packed size of a KNXnet/IP packet.
+func Size(service ServicePackable) uint {
+	return 6 + service.Size()
 }
 
 // Pack generates a KNXnet/IP packet.
-func Pack(w io.Writer, srv ServiceWriterTo) (int64, error) {
-	dataBuffer := bytes.Buffer{}
-
-	_, err := srv.WriteTo(&dataBuffer)
-	if err != nil {
-		return 0, err
-	}
-
-	return encoding.WriteSome(
-		w, byte(6), byte(16), srv.Service(), uint16(dataBuffer.Len()+6), &dataBuffer,
-	)
+func Pack(buffer []byte, srv ServicePackable) {
+	buffer[0] = 6
+	buffer[1] = 16
+	util.Pack(buffer[2:], uint16(srv.Service()))
+	util.Pack(buffer[4:], uint16(srv.Size()+6))
+	srv.Pack(buffer[6:])
 }
 
 // These are errors that might occur during unpacking.

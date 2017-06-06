@@ -2,10 +2,8 @@ package proto
 
 import (
 	"errors"
-	"io"
 
 	"github.com/vapourismo/knx-go/knx/cemi"
-	"github.com/vapourismo/knx-go/knx/encoding"
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
@@ -26,6 +24,20 @@ func (TunnelReq) Service() ServiceID {
 	return TunnelReqService
 }
 
+// Size returns the packed size.
+func (req *TunnelReq) Size() uint {
+	return 4 + cemi.Size(req.Payload)
+}
+
+// Pack the structure into the buffer.
+func (req *TunnelReq) Pack(buffer []byte) {
+	buffer[0] = 4
+	buffer[1] = req.Channel
+	buffer[2] = req.SeqNumber
+	buffer[3] = 0
+	cemi.Pack(buffer[4:], req.Payload)
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 	var length, reserved uint8
@@ -44,14 +56,6 @@ func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 	n += m
 
 	return
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (req *TunnelReq) WriteTo(w io.Writer) (n int64, err error) {
-	payload := make([]byte, cemi.Size(req.Payload))
-	cemi.Pack(payload, req.Payload)
-
-	return encoding.WriteSome(w, byte(4), req.Channel, req.SeqNumber, byte(0), payload)
 }
 
 // A TunnelResStatus is the status in a tunnel response.
@@ -80,6 +84,19 @@ func (TunnelRes) Service() ServiceID {
 	return TunnelResService
 }
 
+// Size returns the packed size.
+func (TunnelRes) Size() uint {
+	return 4
+}
+
+// Pack the structure into the buffer.
+func (res *TunnelRes) Pack(buffer []byte) {
+	buffer[0] = 4
+	buffer[1] = res.Channel
+	buffer[2] = res.SeqNumber
+	buffer[3] = byte(res.Status)
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (res *TunnelRes) Unpack(data []byte) (n uint, err error) {
 	var length uint8
@@ -94,9 +111,4 @@ func (res *TunnelRes) Unpack(data []byte) (n uint, err error) {
 	}
 
 	return
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (res *TunnelRes) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, byte(4), res.Channel, res.SeqNumber, res.Status)
 }

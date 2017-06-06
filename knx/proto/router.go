@@ -2,7 +2,6 @@ package proto
 
 import (
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/vapourismo/knx-go/knx/cemi"
@@ -11,7 +10,6 @@ import (
 
 // A RoutingInd indicates to one or more routers that the contents shall be routed.
 type RoutingInd struct {
-	// L_Data.ind to be routed
 	Payload cemi.Message
 }
 
@@ -20,18 +18,19 @@ func (RoutingInd) Service() ServiceID {
 	return RoutingIndService
 }
 
+// Size returns the packed size.
+func (ind *RoutingInd) Size() uint {
+	return cemi.Size(ind.Payload)
+}
+
+// Pack the structure into the buffer.
+func (ind *RoutingInd) Pack(buffer []byte) {
+	cemi.Pack(buffer, ind.Payload)
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (ind *RoutingInd) Unpack(data []byte) (uint, error) {
 	return cemi.Unpack(data, &ind.Payload)
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (ind *RoutingInd) WriteTo(w io.Writer) (int64, error) {
-	payload := make([]byte, cemi.Size(ind.Payload))
-	cemi.Pack(payload, ind.Payload)
-
-	n, err := w.Write(payload)
-	return int64(n), err
 }
 
 // DeviceState indicates the state of a device.

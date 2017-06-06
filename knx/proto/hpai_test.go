@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 func TestAddress_String(t *testing.T) {
@@ -78,7 +80,7 @@ func TestHostInfo_Unpack(t *testing.T) {
 		}
 	}
 }
-func TestHostInfo_WriteTo(t *testing.T) {
+func TestHostInfo_Pack(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		hi := HostInfo{
 			Protocol: Protocol(1 + (rand.Int() % 2)),
@@ -86,22 +88,11 @@ func TestHostInfo_WriteTo(t *testing.T) {
 		}
 		copy(hi.Address[:], makeRandBuffer(4))
 
-		buffer := bytes.Buffer{}
-		len, err := hi.WriteTo(&buffer)
-
-		if err != nil {
-			t.Errorf("Error for %v: %v", hi, err)
-			continue
-		}
-
-		if len != 8 {
-			t.Errorf("Unexpected number of bytes written: %v", len)
-		}
+		buffer := util.AllocAndPack(&hi)
 
 		var hiCmp HostInfo
-		_, err = hiCmp.Unpack(buffer.Bytes())
-		if err != nil {
-			t.Errorf("Unexpected read error for %v: %v", buffer.Bytes(), err)
+		if _, err := hiCmp.Unpack(buffer); err != nil {
+			t.Errorf("Unexpected read error for %v: %v", buffer, err)
 			continue
 		}
 

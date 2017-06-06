@@ -3,9 +3,7 @@ package proto
 import (
 	"errors"
 	"fmt"
-	"io"
 
-	"github.com/vapourismo/knx-go/knx/encoding"
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
@@ -35,6 +33,24 @@ func (ConnReq) Service() ServiceID {
 	return ConnReqService
 }
 
+var hostInfoSize = HostInfo{}.Size()
+
+// Size returns the packed size.
+func (ConnReq) Size() uint {
+	return 2*hostInfoSize + 4
+}
+
+// Pack the structure into the given buffer.
+func (req *ConnReq) Pack(buffer []byte) {
+	util.PackSome(buffer, &req.Control, &req.Tunnel)
+
+	buffer = buffer[2*hostInfoSize:]
+	buffer[0] = 4
+	buffer[1] = 4
+	buffer[2] = byte(req.Layer)
+	buffer[3] = 0
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 	var length, connType, reserved uint8
@@ -55,16 +71,6 @@ func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 	}
 
 	return
-}
-
-var connReqInfo = [4]byte{4, 4, 0, 0}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (req *ConnReq) WriteTo(w io.Writer) (int64, error) {
-	cri := connReqInfo
-	cri[2] = byte(req.Layer)
-
-	return encoding.WriteSome(w, &req.Control, &req.Tunnel, cri[:])
 }
 
 // ConnResStatus is the type of status code carried in a connection response.
@@ -132,14 +138,21 @@ func (ConnStateReq) Service() ServiceID {
 	return ConnStateReqService
 }
 
+// Size returns the packed size.
+func (ConnStateReq) Size() uint {
+	return 2 + hostInfoSize
+}
+
+// Pack the structure into the buffer.
+func (req *ConnStateReq) Pack(buffer []byte) {
+	buffer[0] = req.Channel
+	buffer[1] = req.Status
+	req.Control.Pack(buffer[2:])
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (req *ConnStateReq) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &req.Channel, &req.Status, &req.Control)
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (req *ConnStateReq) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, req.Channel, req.Status, &req.Control)
 }
 
 // A ConnState represents the state of a connection.
@@ -184,14 +197,20 @@ func (ConnStateRes) Service() ServiceID {
 	return ConnStateResService
 }
 
+// Size returns the packed size.
+func (ConnStateRes) Size() uint {
+	return 2
+}
+
+// Pack the structure into the buffer.
+func (res *ConnStateRes) Pack(buffer []byte) {
+	buffer[0] = res.Channel
+	buffer[1] = byte(res.Status)
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (res *ConnStateRes) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &res.Channel, &res.Status)
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (res *ConnStateRes) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, res.Channel, res.Status)
 }
 
 // A DiscReq requests a connection to be terminated.
@@ -206,14 +225,21 @@ func (DiscReq) Service() ServiceID {
 	return DiscReqService
 }
 
+// Size returns the packed size.
+func (DiscReq) Size() uint {
+	return 2 + hostInfoSize
+}
+
+// Pack the structure into the buffer.
+func (req *DiscReq) Pack(buffer []byte) {
+	buffer[0] = req.Channel
+	buffer[1] = req.Status
+	req.Control.Pack(buffer[2:])
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (req *DiscReq) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &req.Channel, &req.Status, &req.Control)
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (req *DiscReq) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, req.Channel, req.Status, &req.Control)
 }
 
 // A DiscRes is a response to a DiscReq..
@@ -227,12 +253,18 @@ func (DiscRes) Service() ServiceID {
 	return DiscResService
 }
 
+// Size returns the packed size.
+func (DiscRes) Size() uint {
+	return 2
+}
+
+// Pack the structure into the buffer.
+func (res *DiscRes) Pack(data []byte) {
+	data[0] = res.Channel
+	data[1] = res.Status
+}
+
 // Unpack initializes the structure by parsing the given data.
 func (res *DiscRes) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &res.Channel, &res.Status)
-}
-
-// WriteTo serializes the structure and writes it to the given Writer.
-func (res *DiscRes) WriteTo(w io.Writer) (int64, error) {
-	return encoding.WriteSome(w, res.Channel, res.Status)
 }

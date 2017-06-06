@@ -1,10 +1,6 @@
 package cemi
 
-import (
-	"errors"
-
-	"github.com/vapourismo/knx-go/knx/util"
-)
+import "io"
 
 // A TPCI is the Transport-layer Protocol Control Information.
 type TPCI uint8
@@ -22,103 +18,118 @@ type APCI uint8
 
 // These are usable APCI values.
 const (
-	GroupValueRead     APCI = 0
-	GroupValueResponse APCI = 1
-	GroupValueWrite    APCI = 2
-
+	GroupValueRead         APCI = 0
+	GroupValueResponse     APCI = 1
+	GroupValueWrite        APCI = 2
 	IndividualAddrWrite    APCI = 3
 	IndividualAddrRequest  APCI = 4
 	IndividualAddrResponse APCI = 5
-
-	AdcRead     APCI = 6
-	AdcResponse APCI = 7
-
-	MemoryRead     APCI = 8
-	MemoryResponse APCI = 9
-	MemoryWrite    APCI = 10
-
-	UserMessage APCI = 11
-
-	MaskVersionRead     APCI = 12
-	MaskVersionResponse APCI = 13
-
-	Restart APCI = 14
-
-	Escape APCI = 15
+	AdcRead                APCI = 6
+	AdcResponse            APCI = 7
+	MemoryRead             APCI = 8
+	MemoryResponse         APCI = 9
+	MemoryWrite            APCI = 10
+	UserMessage            APCI = 11
+	MaskVersionRead        APCI = 12
+	MaskVersionResponse    APCI = 13
+	Restart                APCI = 14
+	Escape                 APCI = 15
 )
 
-// TPDU is the Transport-layer Protocol Data Unit.
-type TPDU []byte
-
-// Unpack the TPDU including its leading length byte.
-func (tpdu *TPDU) Unpack(data []byte) (n uint, err error) {
-	var length8 uint8
-
-	if n, err = util.Unpack(data, &length8); err != nil {
-		return
-	}
-
-	length := int(length8) + 1
-
-	if len(*tpdu) < length {
-		*tpdu = make([]byte, length)
-	}
-
-	m, err := util.Unpack(data[n:], ([]byte)(*tpdu))
-	n += m
-
-	return
+// An AppData contains application data in a transport unit.
+type AppData struct {
+	Numbered  bool
+	SeqNumber uint8
+	Command   APCI
+	Data      []byte
 }
 
-// MakeTPDU generates a TPDU that contains an APDU with the given APCI and data. In order to be able
-// to properly format the APDU, the given data must have a certain length.
-//
-// If len(data) > 0, then you must not utilize the 2 most significant bits of the first byte. They
-// will be utilized to store part of the APCI.
-//
-// Why? Because KNX.
-func MakeTPDU(apci APCI, data []byte) TPDU {
-	var buffer []byte
+// Pack the structure.
+func (app *AppData) Pack() []byte {
+	length := len(app.Data)
 
-	if len(data) > 0 {
-		buffer = make([]byte, len(data)+1)
-		copy(buffer[1:], data)
-	} else {
-		buffer = make([]byte, 2)
+	if length > 255 {
+		length = 255
+	} else if length < 1 {
+		length = 1
 	}
 
-	buffer[0] |= byte(UnnumberedDataPacket) << 6
-	buffer[0] |= byte(apci>>2) & 3
+	buffer := make([]byte, length+2)
+	buffer[0] = byte(length)
 
-	buffer[1] &= 63
-	buffer[1] |= byte(apci&3) << 6
+	if app.Numbered {
+		buffer[1] |= 1<<6 | (app.SeqNumber&15)<<2
+	}
 
-	return TPDU(buffer)
+	buffer[1] |= byte(app.Command>>2) & 3
+
+	copy(buffer[2:], app.Data)
+
+	buffer[2] &= 63
+	buffer[2] |= byte(app.Command&3) << 6
+
+	return buffer
 }
 
-// These are errors than can occur when processing the TPDU.
-var (
-	ErrDataTooShort = errors.New("TPDU is too short")
-	ErrNoDataPacket = errors.New("TPCI does not indicate a data packet")
-)
+// A ControlData encodes control information in a transport unit.
+type ControlData struct {
+	Numbered  bool
+	SeqNumber uint8
+	Command   uint8
+}
 
-// ExtractAPDU parses the APDU section, if one exists.
-func (tpdu TPDU) ExtractAPDU() (APCI, []byte, error) {
-	if len(tpdu) < 2 {
-		return 0, nil, ErrDataTooShort
+// Pack the structure.
+func (control *ControlData) Pack() []byte {
+	buffer := []byte{0, 1<<7 | (control.Command & 3)}
+
+	if control.Numbered {
+		buffer[1] |= 1<<6 | (control.SeqNumber&15)<<2
 	}
 
-	packetType := TPCI((tpdu[0] >> 6) & 3)
-	switch packetType {
-	case UnnumberedDataPacket, NumberedDataPacket:
-		apci := APCI((tpdu[0]&3)<<2 | (tpdu[1]>>6)&3)
-		data := make([]byte, len(tpdu)-1)
-		copy(data, tpdu[1:])
+	return buffer
+}
 
-		data[0] &= 63
+// A TransportUnit is responsive to transport data.
+type TransportUnit interface {
+	Pack() []byte
+}
 
-		return apci, data, nil
+// UnpackTransportUnit parses the given data in order to extract the transport unit that it encodes.
+func UnpackTransportUnit(data []byte, unit *TransportUnit) (n uint, err error) {
+	if len(data) < 2 {
+		return 0, io.ErrUnexpectedEOF
 	}
 
-	return 0, nil, ErrNoDataPacket
+	// Does unit contain control information?
+	if (data[1] & (1 << 7)) == 1<<7 {
+		control := &ControlData{
+			Numbered:  (data[1] & (1 << 6)) == 1<<6,
+			SeqNumber: (data[1] >> 2) & 15,
+			Command:   data[1] & 3,
+		}
+
+		*unit = control
+
+		return 2, nil
+	}
+
+	dataLength := int(data[0])
+
+	if len(data) < 3 || dataLength+2 < len(data) {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	app := &AppData{
+		Numbered:  (data[1] & (1 << 6)) == 1<<6,
+		SeqNumber: (data[1] >> 2) & 15,
+		Command:   APCI((data[1]&3)<<2 | data[2]>>6),
+		Data:      make([]byte, dataLength),
+	}
+
+	copy(app.Data, data[2:])
+	app.Data[0] &= 63
+
+	*unit = app
+
+	return uint(dataLength) + 2, nil
 }

@@ -873,7 +873,7 @@ func TestTunnelConn_handleTunnelRes(t *testing.T) {
 		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
 		res := &proto.TunnelRes{Channel: 2, SeqNumber: 0, Status: 0}
-		err := conn.handleTunnelRes(nil, res)
+		err := conn.handleTunnelRes(res)
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -894,7 +894,7 @@ func TestTunnelConn_handleTunnelRes(t *testing.T) {
 
 			res := &proto.TunnelRes{Channel: 1, SeqNumber: 0, Status: 0}
 
-			err := conn.handleTunnelRes(nil, res)
+			err := conn.handleTunnelRes(res)
 			if err != nil {
 				t.Fatal(err)
 			}

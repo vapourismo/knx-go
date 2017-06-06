@@ -61,7 +61,6 @@ var (
 
 // Tunnel is a handle for a tunnel connection.
 type Tunnel struct {
-	handle    *routineHandle
 	sock      Socket
 	config    TunnelConfig
 	channel   uint8
@@ -70,6 +69,10 @@ type Tunnel struct {
 	seqNumber uint8
 	ack       chan *proto.TunnelRes
 	inbound   chan cemi.Message
+
+	done chan struct{}
+	once sync.Once
+	wait sync.WaitGroup
 }
 
 // requestConn repeatedly sends a connection request through the socket until the configured
@@ -257,7 +260,6 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 
 // performHeartbeat uses requestConnState to determine if the gateway is still alive.
 func (conn *Tunnel) performHeartbeat(
-	done <-chan struct{},
 	heartbeat <-chan proto.ConnState,
 	timeout chan<- struct{},
 ) {
@@ -272,7 +274,7 @@ func (conn *Tunnel) performHeartbeat(
 
 		// Write to timeout as an indication that the heartbeat has failed.
 		select {
-		case <-done:
+		case <-conn.done:
 		case timeout <- struct{}{}:
 		}
 	}
@@ -349,7 +351,7 @@ func (conn *Tunnel) handleTunnelReq(req *proto.TunnelReq, seqNumber *uint8) erro
 
 // handleTunnelRes validates the response and relays it to a sender that is awaiting an
 // acknowledgement.
-func (conn *Tunnel) handleTunnelRes(done <-chan struct{}, res *proto.TunnelRes) error {
+func (conn *Tunnel) handleTunnelRes(res *proto.TunnelRes) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
 		return errors.New("Invalid communication channel in connection state response")
@@ -362,7 +364,7 @@ func (conn *Tunnel) handleTunnelRes(done <-chan struct{}, res *proto.TunnelRes) 
 		defer func() { recover() }()
 
 		select {
-		case <-done:
+		case <-conn.done:
 		case <-time.After(conn.config.ResendInterval):
 		case conn.ack <- res:
 		}
@@ -374,7 +376,6 @@ func (conn *Tunnel) handleTunnelRes(done <-chan struct{}, res *proto.TunnelRes) 
 // handleConnStateRes validates the response and sends it to the heartbeat routine, if there is a
 // waiting one.
 func (conn *Tunnel) handleConnStateRes(
-	done <-chan struct{},
 	res *proto.ConnStateRes,
 	heartbeat chan<- proto.ConnState,
 ) error {
@@ -390,7 +391,7 @@ func (conn *Tunnel) handleConnStateRes(
 		defer func() { recover() }()
 
 		select {
-		case <-done:
+		case <-conn.done:
 		case <-time.After(conn.config.ResendInterval):
 		case heartbeat <- res.Status:
 		}
@@ -405,8 +406,8 @@ var (
 	errDisconnected    = errors.New("Gateway terminated the connection")
 )
 
-// process processes incoming packets.
-func (conn *Tunnel) process(done <-chan struct{}) error {
+// process incoming packets.
+func (conn *Tunnel) process() error {
 	heartbeat := make(chan proto.ConnState)
 	defer close(heartbeat)
 
@@ -420,7 +421,7 @@ func (conn *Tunnel) process(done <-chan struct{}) error {
 	for {
 		select {
 		// Termination has been requested.
-		case <-done:
+		case <-conn.done:
 			return nil
 
 		// Heartbeat worker signals a result.
@@ -429,7 +430,7 @@ func (conn *Tunnel) process(done <-chan struct{}) error {
 
 		// Heartbeat check is due.
 		case <-heartbeatInterval.C:
-			go conn.performHeartbeat(done, heartbeat, timeout)
+			go conn.performHeartbeat(heartbeat, timeout)
 
 		// A message has been received or the channel is closed.
 		case msg, open := <-conn.sock.Inbound():
@@ -462,13 +463,13 @@ func (conn *Tunnel) process(done <-chan struct{}) error {
 				}
 
 			case *proto.TunnelRes:
-				err := conn.handleTunnelRes(done, msg)
+				err := conn.handleTunnelRes(msg)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
 				}
 
 			case *proto.ConnStateRes:
-				err := conn.handleConnStateRes(done, msg, heartbeat)
+				err := conn.handleConnStateRes(msg, heartbeat)
 				if err != nil {
 					log(
 						conn, "conn",
@@ -482,12 +483,13 @@ func (conn *Tunnel) process(done <-chan struct{}) error {
 
 // serve serves the tunnel connection. It can sustain certain failures. This method will try to
 // reconnect in case of a heartbeat failure or disconnect.
-func (conn *Tunnel) serve(done <-chan struct{}) {
+func (conn *Tunnel) serve() {
 	defer close(conn.ack)
 	defer close(conn.inbound)
+	defer conn.wait.Done()
 
 	for {
-		err := conn.process(done)
+		err := conn.process()
 
 		if err != nil {
 			log(conn, "conn", "Server terminated with error: %v", err)
@@ -526,6 +528,7 @@ func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 		config:  checkTunnelConfig(config),
 		ack:     make(chan *proto.TunnelRes),
 		inbound: make(chan cemi.Message),
+		done:    make(chan struct{}),
 	}
 
 	// Connect to the gateway.
@@ -535,17 +538,22 @@ func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 		return nil, err
 	}
 
-	client.handle = runRoutine(client.serve)
+	client.wait.Add(1)
+	go client.serve()
 
 	return client, nil
 }
 
 // Close will terminate the connection and wait for the server routine to exit.
 func (conn *Tunnel) Close() {
-	conn.requestDisc()
-	conn.handle.stop()
-	conn.handle.wait()
-	conn.sock.Close()
+	conn.once.Do(func() {
+		conn.requestDisc()
+
+		close(conn.done)
+		conn.wait.Wait()
+
+		conn.sock.Close()
+	})
 }
 
 // Inbound retrieves the channel which transmits incoming data.

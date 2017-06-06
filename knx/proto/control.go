@@ -155,19 +155,19 @@ func (req *ConnStateReq) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &req.Channel, &req.Status, &req.Control)
 }
 
-// A ConnState represents the state of a connection.
-type ConnState uint8
+// A ConnStateResStatus represents the state of a connection.
+type ConnStateResStatus uint8
 
 // These are known connection states.
 const (
-	ConnStateNormal    ConnState = 0x00
-	ConnStateInactive  ConnState = 0x21
-	ConnStateDataError ConnState = 0x26
-	ConnStateKNXError  ConnState = 0x27
+	ConnStateNormal    ConnStateResStatus = 0x00
+	ConnStateInactive  ConnStateResStatus = 0x21
+	ConnStateDataError ConnStateResStatus = 0x26
+	ConnStateKNXError  ConnStateResStatus = 0x27
 )
 
 // String converts the connection state to a string.
-func (state ConnState) String() string {
+func (state ConnStateResStatus) String() string {
 	switch state {
 	case ConnStateNormal:
 		return "Connection is intact"
@@ -189,7 +189,7 @@ func (state ConnState) String() string {
 // A ConnStateRes is a response to a ConnStateReq.
 type ConnStateRes struct {
 	Channel uint8
-	Status  ConnState
+	Status  ConnStateResStatus
 }
 
 // Service returns the service identifier for connection state responses.

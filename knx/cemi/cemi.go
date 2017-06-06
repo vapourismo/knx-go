@@ -2,6 +2,7 @@
 package cemi
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
@@ -36,6 +37,35 @@ const (
 	// LPollDataReqCode MessageCode = 0x13
 	// LPollDataConCode MessageCode = 0x25
 )
+
+// String converts the message code to a string.
+func (code MessageCode) String() string {
+	switch code {
+	case LBusmonIndCode:
+		return "LBusmonInd"
+
+	case LDataReqCode:
+		return "LDataReq"
+
+	case LDataIndCode:
+		return "LDataInd"
+
+	case LDataConCode:
+		return "LDataCon"
+
+	case LRawReqCode:
+		return "LRawReq"
+
+	case LRawIndCode:
+		return "LRawInd"
+
+	case LRawConCode:
+		return "LRawCon"
+
+	default:
+		return fmt.Sprintf("%#x", uint8(code))
+	}
+}
 
 // Info is the additional info segment of a CEMI-encoded frame.
 type Info []byte

@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // Protocol specifies a host protocol to use.
@@ -63,6 +64,23 @@ func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
 	default:
 		return n, errors.New("Unknown host protocol")
 	}
+}
+
+// Unpack initializes the structure by parsing the given data.
+func (info *HostInfo) Unpack(data []byte) (n uint, err error) {
+	var length uint8
+
+	if n, err = util.UnpackSome(
+		data, &length, (*uint8)(&info.Protocol), info.Address[:4], (*uint16)(&info.Port),
+	); err != nil {
+		return
+	}
+
+	if length != 8 {
+		return n, errors.New("Host info structure length is invalid")
+	}
+
+	return
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.

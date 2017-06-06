@@ -100,6 +100,40 @@ func TestHostInfo_ReadFrom(t *testing.T) {
 	}
 }
 
+func TestHostInfo_Unpack(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		proto := byte(1 + (rand.Int() % 2))
+		data := append([]byte{8, proto}, makeRandBuffer(6)...)
+
+		var hi HostInfo
+		num, err := hi.Unpack(data)
+
+		if err != nil {
+			t.Errorf("Error for data %v: %v", data, err)
+			continue
+		}
+
+		if num != uint(len(data)) {
+			t.Errorf("Unexpected number of bytes read: %v", num)
+		}
+
+		if hi.Protocol != Protocol(proto) {
+			t.Errorf("Unexpected protocol: %v != %v", hi.Protocol, data[1])
+		}
+
+		if !bytes.Equal(hi.Address[:], data[2:6]) {
+			var addrData Address
+			copy(addrData[:], data[2:6])
+
+			t.Errorf("Unexpected address: %v != %v", hi.Address, addrData)
+		}
+
+		portData := Port(data[6])<<8 | Port(data[7])
+		if hi.Port != portData {
+			t.Errorf("Unexpected port: %v != %v", hi.Port, portData)
+		}
+	}
+}
 func TestHostInfo_WriteTo(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		hi := HostInfo{

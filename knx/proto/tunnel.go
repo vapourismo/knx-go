@@ -6,6 +6,7 @@ import (
 
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/encoding"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // A TunnelReq asks a gateway to transmit data.
@@ -25,18 +26,22 @@ func (TunnelReq) Service() ServiceID {
 	return TunnelReqService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (req *TunnelReq) ReadFrom(r io.Reader) (n int64, err error) {
+// Unpack initializes the structure by parsing the given data.
+func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 	var length, reserved uint8
 
-	n, err = encoding.ReadSome(r, &length, &req.Channel, &req.SeqNumber, &reserved, &req.Payload)
-	if err != nil {
+	if n, err = util.UnpackSome(
+		data, &length, &req.Channel, &req.SeqNumber, &reserved,
+	); err != nil {
 		return
 	}
 
 	if length != 4 {
 		return n, errors.New("Length header is not 4")
 	}
+
+	m, err := cemi.Unpack(data[n:], &req.Payload)
+	n += m
 
 	return
 }
@@ -63,11 +68,11 @@ func (TunnelRes) Service() ServiceID {
 	return TunnelResService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (res *TunnelRes) ReadFrom(r io.Reader) (n int64, err error) {
+// Unpack initializes the structure by parsing the given data.
+func (res *TunnelRes) Unpack(data []byte) (n uint, err error) {
 	var length uint8
 
-	n, err = encoding.ReadSome(r, &length, &res.Channel, &res.SeqNumber, &res.Status)
+	n, err = util.UnpackSome(data, &length, &res.Channel, &res.SeqNumber, &res.Status)
 	if err != nil {
 		return
 	}

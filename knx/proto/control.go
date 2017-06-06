@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // TunnelLayer identifies the tunnelling layer for a tunnelling connection.
@@ -34,12 +35,12 @@ func (ConnReq) Service() ServiceID {
 	return ConnReqService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (req *ConnReq) ReadFrom(r io.Reader) (n int64, err error) {
+// Unpack initializes the structure by parsing the given data.
+func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 	var length, connType, reserved uint8
 
-	n, err = encoding.ReadSome(
-		r, &req.Control, &req.Tunnel, &length, &connType, &req.Layer, &reserved,
+	n, err = util.UnpackSome(
+		data, &req.Control, &req.Tunnel, &length, &connType, (*uint8)(&req.Layer), &reserved,
 	)
 	if err != nil {
 		return
@@ -53,13 +54,7 @@ func (req *ConnReq) ReadFrom(r io.Reader) (n int64, err error) {
 		return n, errors.New("Invalid connection type")
 	}
 
-	switch req.Layer {
-	case TunnelLayerData, TunnelLayerRaw, TunnelLayerBusmon:
-		return
-
-	default:
-		return n, errors.New("Invalid connection tunnel layer")
-	}
+	return
 }
 
 var connReqInfo = [4]byte{4, 4, 0, 0}
@@ -120,9 +115,9 @@ func (ConnRes) Service() ServiceID {
 	return ConnResService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (res *ConnRes) ReadFrom(r io.Reader) (int64, error) {
-	return encoding.ReadSome(r, &res.Channel, &res.Status, &res.Control)
+// Unpack initializes the structure by parsing the given data.
+func (res *ConnRes) Unpack(data []byte) (uint, error) {
+	return util.UnpackSome(data, &res.Channel, &res.Status, &res.Control)
 }
 
 // A ConnStateReq requests the the connection state from a gateway.
@@ -137,9 +132,9 @@ func (ConnStateReq) Service() ServiceID {
 	return ConnStateReqService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (req *ConnStateReq) ReadFrom(r io.Reader) (int64, error) {
-	return encoding.ReadSome(r, &req.Channel, &req.Status, &req.Control)
+// Unpack initializes the structure by parsing the given data.
+func (req *ConnStateReq) Unpack(data []byte) (uint, error) {
+	return util.UnpackSome(data, &req.Channel, &req.Status, &req.Control)
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
@@ -189,9 +184,9 @@ func (ConnStateRes) Service() ServiceID {
 	return ConnStateResService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (res *ConnStateRes) ReadFrom(r io.Reader) (int64, error) {
-	return encoding.ReadSome(r, &res.Channel, &res.Status)
+// Unpack initializes the structure by parsing the given data.
+func (res *ConnStateRes) Unpack(data []byte) (uint, error) {
+	return util.UnpackSome(data, &res.Channel, &res.Status)
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
@@ -211,9 +206,9 @@ func (DiscReq) Service() ServiceID {
 	return DiscReqService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (req *DiscReq) ReadFrom(r io.Reader) (int64, error) {
-	return encoding.ReadSome(r, &req.Channel, &req.Status, &req.Control)
+// Unpack initializes the structure by parsing the given data.
+func (req *DiscReq) Unpack(data []byte) (uint, error) {
+	return util.UnpackSome(data, &req.Channel, &req.Status, &req.Control)
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
@@ -232,9 +227,9 @@ func (DiscRes) Service() ServiceID {
 	return DiscResService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (res *DiscRes) ReadFrom(r io.Reader) (int64, error) {
-	return encoding.ReadSome(r, &res.Channel, &res.Status)
+// Unpack initializes the structure by parsing the given data.
+func (res *DiscRes) Unpack(data []byte) (uint, error) {
+	return util.UnpackSome(data, &res.Channel, &res.Status)
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.

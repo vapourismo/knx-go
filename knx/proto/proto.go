@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/vapourismo/knx-go/knx/encoding"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // ServiceID identifies the service that is contained in a packet.
@@ -59,8 +60,8 @@ var (
 	ErrUnknownService = errors.New("Unknown service identifier")
 )
 
-type serviceReaderFrom interface {
-	io.ReaderFrom
+type serviceUnpackable interface {
+	util.Unpackable
 	Service
 }
 
@@ -86,12 +87,12 @@ type serviceReaderFrom interface {
 // 		// ...
 // 	}
 //
-func Unpack(r io.Reader, srv *Service) (int64, error) {
+func Unpack(data []byte, srv *Service) (uint, error) {
 	var headerLen, version uint8
 	var srvID ServiceID
 	var totalLen uint16
 
-	n, err := encoding.ReadSome(r, &headerLen, &version, &srvID, &totalLen)
+	n, err := util.UnpackSome(data, &headerLen, &version, &srvID, &totalLen)
 	if err != nil {
 		return n, err
 	}
@@ -104,8 +105,11 @@ func Unpack(r io.Reader, srv *Service) (int64, error) {
 		return n, ErrHeaderVersion
 	}
 
-	var body serviceReaderFrom
+	var body serviceUnpackable
 	switch srvID {
+	case ConnReqService:
+		body = &ConnReq{}
+
 	case ConnResService:
 		body = &ConnRes{}
 
@@ -140,7 +144,7 @@ func Unpack(r io.Reader, srv *Service) (int64, error) {
 		return n, ErrUnknownService
 	}
 
-	m, err := body.ReadFrom(r)
+	m, err := body.Unpack(data[n:])
 
 	if err == nil {
 		*srv = body

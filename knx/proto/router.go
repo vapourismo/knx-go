@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/vapourismo/knx-go/knx/cemi"
-	"github.com/vapourismo/knx-go/knx/encoding"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // A RoutingInd indicates to one or more routers that the contents shall be routed.
@@ -20,9 +20,9 @@ func (RoutingInd) Service() ServiceID {
 	return RoutingIndService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (ind *RoutingInd) ReadFrom(r io.Reader) (int64, error) {
-	return cemi.Unpack(r, &ind.Payload)
+// Unpack initializes the structure by parsing the given data.
+func (ind *RoutingInd) Unpack(data []byte) (uint, error) {
+	return cemi.Unpack(data, &ind.Payload)
 }
 
 // WriteTo serializes the structure and writes it to the given Writer.
@@ -71,10 +71,10 @@ func (RoutingLost) Service() ServiceID {
 	return RoutingLostService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (rl *RoutingLost) ReadFrom(r io.Reader) (int64, error) {
+// Unpack initializes the structure by parsing the given data.
+func (rl *RoutingLost) Unpack(data []byte) (uint, error) {
 	var length uint8
-	return encoding.ReadSome(r, &length, &rl.Status, &rl.Count)
+	return util.UnpackSome(data, &length, (*uint8)(&rl.Status), &rl.Count)
 
 	// TODO: Find out if length is supposed to be 4; validate it, if so.
 }
@@ -96,12 +96,14 @@ func (RoutingBusy) Service() ServiceID {
 	return RoutingBusyService
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (rl *RoutingBusy) ReadFrom(r io.Reader) (n int64, err error) {
+// Unpack initializes the structure by parsing the given data.
+func (rl *RoutingBusy) Unpack(data []byte) (n uint, err error) {
 	var length uint8
 	var waitTime uint16
 
-	if n, err = encoding.ReadSome(r, &length, &rl.Status, &waitTime, &rl.Control); err != nil {
+	if n, err = util.UnpackSome(
+		data, &length, (*uint8)(&rl.Status), &waitTime, &rl.Control,
+	); err != nil {
 		return
 	}
 

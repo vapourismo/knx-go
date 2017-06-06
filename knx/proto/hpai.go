@@ -45,27 +45,6 @@ func (info HostInfo) Equals(other HostInfo) bool {
 		info.Port == other.Port
 }
 
-// ReadFrom initializes the structure by reading from the given Reader.
-func (info *HostInfo) ReadFrom(r io.Reader) (n int64, err error) {
-	var length uint8
-	n, err = encoding.ReadSome(r, &length, &info.Protocol, &info.Address, &info.Port)
-	if err != nil {
-		return
-	}
-
-	if length != 8 {
-		return n, errors.New("Host info structure length is invalid")
-	}
-
-	switch info.Protocol {
-	case UDP4, TCP4:
-		return
-
-	default:
-		return n, errors.New("Unknown host protocol")
-	}
-}
-
 // Unpack initializes the structure by parsing the given data.
 func (info *HostInfo) Unpack(data []byte) (n uint, err error) {
 	var length uint8

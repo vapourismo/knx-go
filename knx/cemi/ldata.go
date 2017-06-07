@@ -1,3 +1,5 @@
+// Copyright 2017 Ole Krüger.
+
 package cemi
 
 import "github.com/vapourismo/knx-go/knx/util"

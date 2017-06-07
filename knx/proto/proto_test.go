@@ -1,3 +1,5 @@
+// Copyright 2017 Ole Krüger.
+
 package proto
 
 import (

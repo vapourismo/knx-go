@@ -1,3 +1,5 @@
+// Copyright 2017 Ole Krüger.
+
 package cemi
 
 // A LBusmonInd represents a L_Busmon.ind message.

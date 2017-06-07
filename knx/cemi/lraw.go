@@ -1,3 +1,5 @@
+// Copyright 2017 Ole Krüger.
+
 package cemi
 
 // A LRaw is a raw link-layer frame. L_Raw.req, L_Raw.con and L_Raw.ind share this structure.

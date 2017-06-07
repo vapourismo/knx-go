@@ -1,3 +1,5 @@
+// Copyright 2017 Ole Krüger.
+
 // Package cemi provides the functionality to parse and generate KNX CEMI-encoded frames.
 package cemi
 

@@ -159,8 +159,8 @@ func (conn *Tunnel) requestConn() (err error) {
 // requestConnState periodically sends a connection state request to the gateway until it has
 // received a response or the response timeout is reached.
 func (conn *Tunnel) requestConnState(
-	heartbeat <-chan proto.ConnStateResStatus,
-) (proto.ConnStateResStatus, error) {
+	heartbeat <-chan proto.ErrCode,
+) (proto.ErrCode, error) {
 	req := &proto.ConnStateReq{Channel: conn.channel, Status: 0, Control: conn.control}
 
 	// Send first connection state request
@@ -273,7 +273,7 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 
 // performHeartbeat uses requestConnState to determine if the gateway is still alive.
 func (conn *Tunnel) performHeartbeat(
-	heartbeat <-chan proto.ConnStateResStatus,
+	heartbeat <-chan proto.ErrCode,
 	timeout chan<- struct{},
 ) {
 	// Request the connction state.
@@ -390,7 +390,7 @@ func (conn *Tunnel) handleTunnelRes(res *proto.TunnelRes) error {
 // waiting one.
 func (conn *Tunnel) handleConnStateRes(
 	res *proto.ConnStateRes,
-	heartbeat chan<- proto.ConnStateResStatus,
+	heartbeat chan<- proto.ErrCode,
 ) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
@@ -421,7 +421,7 @@ var (
 
 // process incoming packets.
 func (conn *Tunnel) process() error {
-	heartbeat := make(chan proto.ConnStateResStatus)
+	heartbeat := make(chan proto.ErrCode)
 	defer close(heartbeat)
 
 	timeout := make(chan struct{})

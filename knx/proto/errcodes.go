@@ -3,7 +3,6 @@
 package proto
 
 import "fmt"
-import "reflect"
 
 // What follows are errors codes defined in the KNX standard.
 const (
@@ -46,52 +45,12 @@ const (
 	ErrTunnellingLayer = 0x29
 )
 
-func toInt(x interface{}) (int, bool) {
-	value := reflect.ValueOf(x)
-
-	switch value.Kind() {
-	case reflect.Int:
-		return int(value.Int()), true
-
-	case reflect.Int8:
-		return int(value.Int()), true
-
-	case reflect.Int16:
-		return int(value.Int()), true
-
-	case reflect.Int32:
-		return int(value.Int()), true
-
-	case reflect.Int64:
-		return int(value.Int()), true
-
-	case reflect.Uint:
-		return int(value.Uint()), true
-
-	case reflect.Uint8:
-		return int(value.Uint()), true
-
-	case reflect.Uint16:
-		return int(value.Uint()), true
-
-	case reflect.Uint32:
-		return int(value.Uint()), true
-
-	case reflect.Uint64:
-		return int(value.Uint()), true
-	}
-
-	return 0, false
-}
+// A ErrCode identifies an error type.
+type ErrCode uint8
 
 // ErrString returns a string representation of the error code.
-func ErrString(err interface{}) string {
-	val, ok := toInt(err)
-	if !ok {
-		return fmt.Sprintf("Unknown error code type %T", err)
-	}
-
-	switch val {
+func (err ErrCode) String() string {
+	switch err {
 	case NoError:
 		return "No error"
 
@@ -131,4 +90,9 @@ func ErrString(err interface{}) string {
 	default:
 		return fmt.Sprintf("Unknown error code %#x", err)
 	}
+}
+
+// Error implements the error interface
+func (err ErrCode) Error() string {
+	return err.String()
 }

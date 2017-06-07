@@ -277,7 +277,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			}
 
 			err := conn.requestConn()
-			if err != proto.ConnResStatus(proto.ErrConnectionType) {
+			if err != proto.ErrCode(proto.ErrConnectionType) {
 				t.Fatalf("Expected error %v, got %v", proto.ErrConnectionType, err)
 			}
 		})
@@ -293,7 +293,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
 
-		_, err := conn.requestConnState(make(chan proto.ConnStateResStatus))
+		_, err := conn.requestConnState(make(chan proto.ErrCode))
 		if err == nil {
 			t.Fatal("Should not succeed")
 		}
@@ -309,7 +309,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 		conn := makeTunnelConn(client, config, 1)
 
-		_, err := conn.requestConnState(make(chan proto.ConnStateResStatus))
+		_, err := conn.requestConnState(make(chan proto.ErrCode))
 		if err != errResponseTimeout {
 			t.Fatalf("Expected error %v, got %v", errResponseTimeout, err)
 		}
@@ -337,7 +337,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 
 			conn := makeTunnelConn(client, config, 1)
 
-			_, err := conn.requestConnState(make(chan proto.ConnStateResStatus))
+			_, err := conn.requestConnState(make(chan proto.ErrCode))
 			if err == nil {
 				t.Fatal("Should not succeed")
 			}
@@ -348,7 +348,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 		client, gateway := newDummySockets()
 
 		const channel uint8 = 1
-		heartbeat := make(chan proto.ConnStateResStatus)
+		heartbeat := make(chan proto.ErrCode)
 
 		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
@@ -400,7 +400,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 		defer client.Close()
 		defer gateway.Close()
 
-		heartbeat := make(chan proto.ConnStateResStatus)
+		heartbeat := make(chan proto.ErrCode)
 		close(heartbeat)
 
 		conn := makeTunnelConn(client, DefaultTunnelConfig, 1)
@@ -415,7 +415,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 		client, gateway := newDummySockets()
 
 		const channel uint8 = 1
-		heartbeat := make(chan proto.ConnStateResStatus)
+		heartbeat := make(chan proto.ErrCode)
 
 		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()
@@ -461,7 +461,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 		client, gateway := newDummySockets()
 
 		const channel uint8 = 1
-		heartbeat := make(chan proto.ConnStateResStatus)
+		heartbeat := make(chan proto.ErrCode)
 
 		t.Run("Gateway", func(t *testing.T) {
 			t.Parallel()

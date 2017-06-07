@@ -74,23 +74,10 @@ func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 	return
 }
 
-// ConnResStatus is the type of status code carried in a connection response.
-type ConnResStatus uint8
-
-// String describes the status code.
-func (status ConnResStatus) String() string {
-	return ErrString(status)
-}
-
-// Error implements the error Error method.
-func (status ConnResStatus) Error() string {
-	return ErrString(status)
-}
-
 // ConnRes is a response to a ConnReq.
 type ConnRes struct {
 	Channel uint8
-	Status  ConnResStatus
+	Status  ErrCode
 	Control HostInfo
 }
 
@@ -107,7 +94,7 @@ func (res *ConnRes) Unpack(data []byte) (uint, error) {
 // A ConnStateReq requests the the connection state from a gateway.
 type ConnStateReq struct {
 	Channel uint8
-	Status  uint8
+	Status  ErrCode
 	Control HostInfo
 }
 
@@ -124,27 +111,19 @@ func (ConnStateReq) Size() uint {
 // Pack the structure into the buffer.
 func (req *ConnStateReq) Pack(buffer []byte) {
 	buffer[0] = req.Channel
-	buffer[1] = req.Status
+	buffer[1] = uint8(req.Status)
 	req.Control.Pack(buffer[2:])
 }
 
 // Unpack initializes the structure by parsing the given data.
 func (req *ConnStateReq) Unpack(data []byte) (uint, error) {
-	return util.UnpackSome(data, &req.Channel, &req.Status, &req.Control)
-}
-
-// A ConnStateResStatus represents the state of a connection.
-type ConnStateResStatus uint8
-
-// String converts the connection response status to a string.
-func (status ConnStateResStatus) String() string {
-	return ErrString(status)
+	return util.UnpackSome(data, &req.Channel, (*uint8)(&req.Status), &req.Control)
 }
 
 // A ConnStateRes is a response to a ConnStateReq.
 type ConnStateRes struct {
 	Channel uint8
-	Status  ConnStateResStatus
+	Status  ErrCode
 }
 
 // Service returns the service identifier for connection state responses.
@@ -160,7 +139,7 @@ func (ConnStateRes) Size() uint {
 // Pack the structure into the buffer.
 func (res *ConnStateRes) Pack(buffer []byte) {
 	buffer[0] = res.Channel
-	buffer[1] = byte(res.Status)
+	buffer[1] = uint8(res.Status)
 }
 
 // Unpack initializes the structure by parsing the given data.

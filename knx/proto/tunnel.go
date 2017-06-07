@@ -60,13 +60,6 @@ func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 	return
 }
 
-// A TunnelResStatus is the status in a tunnel response.
-type TunnelResStatus uint8
-
-func (status TunnelResStatus) String() string {
-	return ErrString(status)
-}
-
 // A TunnelRes is a response to a TunnelRequest. It acts as an acknowledgement.
 type TunnelRes struct {
 	// Communication channel
@@ -76,7 +69,7 @@ type TunnelRes struct {
 	SeqNumber uint8
 
 	// Status code, determines whether the tunneling succeeded or not
-	Status TunnelResStatus
+	Status ErrCode
 }
 
 // Service returns the service identifier for tunnel responses.
@@ -94,7 +87,7 @@ func (res *TunnelRes) Pack(buffer []byte) {
 	buffer[0] = 4
 	buffer[1] = res.Channel
 	buffer[2] = res.SeqNumber
-	buffer[3] = byte(res.Status)
+	buffer[3] = uint8(res.Status)
 }
 
 // Unpack initializes the structure by parsing the given data.

@@ -68,6 +68,7 @@ type Tunnel struct {
 	config TunnelConfig
 
 	// Connection information
+	layer   proto.TunnelLayer
 	channel uint8
 	control proto.HostInfo
 
@@ -92,7 +93,7 @@ func (conn *Tunnel) requestConn() (err error) {
 	conn.control = proto.HostInfo{Protocol: proto.UDP4}
 
 	req := &proto.ConnReq{
-		Layer:   proto.TunnelLayerData,
+		Layer:   conn.layer,
 		Control: conn.control,
 		Tunnel:  conn.control,
 	}
@@ -528,7 +529,7 @@ func (conn *Tunnel) serve() {
 
 // NewTunnel establishes a connection to a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
+func NewTunnel(gatewayAddr string, layer proto.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
 	sock, err := NewTunnelSocket(gatewayAddr)
 	if err != nil {
@@ -539,6 +540,7 @@ func NewTunnel(gatewayAddr string, config TunnelConfig) (*Tunnel, error) {
 	client := &Tunnel{
 		sock:    sock,
 		config:  checkTunnelConfig(config),
+		layer:   layer,
 		ack:     make(chan *proto.TunnelRes),
 		inbound: make(chan cemi.Message),
 		done:    make(chan struct{}),

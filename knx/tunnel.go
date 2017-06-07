@@ -134,7 +134,7 @@ func (conn *Tunnel) requestConn() (err error) {
 			if res, ok := msg.(*proto.ConnRes); ok {
 				switch res.Status {
 				// Conection has been established.
-				case proto.ConnResOk:
+				case proto.NoError:
 					conn.channel = res.Channel
 
 					conn.seqMu.Lock()
@@ -144,7 +144,7 @@ func (conn *Tunnel) requestConn() (err error) {
 					return nil
 
 				// The gateway is busy, but we don't stop yet.
-				case proto.ConnResBusy:
+				case proto.ErrNoMoreConnections, proto.ErrNoMoreUniqueConnections:
 					continue
 
 				// Connection request has been denied.
@@ -166,7 +166,7 @@ func (conn *Tunnel) requestConnState(
 	// Send first connection state request
 	err := conn.sock.Send(req)
 	if err != nil {
-		return proto.ConnStateInactive, err
+		return proto.ErrConnectionID, err
 	}
 
 	// Start the resend timer.
@@ -180,19 +180,19 @@ func (conn *Tunnel) requestConnState(
 		select {
 		// Reached timeout
 		case <-timeout:
-			return proto.ConnStateInactive, errResponseTimeout
+			return proto.ErrConnectionID, errResponseTimeout
 
 		// Resend timer fired.
 		case <-ticker.C:
 			err := conn.sock.Send(req)
 			if err != nil {
-				return proto.ConnStateInactive, err
+				return proto.ErrConnectionID, err
 			}
 
 		// Received a connection state response.
 		case res, open := <-heartbeat:
 			if !open {
-				return proto.ConnStateInactive, errors.New("Connection server has terminated")
+				return proto.ErrConnectionID, errors.New("Connection server has terminated")
 			}
 
 			return res, nil
@@ -278,7 +278,7 @@ func (conn *Tunnel) performHeartbeat(
 ) {
 	// Request the connction state.
 	state, err := conn.requestConnState(heartbeat)
-	if err != nil || state != proto.ConnStateNormal {
+	if err != nil || state != proto.NoError {
 		if err != nil {
 			log(conn, "conn", "Error while requesting connection state: %v", err)
 		} else {

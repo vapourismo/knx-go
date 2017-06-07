@@ -108,7 +108,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			if req, ok := msg.(*proto.ConnReq); ok {
 				gateway.sendAny(&proto.ConnRes{
 					Channel: 1,
-					Status:  proto.ConnResOk,
+					Status:  proto.NoError,
 					Control: req.Control,
 				})
 			} else {
@@ -168,7 +168,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			if req, ok := msg.(*proto.ConnReq); ok {
 				gateway.sendAny(&proto.ConnRes{
 					Channel: 1,
-					Status:  proto.ConnResOk,
+					Status:  proto.NoError,
 					Control: req.Control,
 				})
 			} else {
@@ -204,7 +204,11 @@ func TestTunnelConn_requestConn(t *testing.T) {
 
 			msg := <-gateway.Inbound()
 			if req, ok := msg.(*proto.ConnReq); ok {
-				gateway.sendAny(&proto.ConnRes{Channel: 0, Status: proto.ConnResBusy, Control: req.Control})
+				gateway.sendAny(&proto.ConnRes{
+					Channel: 0,
+					Status:  proto.ErrNoMoreConnections,
+					Control: req.Control,
+				})
 			} else {
 				t.Fatalf("Unexpected incoming message type: %T", msg)
 			}
@@ -213,7 +217,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			if req, ok := msg.(*proto.ConnReq); ok {
 				gateway.sendAny(&proto.ConnRes{
 					Channel: 1,
-					Status:  proto.ConnResOk,
+					Status:  proto.NoError,
 					Control: req.Control,
 				})
 			} else {
@@ -254,7 +258,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			if req, ok := msg.(*proto.ConnReq); ok {
 				gateway.sendAny(&proto.ConnRes{
 					Channel: 0,
-					Status:  proto.ConnResUnsupportedType,
+					Status:  proto.ErrConnectionType,
 					Control: req.Control,
 				})
 			} else {
@@ -273,8 +277,8 @@ func TestTunnelConn_requestConn(t *testing.T) {
 			}
 
 			err := conn.requestConn()
-			if err != proto.ConnResUnsupportedType {
-				t.Fatalf("Expected error %v, got %v", proto.ConnResUnsupportedType, err)
+			if err != proto.ConnResStatus(proto.ErrConnectionType) {
+				t.Fatalf("Expected error %v, got %v", proto.ErrConnectionType, err)
 			}
 		})
 	})
@@ -363,7 +367,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 					t.Error("Non-null request status")
 				}
 
-				heartbeat <- proto.ConnStateNormal
+				heartbeat <- proto.NoError
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -385,7 +389,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if state != proto.ConnStateNormal {
+			if state != proto.NoError {
 				t.Fatalf("Unexpected connection state: %v", state)
 			}
 		})
@@ -428,7 +432,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 					t.Error("Non-null request status")
 				}
 
-				heartbeat <- proto.ConnStateNormal
+				heartbeat <- proto.NoError
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -447,7 +451,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if state != proto.ConnStateNormal {
+			if state != proto.NoError {
 				t.Fatalf("Unexpected connection state: %v", state)
 			}
 		})
@@ -474,7 +478,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 					t.Error("Non-null request status")
 				}
 
-				heartbeat <- proto.ConnStateInactive
+				heartbeat <- proto.ErrConnectionID
 			} else {
 				t.Fatalf("Unexpected type %T", msg)
 			}
@@ -493,7 +497,7 @@ func TestTunnelConn_requestState(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if state != proto.ConnStateInactive {
+			if state != proto.ErrConnectionID {
 				t.Fatalf("Unexpected connection state: %v", state)
 			}
 		})

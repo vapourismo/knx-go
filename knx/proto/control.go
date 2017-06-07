@@ -4,7 +4,6 @@ package proto
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/vapourismo/knx-go/knx/util"
 )
@@ -78,37 +77,14 @@ func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 // ConnResStatus is the type of status code carried in a connection response.
 type ConnResStatus uint8
 
-// Therese are known connection response status codes.
-const (
-	ConnResOk                ConnResStatus = 0x00
-	ConnResUnsupportedType   ConnResStatus = 0x22
-	ConnResUnsupportedOption ConnResStatus = 0x23
-	ConnResBusy              ConnResStatus = 0x24
-)
-
 // String describes the status code.
 func (status ConnResStatus) String() string {
-	switch status {
-	case ConnResOk:
-		return "Connection established"
-
-	case ConnResUnsupportedType:
-		return "Requested connection type is unsupported"
-
-	case ConnResUnsupportedOption:
-		return "One of the requested options is unsupported"
-
-	case ConnResBusy:
-		return "No data channel is available"
-
-	default:
-		return fmt.Sprintf("Unknown status code %#x", uint8(status))
-	}
+	return ErrString(status)
 }
 
 // Error implements the error Error method.
 func (status ConnResStatus) Error() string {
-	return status.String()
+	return ErrString(status)
 }
 
 // ConnRes is a response to a ConnReq.
@@ -160,32 +136,9 @@ func (req *ConnStateReq) Unpack(data []byte) (uint, error) {
 // A ConnStateResStatus represents the state of a connection.
 type ConnStateResStatus uint8
 
-// These are known connection states.
-const (
-	ConnStateNormal    ConnStateResStatus = 0x00
-	ConnStateInactive  ConnStateResStatus = 0x21
-	ConnStateDataError ConnStateResStatus = 0x26
-	ConnStateKNXError  ConnStateResStatus = 0x27
-)
-
-// String converts the connection state to a string.
-func (state ConnStateResStatus) String() string {
-	switch state {
-	case ConnStateNormal:
-		return "Connection is intact"
-
-	case ConnStateInactive:
-		return "Connection is inactive"
-
-	case ConnStateDataError:
-		return "Gateway encountered a data error"
-
-	case ConnStateKNXError:
-		return "Gateway encountered a KNX error"
-
-	default:
-		return fmt.Sprintf("Unknown connection state %#x", uint8(state))
-	}
+// String converts the connection response status to a string.
+func (status ConnStateResStatus) String() string {
+	return ErrString(status)
 }
 
 // A ConnStateRes is a response to a ConnStateReq.

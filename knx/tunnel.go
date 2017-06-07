@@ -531,7 +531,7 @@ func (conn *Tunnel) serve() {
 // the function will take care of filling in the default values.
 func NewTunnel(gatewayAddr string, layer proto.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
-	sock, err := NewTunnelSocket(gatewayAddr)
+	sock, err := NewUnicastSocket(gatewayAddr)
 	if err != nil {
 		return nil, err
 	}

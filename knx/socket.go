@@ -16,9 +16,16 @@ type Socket interface {
 	Close() error
 }
 
-// NewTunnelSocket creates a new Socket which can used to exchange KNXnet/IP packets with a gateway.
-func NewTunnelSocket(gatewayAddress string) (Socket, error) {
-	addr, err := net.ResolveUDPAddr("udp4", gatewayAddress)
+// UnicastSocket is a UDP socket for KNXnet/IP packet exchange.
+type UnicastSocket struct {
+	conn    *net.UDPConn
+	inbound <-chan proto.Service
+}
+
+// NewUnicastSocket creates a new Socket which can used to exchange KNXnet/IP packets with a single
+// endpoint.
+func NewUnicastSocket(address string) (*UnicastSocket, error) {
+	addr, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
 		return nil, err
 	}
@@ -33,12 +40,41 @@ func NewTunnelSocket(gatewayAddress string) (Socket, error) {
 	inbound := make(chan proto.Service)
 	go serveUDPSocket(conn, addr, inbound)
 
-	return &tunnelSock{conn, inbound}, nil
+	return &UnicastSocket{conn, inbound}, nil
 }
 
-// NewRoutingSocket creates a new Socket which can be used to exchange KNXnet/IP packets with a
-// router.
-func NewRoutingSocket(multicastAddress string) (Socket, error) {
+// Send transmits a KNXnet/IP packet.
+func (sock *UnicastSocket) Send(payload proto.ServicePackable) error {
+	buffer := make([]byte, proto.Size(payload))
+	proto.Pack(buffer, payload)
+
+	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
+
+	// Transmission of the buffer contents
+	_, err := sock.conn.Write(buffer)
+	return err
+}
+
+// Inbound provides a channel from which you can retrieve incoming packets.
+func (sock *UnicastSocket) Inbound() <-chan proto.Service {
+	return sock.inbound
+}
+
+// Close shuts the socket down. This will indirectly terminate the associated workers.
+func (sock *UnicastSocket) Close() error {
+	return sock.conn.Close()
+}
+
+// MulticastSocket is a UDP socket for KNXnet/IP packet exchange.
+type MulticastSocket struct {
+	conn    *net.UDPConn
+	addr    *net.UDPAddr
+	inbound <-chan proto.Service
+}
+
+// NewMulticastSocket creates a new Socket which can be used to exchange KNXnet/IP packets with
+// multiple endpoints.
+func NewMulticastSocket(multicastAddress string) (*MulticastSocket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", multicastAddress)
 	if err != nil {
 		return nil, err
@@ -54,46 +90,11 @@ func NewRoutingSocket(multicastAddress string) (Socket, error) {
 	inbound := make(chan proto.Service)
 	go serveUDPSocket(conn, nil, inbound)
 
-	return &routerSock{conn, addr, inbound}, nil
-}
-
-// tunnelSock is a UDP socket for KNXnet/IP packet exchange.
-type tunnelSock struct {
-	conn    *net.UDPConn
-	inbound <-chan proto.Service
+	return &MulticastSocket{conn, addr, inbound}, nil
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *tunnelSock) Send(payload proto.ServicePackable) error {
-	buffer := make([]byte, proto.Size(payload))
-	proto.Pack(buffer, payload)
-
-	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
-
-	// Transmission of the buffer contents
-	_, err := sock.conn.Write(buffer)
-	return err
-}
-
-// Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *tunnelSock) Inbound() <-chan proto.Service {
-	return sock.inbound
-}
-
-// Close shuts the socket down. This will indirectly terminate the associated workers.
-func (sock *tunnelSock) Close() error {
-	return sock.conn.Close()
-}
-
-// routerSock is a UDP socket for KNXnet/IP packet exchange.
-type routerSock struct {
-	conn    *net.UDPConn
-	addr    *net.UDPAddr
-	inbound <-chan proto.Service
-}
-
-// Send transmits a KNXnet/IP packet.
-func (sock *routerSock) Send(payload proto.ServicePackable) error {
+func (sock *MulticastSocket) Send(payload proto.ServicePackable) error {
 	buffer := make([]byte, proto.Size(payload))
 	proto.Pack(buffer, payload)
 
@@ -105,12 +106,12 @@ func (sock *routerSock) Send(payload proto.ServicePackable) error {
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *routerSock) Inbound() <-chan proto.Service {
+func (sock *MulticastSocket) Inbound() <-chan proto.Service {
 	return sock.inbound
 }
 
 // Close shuts the socket down. This will indirectly terminate the associated workers.
-func (sock *routerSock) Close() error {
+func (sock *MulticastSocket) Close() error {
 	return sock.conn.Close()
 }
 

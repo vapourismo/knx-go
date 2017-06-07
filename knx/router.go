@@ -118,7 +118,7 @@ func (router *Router) serve() {
 
 // NewRouter creates a new Router that joins the given multicast group.
 func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
-	sock, err := NewRoutingSocket(multicastAddress)
+	sock, err := NewMulticastSocket(multicastAddress)
 	if err != nil {
 		return nil, err
 	}

@@ -89,10 +89,12 @@ type Tunnel struct {
 // reponse timeout is reached or a response is received. A response that renders the gateway as busy
 // will not stop requestConn.
 func (conn *Tunnel) requestConn() (err error) {
+	conn.control = proto.HostInfo{Protocol: proto.UDP4}
+
 	req := &proto.ConnReq{
 		Layer:   proto.TunnelLayerData,
-		Control: proto.HostInfo{Protocol: proto.UDP4},
-		Tunnel:  proto.HostInfo{Protocol: proto.UDP4},
+		Control: conn.control,
+		Tunnel:  conn.control,
 	}
 
 	// Send the initial request.
@@ -134,7 +136,6 @@ func (conn *Tunnel) requestConn() (err error) {
 				// Conection has been established.
 				case proto.ConnResOk:
 					conn.channel = res.Channel
-					conn.control = res.Control
 
 					conn.seqMu.Lock()
 					conn.seqNumber = 0

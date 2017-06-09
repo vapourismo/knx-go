@@ -1,6 +1,6 @@
 // Copyright 2017 Ole Krüger.
 
-package proto
+package knxnet
 
 import (
 	"errors"

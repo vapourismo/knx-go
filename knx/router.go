@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/vapourismo/knx-go/knx/cemi"
-	"github.com/vapourismo/knx-go/knx/proto"
+	"github.com/vapourismo/knx-go/knx/knxnet"
 )
 
 // A RouterConfig determines certain properties of a Router.
@@ -94,18 +94,18 @@ func (router *Router) serve() {
 
 	for msg := range router.sock.Inbound() {
 		switch msg := msg.(type) {
-		case *proto.RoutingInd:
+		case *knxnet.RoutingInd:
 			// Try to push it to the client without blocking this goroutine to long.
 			router.pushInbound(msg.Payload)
 
-		case *proto.RoutingBusy:
+		case *knxnet.RoutingBusy:
 			// Inhibit sending for the given time.
 			router.sendMu.Lock()
 			time.AfterFunc(msg.WaitTime, router.sendMu.Unlock)
 
 			// TODO: Slow down pace after busy indication.
 
-		case *proto.RoutingLost:
+		case *knxnet.RoutingLost:
 			// Resend the last msg.Count messages.
 			router.resendLost(msg.Count)
 		}
@@ -141,7 +141,7 @@ func (router *Router) Send(data cemi.Message) error {
 	router.sendMu.Lock()
 	defer router.sendMu.Unlock()
 
-	err := router.sock.Send(&proto.RoutingInd{Payload: data})
+	err := router.sock.Send(&knxnet.RoutingInd{Payload: data})
 
 	if err == nil {
 		// Store this for potential resending.

@@ -1,7 +1,7 @@
 // Copyright 2017 Ole Krüger.
 
-// Package proto provides the means to parse and generate frames of the KNXnet/IP protocol.
-package proto
+// Package knxnet provides the means to parse and generate frames of the KNXnet/IP protocol.
+package knxnet
 
 import (
 	"errors"

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/vapourismo/knx-go/knx/cemi"
-	"github.com/vapourismo/knx-go/knx/proto"
+	"github.com/vapourismo/knx-go/knx/knxnet"
 )
 
 // TunnelConfig allows you to configure the client's behavior.
@@ -62,14 +62,14 @@ type Tunnel struct {
 	config TunnelConfig
 
 	// Connection information
-	layer   proto.TunnelLayer
+	layer   knxnet.TunnelLayer
 	channel uint8
-	control proto.HostInfo
+	control knxnet.HostInfo
 
 	// For outgoing requests
 	seqMu     sync.Mutex
 	seqNumber uint8
-	ack       chan *proto.TunnelRes
+	ack       chan *knxnet.TunnelRes
 
 	// Incoming requests
 	inbound chan cemi.Message
@@ -84,9 +84,9 @@ type Tunnel struct {
 // reponse timeout is reached or a response is received. A response that renders the gateway as busy
 // will not stop requestConn.
 func (conn *Tunnel) requestConn() (err error) {
-	conn.control = proto.HostInfo{Protocol: proto.UDP4}
+	conn.control = knxnet.HostInfo{Protocol: knxnet.UDP4}
 
-	req := &proto.ConnReq{
+	req := &knxnet.ConnReq{
 		Layer:   conn.layer,
 		Control: conn.control,
 		Tunnel:  conn.control,
@@ -126,10 +126,10 @@ func (conn *Tunnel) requestConn() (err error) {
 			}
 
 			// We're only interested in connection responses.
-			if res, ok := msg.(*proto.ConnRes); ok {
+			if res, ok := msg.(*knxnet.ConnRes); ok {
 				switch res.Status {
 				// Conection has been established.
-				case proto.NoError:
+				case knxnet.NoError:
 					conn.channel = res.Channel
 
 					conn.seqMu.Lock()
@@ -139,7 +139,7 @@ func (conn *Tunnel) requestConn() (err error) {
 					return nil
 
 				// The gateway is busy, but we don't stop yet.
-				case proto.ErrNoMoreConnections, proto.ErrNoMoreUniqueConnections:
+				case knxnet.ErrNoMoreConnections, knxnet.ErrNoMoreUniqueConnections:
 					continue
 
 				// Connection request has been denied.
@@ -154,14 +154,14 @@ func (conn *Tunnel) requestConn() (err error) {
 // requestConnState periodically sends a connection state request to the gateway until it has
 // received a response or the response timeout is reached.
 func (conn *Tunnel) requestConnState(
-	heartbeat <-chan proto.ErrCode,
-) (proto.ErrCode, error) {
-	req := &proto.ConnStateReq{Channel: conn.channel, Status: 0, Control: conn.control}
+	heartbeat <-chan knxnet.ErrCode,
+) (knxnet.ErrCode, error) {
+	req := &knxnet.ConnStateReq{Channel: conn.channel, Status: 0, Control: conn.control}
 
 	// Send first connection state request
 	err := conn.sock.Send(req)
 	if err != nil {
-		return proto.ErrConnectionID, err
+		return knxnet.ErrConnectionID, err
 	}
 
 	// Start the resend timer.
@@ -175,19 +175,19 @@ func (conn *Tunnel) requestConnState(
 		select {
 		// Reached timeout
 		case <-timeout:
-			return proto.ErrConnectionID, errResponseTimeout
+			return knxnet.ErrConnectionID, errResponseTimeout
 
 		// Resend timer fired.
 		case <-ticker.C:
 			err := conn.sock.Send(req)
 			if err != nil {
-				return proto.ErrConnectionID, err
+				return knxnet.ErrConnectionID, err
 			}
 
 		// Received a connection state response.
 		case res, open := <-heartbeat:
 			if !open {
-				return proto.ErrConnectionID, errors.New("Connection server has terminated")
+				return knxnet.ErrConnectionID, errors.New("Connection server has terminated")
 			}
 
 			return res, nil
@@ -197,7 +197,7 @@ func (conn *Tunnel) requestConnState(
 
 // requestDisc sends a disconnect request to the gateway.
 func (conn *Tunnel) requestDisc() error {
-	return conn.sock.Send(&proto.DiscReq{
+	return conn.sock.Send(&knxnet.DiscReq{
 		Channel: conn.channel,
 		Status:  0,
 		Control: conn.control,
@@ -210,7 +210,7 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 	conn.seqMu.Lock()
 	defer conn.seqMu.Unlock()
 
-	req := &proto.TunnelReq{
+	req := &knxnet.TunnelReq{
 		Channel:   conn.channel,
 		SeqNumber: conn.seqNumber,
 		Payload:   data,
@@ -268,12 +268,12 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 
 // performHeartbeat uses requestConnState to determine if the gateway is still alive.
 func (conn *Tunnel) performHeartbeat(
-	heartbeat <-chan proto.ErrCode,
+	heartbeat <-chan knxnet.ErrCode,
 	timeout chan<- struct{},
 ) {
 	// Request the connction state.
 	state, err := conn.requestConnState(heartbeat)
-	if err != nil || state != proto.NoError {
+	if err != nil || state != knxnet.NoError {
 		if err != nil {
 			log(conn, "conn", "Error while requesting connection state: %v", err)
 		} else {
@@ -289,20 +289,20 @@ func (conn *Tunnel) performHeartbeat(
 }
 
 // handleDiscReq validates the request.
-func (conn *Tunnel) handleDiscReq(req *proto.DiscReq) error {
+func (conn *Tunnel) handleDiscReq(req *knxnet.DiscReq) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
 		return errors.New("Invalid communication channel in disconnect request")
 	}
 
 	// We don't need to check if this errors or not. It doesn't matter.
-	conn.sock.Send(&proto.DiscRes{Channel: req.Channel, Status: 0})
+	conn.sock.Send(&knxnet.DiscRes{Channel: req.Channel, Status: 0})
 
 	return nil
 }
 
 // handleDiscRes validates the response.
-func (conn *Tunnel) handleDiscRes(res *proto.DiscRes) error {
+func (conn *Tunnel) handleDiscRes(res *knxnet.DiscRes) error {
 	// Validate the response channel.
 	if res.Channel != conn.channel {
 		return errors.New("Invalid communication channel in disconnect response")
@@ -330,7 +330,7 @@ func (conn *Tunnel) pushInbound(msg cemi.Message) {
 
 // handleTunnelReq validates the request, pushes the data to the client and acknowledges the
 // request for the gateway.
-func (conn *Tunnel) handleTunnelReq(req *proto.TunnelReq, seqNumber *uint8) error {
+func (conn *Tunnel) handleTunnelReq(req *knxnet.TunnelReq, seqNumber *uint8) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
 		return errors.New("Invalid communication channel in tunnel request")
@@ -350,7 +350,7 @@ func (conn *Tunnel) handleTunnelReq(req *proto.TunnelReq, seqNumber *uint8) erro
 	}
 
 	// Send the acknowledgement.
-	return conn.sock.Send(&proto.TunnelRes{
+	return conn.sock.Send(&knxnet.TunnelRes{
 		Channel:   conn.channel,
 		SeqNumber: req.SeqNumber,
 		Status:    0,
@@ -359,7 +359,7 @@ func (conn *Tunnel) handleTunnelReq(req *proto.TunnelReq, seqNumber *uint8) erro
 
 // handleTunnelRes validates the response and relays it to a sender that is awaiting an
 // acknowledgement.
-func (conn *Tunnel) handleTunnelRes(res *proto.TunnelRes) error {
+func (conn *Tunnel) handleTunnelRes(res *knxnet.TunnelRes) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
 		return errors.New("Invalid communication channel in connection state response")
@@ -384,8 +384,8 @@ func (conn *Tunnel) handleTunnelRes(res *proto.TunnelRes) error {
 // handleConnStateRes validates the response and sends it to the heartbeat routine, if there is a
 // waiting one.
 func (conn *Tunnel) handleConnStateRes(
-	res *proto.ConnStateRes,
-	heartbeat chan<- proto.ErrCode,
+	res *knxnet.ConnStateRes,
+	heartbeat chan<- knxnet.ErrCode,
 ) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
@@ -416,7 +416,7 @@ var (
 
 // process incoming packets.
 func (conn *Tunnel) process() error {
-	heartbeat := make(chan proto.ErrCode)
+	heartbeat := make(chan knxnet.ErrCode)
 	defer close(heartbeat)
 
 	timeout := make(chan struct{})
@@ -448,7 +448,7 @@ func (conn *Tunnel) process() error {
 
 			// Determine what to do with the message.
 			switch msg := msg.(type) {
-			case *proto.DiscReq:
+			case *knxnet.DiscReq:
 				err := conn.handleDiscReq(msg)
 				if err == nil {
 					return errDisconnected
@@ -456,7 +456,7 @@ func (conn *Tunnel) process() error {
 
 				log(conn, "conn", "Error while handling disconnect request %v: %v", msg, err)
 
-			case *proto.DiscRes:
+			case *knxnet.DiscRes:
 				err := conn.handleDiscRes(msg)
 				if err == nil {
 					return nil
@@ -464,19 +464,19 @@ func (conn *Tunnel) process() error {
 
 				log(conn, "conn", "Error while handling disconnect response %v: %v", msg, err)
 
-			case *proto.TunnelReq:
+			case *knxnet.TunnelReq:
 				err := conn.handleTunnelReq(msg, &seqNumber)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel request %v: %v", msg, err)
 				}
 
-			case *proto.TunnelRes:
+			case *knxnet.TunnelRes:
 				err := conn.handleTunnelRes(msg)
 				if err != nil {
 					log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
 				}
 
-			case *proto.ConnStateRes:
+			case *knxnet.ConnStateRes:
 				err := conn.handleConnStateRes(msg, heartbeat)
 				if err != nil {
 					log(
@@ -523,7 +523,7 @@ func (conn *Tunnel) serve() {
 
 // NewTunnel establishes a connection to a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func NewTunnel(gatewayAddr string, layer proto.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
+func NewTunnel(gatewayAddr string, layer knxnet.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
 	sock, err := NewUnicastSocket(gatewayAddr)
 	if err != nil {
@@ -535,7 +535,7 @@ func NewTunnel(gatewayAddr string, layer proto.TunnelLayer, config TunnelConfig)
 		sock:    sock,
 		config:  checkTunnelConfig(config),
 		layer:   layer,
-		ack:     make(chan *proto.TunnelRes),
+		ack:     make(chan *knxnet.TunnelRes),
 		inbound: make(chan cemi.Message),
 		done:    make(chan struct{}),
 	}

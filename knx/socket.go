@@ -6,20 +6,20 @@ import (
 	"net"
 	"time"
 
-	"github.com/vapourismo/knx-go/knx/proto"
+	"github.com/vapourismo/knx-go/knx/knxnet"
 )
 
 // A Socket is a socket, duh.
 type Socket interface {
-	Send(payload proto.ServicePackable) error
-	Inbound() <-chan proto.Service
+	Send(payload knxnet.ServicePackable) error
+	Inbound() <-chan knxnet.Service
 	Close() error
 }
 
 // UnicastSocket is a UDP socket for KNXnet/IP packet exchange.
 type UnicastSocket struct {
 	conn    *net.UDPConn
-	inbound <-chan proto.Service
+	inbound <-chan knxnet.Service
 }
 
 // NewUnicastSocket creates a new Socket which can used to exchange KNXnet/IP packets with a single
@@ -37,16 +37,16 @@ func NewUnicastSocket(address string) (*UnicastSocket, error) {
 
 	conn.SetDeadline(time.Time{})
 
-	inbound := make(chan proto.Service)
+	inbound := make(chan knxnet.Service)
 	go serveUDPSocket(conn, addr, inbound)
 
 	return &UnicastSocket{conn, inbound}, nil
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *UnicastSocket) Send(payload proto.ServicePackable) error {
-	buffer := make([]byte, proto.Size(payload))
-	proto.Pack(buffer, payload)
+func (sock *UnicastSocket) Send(payload knxnet.ServicePackable) error {
+	buffer := make([]byte, knxnet.Size(payload))
+	knxnet.Pack(buffer, payload)
 
 	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
 
@@ -56,7 +56,7 @@ func (sock *UnicastSocket) Send(payload proto.ServicePackable) error {
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *UnicastSocket) Inbound() <-chan proto.Service {
+func (sock *UnicastSocket) Inbound() <-chan knxnet.Service {
 	return sock.inbound
 }
 
@@ -69,7 +69,7 @@ func (sock *UnicastSocket) Close() error {
 type MulticastSocket struct {
 	conn    *net.UDPConn
 	addr    *net.UDPAddr
-	inbound <-chan proto.Service
+	inbound <-chan knxnet.Service
 }
 
 // NewMulticastSocket creates a new Socket which can be used to exchange KNXnet/IP packets with
@@ -87,16 +87,16 @@ func NewMulticastSocket(multicastAddress string) (*MulticastSocket, error) {
 
 	conn.SetDeadline(time.Time{})
 
-	inbound := make(chan proto.Service)
+	inbound := make(chan knxnet.Service)
 	go serveUDPSocket(conn, nil, inbound)
 
 	return &MulticastSocket{conn, addr, inbound}, nil
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *MulticastSocket) Send(payload proto.ServicePackable) error {
-	buffer := make([]byte, proto.Size(payload))
-	proto.Pack(buffer, payload)
+func (sock *MulticastSocket) Send(payload knxnet.ServicePackable) error {
+	buffer := make([]byte, knxnet.Size(payload))
+	knxnet.Pack(buffer, payload)
 
 	log(sock.conn, "Socket", "<- %T %+v", payload, payload)
 
@@ -106,7 +106,7 @@ func (sock *MulticastSocket) Send(payload proto.ServicePackable) error {
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *MulticastSocket) Inbound() <-chan proto.Service {
+func (sock *MulticastSocket) Inbound() <-chan knxnet.Service {
 	return sock.inbound
 }
 
@@ -116,7 +116,7 @@ func (sock *MulticastSocket) Close() error {
 }
 
 // serveUDPSocket is the receiver worker for a UDP socket.
-func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.Service) {
+func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- knxnet.Service) {
 	log(conn, "Socket", "Started receiver")
 	defer log(conn, "Socket", "Stopped receiver")
 
@@ -138,8 +138,8 @@ func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- proto.S
 			continue
 		}
 
-		var payload proto.Service
-		_, err = proto.Unpack(buffer[:len], &payload)
+		var payload knxnet.Service
+		_, err = knxnet.Unpack(buffer[:len], &payload)
 		if err != nil {
 			log(conn, "Socket", "Error during packet parsing: %v", err)
 			continue

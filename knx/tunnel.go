@@ -12,18 +12,15 @@ import (
 	"github.com/vapourismo/knx-go/knx/knxnet"
 )
 
-// TunnelConfig allows you to configure the client's behavior.
+// TunnelConfig allows you to configure the tunnel client's behavior.
 type TunnelConfig struct {
-	// ResendInterval is how long to wait for a response, until the request is resend. A interval
-	// <= 0 can't be used. The default value will be used instead.
+	// ResendInterval is the interval with which requests will be resend if no response is received.
 	ResendInterval time.Duration
 
-	// HeartbeatInterval specifies the time which has to elapse without any incoming communication,
-	// until a heartbeat is triggered. A delay <= 0 will result in the use of a default value.
+	// HeartbeatInterval specifies the time interval which triggers a heartbeat check.
 	HeartbeatInterval time.Duration
 
-	// ResponseTimeout specifies how long to wait for a response. A timeout <= 0 will not be
-	// accepted. Instead, the default value will be used.
+	// ResponseTimeout specifies how long to wait for a response.
 	ResponseTimeout time.Duration
 }
 
@@ -55,7 +52,7 @@ var (
 	errResponseTimeout = errors.New("Response timeout reached")
 )
 
-// Tunnel is a handle for a tunnel connection.
+// A Tunnel provides methods to communicate with a KNXnet/IP gateway.
 type Tunnel struct {
 	// Communication methods
 	sock   knxnet.Socket
@@ -553,7 +550,8 @@ func NewTunnel(gatewayAddr string, layer knxnet.TunnelLayer, config TunnelConfig
 	return client, nil
 }
 
-// Close will terminate the connection and wait for the server routine to exit.
+// Close will terminate the connection and wait for the server routine to exit. Although a
+// disconnect request is sent, it does not wait for a disconnect response.
 func (conn *Tunnel) Close() {
 	conn.once.Do(func() {
 		conn.requestDisc()
@@ -565,13 +563,13 @@ func (conn *Tunnel) Close() {
 	})
 }
 
-// Inbound retrieves the channel which transmits incoming data.
+// Inbound retrieves the channel which transmits incoming data. The channel is closed when the
+// underlying Socket closes its inbound channel or when the connection is terminated.
 func (conn *Tunnel) Inbound() <-chan cemi.Message {
 	return conn.inbound
 }
 
 // Send relays a tunnel request to the gateway with the given contents.
 func (conn *Tunnel) Send(data cemi.Message) error {
-	// Send the tunnel reqest.
 	return conn.requestTunnel(data)
 }

@@ -33,8 +33,8 @@ func checkRouterConfig(config RouterConfig) RouterConfig {
 	return config
 }
 
-// A Router provides the means to communicate with zero or more KNXnet/IP routers in a IP multicast
-// group. It supports sending and receiving CEMI-encoded frames, aswell as basic flow control.
+// A Router provides the means to communicate with KNXnet/IP routers in a IP multicast group.
+// It supports sending and receiving CEMI-encoded frames, aswell as basic flow control.
 type Router struct {
 	sock     knxnet.Socket
 	config   RouterConfig
@@ -112,7 +112,8 @@ func (router *Router) serve() {
 	}
 }
 
-// NewRouter creates a new Router that joins the given multicast group.
+// NewRouter creates a new Router that joins the given multicast group. You may pass a
+// zero-initialized value as parameter config, the default values will be set up.
 func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
 	sock, err := knxnet.NewMulticastSocket(multicastAddress)
 	if err != nil {
@@ -158,7 +159,8 @@ func (router *Router) Send(data cemi.Message) error {
 	return err
 }
 
-// Inbound returns the channel which transmits incoming data.
+// Inbound returns the channel which transmits incoming data. The channel will be closed when the
+// underlying Socket closes its inbound channel (which happens on read errors or upon closing it).
 func (router *Router) Inbound() <-chan cemi.Message {
 	return router.inbound
 }

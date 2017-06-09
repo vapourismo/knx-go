@@ -19,19 +19,15 @@ type RouterConfig struct {
 	RetainCount uint
 }
 
-// Default configuration elements
-var (
-	defaultRetainCount uint = 32
-
-	DefaultRouterConfig = RouterConfig{
-		defaultRetainCount,
-	}
-)
+// DefaultRouterConfig is a good default configuration for a Router client.
+var DefaultRouterConfig = RouterConfig{
+	RetainCount: 32,
+}
 
 // checkRouterConfig validates the given RouterConfig.
 func checkRouterConfig(config RouterConfig) RouterConfig {
 	if config.RetainCount == 0 {
-		config.RetainCount = defaultRetainCount
+		config.RetainCount = DefaultRouterConfig.RetainCount
 	}
 
 	return config

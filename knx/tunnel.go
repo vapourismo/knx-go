@@ -27,31 +27,25 @@ type TunnelConfig struct {
 	ResponseTimeout time.Duration
 }
 
-// Default configuration elements
-var (
-	defaultResendInterval    = 500 * time.Millisecond
-	defaultHeartbeatInterval = 10 * time.Second
-	defaultResponseTimeout   = 10 * time.Second
-
-	DefaultTunnelConfig = TunnelConfig{
-		defaultResendInterval,
-		defaultHeartbeatInterval,
-		defaultResponseTimeout,
-	}
-)
+// DefaultTunnelConfig is a good default configuration for a Tunnel client.
+var DefaultTunnelConfig = TunnelConfig{
+	ResendInterval:    500 * time.Millisecond,
+	HeartbeatInterval: 10 * time.Second,
+	ResponseTimeout:   10 * time.Second,
+}
 
 // checkTunnelConfig makes sure that the configuration is actually usable.
 func checkTunnelConfig(config TunnelConfig) TunnelConfig {
 	if config.ResendInterval <= 0 {
-		config.ResendInterval = defaultResendInterval
+		config.ResendInterval = DefaultTunnelConfig.ResendInterval
 	}
 
 	if config.HeartbeatInterval <= 0 {
-		config.HeartbeatInterval = defaultHeartbeatInterval
+		config.HeartbeatInterval = DefaultTunnelConfig.HeartbeatInterval
 	}
 
 	if config.ResponseTimeout <= 0 {
-		config.ResponseTimeout = defaultResponseTimeout
+		config.ResponseTimeout = DefaultTunnelConfig.ResponseTimeout
 	}
 
 	return config

@@ -98,7 +98,7 @@ func (control *ControlData) Pack(buffer []byte) {
 	}
 }
 
-// A TransportUnit is responsive to transport data.
+// A TransportUnit is responsible to transport data.
 type TransportUnit interface {
 	util.Packable
 }

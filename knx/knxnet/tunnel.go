@@ -31,7 +31,7 @@ func (req *TunnelReq) Size() uint {
 	return 4 + cemi.Size(req.Payload)
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the service payload in the given buffer.
 func (req *TunnelReq) Pack(buffer []byte) {
 	buffer[0] = 4
 	buffer[1] = req.Channel
@@ -40,7 +40,7 @@ func (req *TunnelReq) Pack(buffer []byte) {
 	cemi.Pack(buffer[4:], req.Payload)
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 	var length, reserved uint8
 
@@ -82,7 +82,7 @@ func (TunnelRes) Size() uint {
 	return 4
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the service payload in the given buffer.
 func (res *TunnelRes) Pack(buffer []byte) {
 	buffer[0] = 4
 	buffer[1] = res.Channel
@@ -90,7 +90,7 @@ func (res *TunnelRes) Pack(buffer []byte) {
 	buffer[3] = uint8(res.Status)
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (res *TunnelRes) Unpack(data []byte) (n uint, err error) {
 	var length uint8
 

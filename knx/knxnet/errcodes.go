@@ -6,10 +6,10 @@ import "fmt"
 
 // What follows are errors codes defined in the KNX standard.
 const (
-	// NoError indicates a successful operation (E_NO_ERROR).
+	// NoError indicates a successful operation.
 	NoError = 0x00
 
-	// ErrHostProtocolType indicates an unsupported host protocol (E_HOST_PROTOCOL_TYPE).
+	// ErrHostProtocolType indicates an unsupported host protocol.
 	ErrHostProtocolType = 0x01
 
 	// ErrVersionNotSupported indicates an unsupported KNXnet/IP protocol version.
@@ -48,7 +48,7 @@ const (
 // A ErrCode identifies an error type.
 type ErrCode uint8
 
-// ErrString returns a string representation of the error code.
+// String returns a string representation of the error code.
 func (err ErrCode) String() string {
 	switch err {
 	case NoError:

@@ -32,18 +32,18 @@ type Service interface {
 	Service() ServiceID
 }
 
-// ServicePackable combines WriterTo and Service.
+// ServicePackable combines Packable and Service.
 type ServicePackable interface {
 	util.Packable
 	Service
 }
 
-// Size returns the packed size of a KNXnet/IP packet.
+// Size returns the size of a KNXnet/IP packet.
 func Size(service ServicePackable) uint {
 	return 6 + service.Size()
 }
 
-// Pack generates a KNXnet/IP packet.
+// Pack generates a KNXnet/IP packet. Utilize Size() to determine the required size of the buffer.
 func Pack(buffer []byte, srv ServicePackable) {
 	buffer[0] = 6
 	buffer[1] = 16

@@ -20,7 +20,7 @@ const (
 	TCP4 Protocol = 2
 )
 
-// Address is a IPv4 address.
+// Address is an IPv4 address.
 type Address [4]byte
 
 // String formats the address.
@@ -50,7 +50,7 @@ func (HostInfo) Size() uint {
 	return 8
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the host info structure in the given buffer.
 func (info *HostInfo) Pack(buffer []byte) {
 	util.PackSome(
 		buffer,
@@ -61,7 +61,7 @@ func (info *HostInfo) Pack(buffer []byte) {
 	)
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given data in order to initialize the structure.
 func (info *HostInfo) Unpack(data []byte) (n uint, err error) {
 	var length uint8
 

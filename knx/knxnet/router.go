@@ -25,12 +25,12 @@ func (ind *RoutingInd) Size() uint {
 	return cemi.Size(ind.Payload)
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the service payload in the given buffer.
 func (ind *RoutingInd) Pack(buffer []byte) {
 	cemi.Pack(buffer, ind.Payload)
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (ind *RoutingInd) Unpack(data []byte) (uint, error) {
 	return cemi.Unpack(data, &ind.Payload)
 }
@@ -46,7 +46,7 @@ const (
 	DeviceStateReserved DeviceState = 0xfc
 )
 
-// String converts the device status to a s tring.
+// String converts the device status to a string.
 func (status DeviceState) String() string {
 	switch status {
 	case DeviceStateOk:
@@ -80,7 +80,7 @@ func (RoutingLost) Service() ServiceID {
 	return RoutingLostService
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (rl *RoutingLost) Unpack(data []byte) (uint, error) {
 	var length uint8
 	return util.UnpackSome(data, &length, (*uint8)(&rl.Status), &rl.Count)
@@ -105,7 +105,7 @@ func (RoutingBusy) Service() ServiceID {
 	return RoutingBusyService
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (rl *RoutingBusy) Unpack(data []byte) (n uint, err error) {
 	var length uint8
 	var waitTime uint16

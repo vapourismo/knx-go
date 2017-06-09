@@ -12,13 +12,13 @@ import (
 type TunnelLayer uint8
 
 const (
-	// TunnelLayerData establishes a data-link layer tunnel.
+	// TunnelLayerData establishes a data-link layer tunnel. Send and receive L_Data.* messages.
 	TunnelLayerData TunnelLayer = 0x02
 
-	// TunnelLayerRaw establishes a raw tunnel.
+	// TunnelLayerRaw establishes a raw tunnel. Send and receive L_Raw.* messages.
 	TunnelLayerRaw TunnelLayer = 0x04
 
-	// TunnelLayerBusmon establishes a bus monitor tunnel.
+	// TunnelLayerBusmon establishes a bus monitor tunnel. Receive L_Busmon.ind messages.
 	TunnelLayerBusmon TunnelLayer = 0x80
 )
 
@@ -41,7 +41,7 @@ func (ConnReq) Size() uint {
 	return 2*hostInfoSize + 4
 }
 
-// Pack the structure into the given buffer.
+// Pack assembles the service payload in the given buffer.
 func (req *ConnReq) Pack(buffer []byte) {
 	util.PackSome(buffer, &req.Control, &req.Tunnel)
 
@@ -52,7 +52,7 @@ func (req *ConnReq) Pack(buffer []byte) {
 	buffer[3] = 0
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 	var length, connType, reserved uint8
 
@@ -74,7 +74,7 @@ func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 	return
 }
 
-// ConnRes is a response to a ConnReq.
+// ConnRes is a response to a connection request.
 type ConnRes struct {
 	Channel uint8
 	Status  ErrCode
@@ -86,12 +86,12 @@ func (ConnRes) Service() ServiceID {
 	return ConnResService
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (res *ConnRes) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &res.Channel, (*uint8)(&res.Status), &res.Control)
 }
 
-// A ConnStateReq requests the the connection state from a gateway.
+// A ConnStateReq requests the connection state from a gateway.
 type ConnStateReq struct {
 	Channel uint8
 	Status  ErrCode
@@ -108,19 +108,19 @@ func (ConnStateReq) Size() uint {
 	return 2 + hostInfoSize
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the service payload in the given buffer.
 func (req *ConnStateReq) Pack(buffer []byte) {
 	buffer[0] = req.Channel
 	buffer[1] = uint8(req.Status)
 	req.Control.Pack(buffer[2:])
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (req *ConnStateReq) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &req.Channel, (*uint8)(&req.Status), &req.Control)
 }
 
-// A ConnStateRes is a response to a ConnStateReq.
+// A ConnStateRes is a response to a connection state request.
 type ConnStateRes struct {
 	Channel uint8
 	Status  ErrCode
@@ -136,13 +136,13 @@ func (ConnStateRes) Size() uint {
 	return 2
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the service payload in the given buffer.
 func (res *ConnStateRes) Pack(buffer []byte) {
 	buffer[0] = res.Channel
 	buffer[1] = uint8(res.Status)
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (res *ConnStateRes) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &res.Channel, (*uint8)(&res.Status))
 }
@@ -164,19 +164,19 @@ func (DiscReq) Size() uint {
 	return 2 + hostInfoSize
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the service payload in the given buffer.
 func (req *DiscReq) Pack(buffer []byte) {
 	buffer[0] = req.Channel
 	buffer[1] = req.Status
 	req.Control.Pack(buffer[2:])
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (req *DiscReq) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &req.Channel, &req.Status, &req.Control)
 }
 
-// A DiscRes is a response to a DiscReq..
+// A DiscRes is a response to a disconnect request.
 type DiscRes struct {
 	Channel uint8
 	Status  uint8
@@ -192,13 +192,13 @@ func (DiscRes) Size() uint {
 	return 2
 }
 
-// Pack the structure into the buffer.
+// Pack assembles the service payload in the given buffer.
 func (res *DiscRes) Pack(data []byte) {
 	data[0] = res.Channel
 	data[1] = res.Status
 }
 
-// Unpack initializes the structure by parsing the given data.
+// Unpack parses the given service payload in order to initialize the structure.
 func (res *DiscRes) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &res.Channel, &res.Status)
 }

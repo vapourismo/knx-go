@@ -10,7 +10,7 @@ import (
 )
 
 func makeTunnelConn(
-	sock Socket,
+	sock knxnet.Socket,
 	config TunnelConfig,
 	channel uint8,
 ) *Tunnel {

@@ -45,7 +45,7 @@ func (sock *dummySocket) serveAll() {
 	close(sock.inbound)
 }
 
-func (sock *dummySocket) sendAny(payload interface{}) error {
+func (sock *dummySocket) sendAny(payload knxnet.Service) error {
 	sock.cond.L.Lock()
 	defer sock.cond.L.Unlock()
 

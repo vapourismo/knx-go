@@ -58,7 +58,7 @@ var (
 // Tunnel is a handle for a tunnel connection.
 type Tunnel struct {
 	// Communication methods
-	sock   Socket
+	sock   knxnet.Socket
 	config TunnelConfig
 
 	// Connection information
@@ -525,7 +525,7 @@ func (conn *Tunnel) serve() {
 // the function will take care of filling in the default values.
 func NewTunnel(gatewayAddr string, layer knxnet.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
-	sock, err := NewUnicastSocket(gatewayAddr)
+	sock, err := knxnet.NewUnicastSocket(gatewayAddr)
 	if err != nil {
 		return nil, err
 	}

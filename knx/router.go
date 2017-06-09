@@ -36,7 +36,7 @@ func checkRouterConfig(config RouterConfig) RouterConfig {
 // A Router provides the means to communicate with zero or more KNXnet/IP routers in a IP multicast
 // group. It supports sending and receiving CEMI-encoded frames, aswell as basic flow control.
 type Router struct {
-	sock     Socket
+	sock     knxnet.Socket
 	config   RouterConfig
 	inbound  chan cemi.Message
 	sendMu   sync.Mutex
@@ -114,7 +114,7 @@ func (router *Router) serve() {
 
 // NewRouter creates a new Router that joins the given multicast group.
 func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
-	sock, err := NewMulticastSocket(multicastAddress)
+	sock, err := knxnet.NewMulticastSocket(multicastAddress)
 	if err != nil {
 		return nil, err
 	}

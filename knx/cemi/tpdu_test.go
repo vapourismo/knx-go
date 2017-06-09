@@ -110,7 +110,7 @@ func TestUnpackTransportUnit(t *testing.T) {
 			data[1] |= 1 << 7
 
 			var unit TransportUnit
-			num, err := UnpackTransportUnit(data, &unit)
+			num, err := unpackTransportUnit(data, &unit)
 
 			if err != nil {
 				t.Error("Unexpected error:", err, data)
@@ -151,7 +151,7 @@ func TestUnpackTransportUnit(t *testing.T) {
 			data[1] &= ^(byte(1) << 7)
 
 			var unit TransportUnit
-			num, err := UnpackTransportUnit(data, &unit)
+			num, err := unpackTransportUnit(data, &unit)
 
 			if err != nil {
 				t.Error("Unexpected error:", err, data)

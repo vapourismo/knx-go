@@ -9,7 +9,7 @@ import (
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
-// MessageCode is used to identify the contents of a CEMI frame.
+// MessageCode is used to identify the type of message inside a CEMI-encoded frame.
 type MessageCode uint8
 
 const (

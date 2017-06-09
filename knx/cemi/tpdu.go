@@ -8,17 +8,6 @@ import (
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
-// A TPCI is the Transport-layer Protocol Control Information.
-type TPCI uint8
-
-// TPCI values
-const (
-	UnnumberedDataPacket    TPCI = 0
-	NumberedDataPacket      TPCI = 1
-	UnnumberedControlPacket TPCI = 2
-	NumberedControlPacket   TPCI = 3
-)
-
 // APCI is the Application-layer Protocol Control Information.
 type APCI uint8
 
@@ -63,7 +52,7 @@ func (app *AppData) Size() uint {
 	return 2 + dataLength
 }
 
-// Pack the structure.
+// Pack into a transport data unit including its leading length byte.
 func (app *AppData) Pack(buffer []byte) {
 	dataLength := len(app.Data)
 
@@ -99,7 +88,7 @@ func (ControlData) Size() uint {
 	return 2
 }
 
-// Pack the structure.
+// Pack into a transport data unit including its leading length byte.
 func (control *ControlData) Pack(buffer []byte) {
 	buffer[0] = 0
 	buffer[1] = 1<<7 | (control.Command & 3)
@@ -114,8 +103,8 @@ type TransportUnit interface {
 	util.Packable
 }
 
-// UnpackTransportUnit parses the given data in order to extract the transport unit that it encodes.
-func UnpackTransportUnit(data []byte, unit *TransportUnit) (uint, error) {
+// unpackTransportUnit parses the given data in order to extract the transport unit that it encodes.
+func unpackTransportUnit(data []byte, unit *TransportUnit) (uint, error) {
 	if len(data) < 2 {
 		return 0, io.ErrUnexpectedEOF
 	}

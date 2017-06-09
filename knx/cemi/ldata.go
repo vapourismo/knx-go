@@ -27,7 +27,7 @@ func (ldata *LData) Unpack(data []byte) (n uint, err error) {
 		return
 	}
 
-	m, err := UnpackTransportUnit(data[n:], &ldata.Data)
+	m, err := unpackTransportUnit(data[n:], &ldata.Data)
 	n += m
 
 	return

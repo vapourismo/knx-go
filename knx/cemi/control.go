@@ -24,10 +24,10 @@ type ControlField1 uint8
 
 const (
 	// Control1StdFrame indicate that the frame is not an extended frame. Extended frames contain
-	// APDUs greater than 15 bytes.
+	// application data units greater than 15 bytes.
 	Control1StdFrame ControlField1 = 1 << 7
 
-	// Control1NoRepeat causes the repeated frame not to be sent on the medium. If you send two
+	// Control1NoRepeat causes a repeated frame not to be sent on the medium. If you send two
 	// identical frames, than one of them will not be sent on the medium when this flag is present.
 	Control1NoRepeat ControlField1 = 1 << 5
 
@@ -61,5 +61,9 @@ const (
 
 // Control2Hops generates the control field 2 flag for the given number of hops.
 func Control2Hops(hops uint8) ControlField2 {
+	if hops > 7 {
+		hops = 7
+	}
+
 	return ControlField2(hops&7) << 4
 }

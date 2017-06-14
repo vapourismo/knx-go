@@ -173,3 +173,70 @@ func (router *Router) Inbound() <-chan cemi.Message {
 func (router *Router) Close() {
 	router.sock.Close()
 }
+
+// GroupRouter is a Router that provides only a group communication interface.
+type GroupRouter struct {
+	*Router
+	inbound chan GroupComm
+}
+
+// NewGroupRouter creates a new Router for group communication.
+func NewGroupRouter(multicastAddress string, config RouterConfig) (gr GroupRouter, err error) {
+	gr.Router, err = NewRouter(multicastAddress, config)
+
+	if err == nil {
+		gr.inbound = make(chan GroupComm)
+		go gr.serve()
+	}
+
+	return
+}
+
+func (gr *GroupRouter) serve() {
+	util.Log(gr, "Started worker")
+	defer util.Log(gr, "Worker exited")
+
+	for msg := range gr.Router.Inbound() {
+		if ind, ok := msg.(*cemi.LDataInd); ok {
+			if app, ok := ind.Data.(*cemi.AppData); ok && (app.Command == cemi.GroupValueResponse || app.Command == cemi.GroupValueWrite) {
+				gr.inbound <- GroupComm{
+					Source:      ind.Source,
+					Destination: ind.Destination,
+					Data:        app.Data,
+				}
+			} else {
+				util.Log(gr, "Received L_Data.ind frame does not contain application data")
+			}
+		} else {
+			util.Log(gr, "Received frame is not a L_Data.ind frame")
+		}
+	}
+
+	close(gr.inbound)
+}
+
+var defaultInd = cemi.LDataInd{
+	LData: cemi.LData{
+		Control1: cemi.Control1NoRepeat | cemi.Control1NoSysBroadcast | cemi.Control1WantAck | cemi.Control1Prio(cemi.PrioLow),
+		Control2: cemi.Control2GrpAddr | cemi.Control2Hops(6),
+	},
+}
+
+// Send a group communication.
+func (gr *GroupRouter) Send(comm GroupComm) error {
+	ind := defaultInd
+	ind.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: comm.Data}
+	ind.Source = comm.Source
+	ind.Destination = comm.Destination
+
+	if len(comm.Data) <= 15 {
+		ind.Control1 |= cemi.Control1StdFrame
+	}
+
+	return gr.Router.Send(&ind)
+}
+
+// Inbound returns the channel on which group communication can be received.
+func (gr *GroupRouter) Inbound() <-chan GroupComm {
+	return gr.inbound
+}

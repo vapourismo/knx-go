@@ -577,3 +577,70 @@ func (conn *Tunnel) Inbound() <-chan cemi.Message {
 func (conn *Tunnel) Send(data cemi.Message) error {
 	return conn.requestTunnel(data)
 }
+
+// GroupTunnel is a Tunnel that provides only a group communication interface.
+type GroupTunnel struct {
+	*Tunnel
+	inbound chan GroupComm
+}
+
+// NewGroupTunnel creates a new Tunnel for group communication.
+func NewGroupTunnel(gatewayAddr string, config TunnelConfig) (gt GroupTunnel, err error) {
+	gt.Tunnel, err = NewTunnel(gatewayAddr, knxnet.TunnelLayerData, config)
+
+	if err == nil {
+		gt.inbound = make(chan GroupComm)
+		go gt.serve()
+	}
+
+	return
+}
+
+func (gt *GroupTunnel) serve() {
+	util.Log(gt, "Started worker")
+	defer util.Log(gt, "Worker exited")
+
+	for msg := range gt.Tunnel.Inbound() {
+		if ind, ok := msg.(*cemi.LDataInd); ok {
+			if app, ok := ind.Data.(*cemi.AppData); ok && (app.Command == cemi.GroupValueResponse || app.Command == cemi.GroupValueWrite) {
+				gt.inbound <- GroupComm{
+					Source:      ind.Source,
+					Destination: ind.Destination,
+					Data:        app.Data,
+				}
+			} else {
+				util.Log(gt, "Received L_Data.ind frame does not contain application data")
+			}
+		} else {
+			util.Log(gt, "Received frame is not a L_Data.ind frame")
+		}
+	}
+
+	close(gt.inbound)
+}
+
+var defaultReq = cemi.LDataReq{
+	LData: cemi.LData{
+		Control1: cemi.Control1NoRepeat | cemi.Control1NoSysBroadcast | cemi.Control1WantAck | cemi.Control1Prio(cemi.PrioLow),
+		Control2: cemi.Control2GrpAddr | cemi.Control2Hops(6),
+	},
+}
+
+// Send a group communication.
+func (gt *GroupTunnel) Send(comm GroupComm) error {
+	req := defaultReq
+	req.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: comm.Data}
+	req.Source = comm.Source
+	req.Destination = comm.Destination
+
+	if len(comm.Data) <= 15 {
+		req.Control1 |= cemi.Control1StdFrame
+	}
+
+	return gt.Tunnel.Send(&req)
+}
+
+// Inbound returns the channel on which group communication can be received.
+func (gt *GroupTunnel) Inbound() <-chan GroupComm {
+	return gt.inbound
+}

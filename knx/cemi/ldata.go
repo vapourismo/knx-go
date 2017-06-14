@@ -78,5 +78,5 @@ type LDataInd struct {
 
 // MessageCode returns the message code for L_Data.ind.
 func (LDataInd) MessageCode() MessageCode {
-	return LDataConCode
+	return LDataIndCode
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/knxnet"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // TunnelConfig allows you to configure the tunnel client's behavior.
@@ -272,9 +273,9 @@ func (conn *Tunnel) performHeartbeat(
 	state, err := conn.requestConnState(heartbeat)
 	if err != nil || state != knxnet.NoError {
 		if err != nil {
-			log(conn, "conn", "Error while requesting connection state: %v", err)
+			util.Log(conn, "Error while requesting connection state: %v", err)
 		} else {
-			log(conn, "conn", "Bad connection state: %v", state)
+			util.Log(conn, "Bad connection state: %v", state)
 		}
 
 		// Write to timeout as an indication that the heartbeat has failed.
@@ -451,7 +452,7 @@ func (conn *Tunnel) process() error {
 					return errDisconnected
 				}
 
-				log(conn, "conn", "Error while handling disconnect request %v: %v", msg, err)
+				util.Log(conn, "Error while handling disconnect request %v: %v", msg, err)
 
 			case *knxnet.DiscRes:
 				err := conn.handleDiscRes(msg)
@@ -459,25 +460,25 @@ func (conn *Tunnel) process() error {
 					return nil
 				}
 
-				log(conn, "conn", "Error while handling disconnect response %v: %v", msg, err)
+				util.Log(conn, "Error while handling disconnect response %v: %v", msg, err)
 
 			case *knxnet.TunnelReq:
 				err := conn.handleTunnelReq(msg, &seqNumber)
 				if err != nil {
-					log(conn, "conn", "Error while handling tunnel request %v: %v", msg, err)
+					util.Log(conn, "Error while handling tunnel request %v: %v", msg, err)
 				}
 
 			case *knxnet.TunnelRes:
 				err := conn.handleTunnelRes(msg)
 				if err != nil {
-					log(conn, "conn", "Error while handling tunnel response %v: %v", msg, err)
+					util.Log(conn, "Error while handling tunnel response %v: %v", msg, err)
 				}
 
 			case *knxnet.ConnStateRes:
 				err := conn.handleConnStateRes(msg, heartbeat)
 				if err != nil {
-					log(
-						conn, "conn",
+					util.Log(
+						conn,
 						"Error while handling connection state response: %v", err,
 					)
 				}
@@ -489,6 +490,9 @@ func (conn *Tunnel) process() error {
 // serve serves the tunnel connection. It can sustain certain failures. This method will try to
 // reconnect in case of a heartbeat failure or disconnect.
 func (conn *Tunnel) serve() {
+	util.Log(conn, "Started worker")
+	defer util.Log(conn, "Worker exited")
+
 	defer close(conn.ack)
 	defer close(conn.inbound)
 	defer conn.wait.Done()
@@ -497,21 +501,21 @@ func (conn *Tunnel) serve() {
 		err := conn.process()
 
 		if err != nil {
-			log(conn, "conn", "Server terminated with error: %v", err)
+			util.Log(conn, "Server terminated with error: %v", err)
 		}
 
 		// Check if we can try again.
 		if err == errDisconnected || err == errHeartbeatFailed {
-			log(conn, "conn", "Attempting reconnect")
+			util.Log(conn, "Attempting reconnect")
 
 			reconnErr := conn.requestConn()
 
 			if reconnErr == nil {
-				log(conn, "conn", "Reconnect succeeded")
+				util.Log(conn, "Reconnect succeeded")
 				continue
 			}
 
-			log(conn, "conn", "Reconnect failed: %v", reconnErr)
+			util.Log(conn, "Reconnect failed: %v", reconnErr)
 		}
 
 		return

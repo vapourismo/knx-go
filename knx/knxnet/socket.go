@@ -5,6 +5,8 @@ package knxnet
 import (
 	"net"
 	"time"
+
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // A Socket is a socket, duh.
@@ -111,6 +113,8 @@ func (sock *MulticastSocket) Close() error {
 
 // serveUDPSocket is the receiver worker for a UDP socket.
 func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- Service) {
+	util.Log(conn, "Started worker")
+	defer util.Log(conn, "Worker exited")
 
 	// A closed inbound channel indicates to its readers that the worker has terminated.
 	defer close(inbound)
@@ -120,17 +124,20 @@ func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- Service
 	for {
 		len, sender, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
+			util.Log(conn, "Error during ReadFromUDP: %v", err)
 			return
 		}
 
 		// Validate sender origin if necessary
 		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
+			util.Log(conn, "Origin validation failed: %v != %v", addr, sender)
 			continue
 		}
 
 		var payload Service
 		_, err = Unpack(buffer[:len], &payload)
 		if err != nil {
+			util.Log(conn, "Error during Unpack: %v", err)
 			continue
 		}
 

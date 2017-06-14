@@ -10,6 +10,7 @@ import (
 
 	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/knxnet"
+	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // A RouterConfig determines certain properties of a Router.
@@ -90,6 +91,9 @@ func (router *Router) pushInbound(msg cemi.Message) {
 
 // serve listens for incoming routing-related packets.
 func (router *Router) serve() {
+	util.Log(router, "Started worker")
+	defer util.Log(router, "Worker exited")
+
 	defer close(router.inbound)
 
 	for msg := range router.sock.Inbound() {

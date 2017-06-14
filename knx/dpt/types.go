@@ -6,6 +6,12 @@ import (
 	"fmt"
 )
 
+// A DatapointValue is a value of a datapoint.
+type DatapointValue interface {
+	Pack() []byte
+	Unpack(data []byte) error
+}
+
 // Switch is DPT 1.001.
 type Switch bool
 

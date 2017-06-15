@@ -102,7 +102,7 @@ func (br *bridge) serve() error {
 
 			if ind, ok := msg.(*cemi.LDataInd); ok {
 				util.Log(br, "To tunnel: %v", ind)
-				if err := br.tunnel.Send(ind); err != nil {
+				if err := br.tunnel.Send(&cemi.LDataReq{LData: ind.LData}); err != nil {
 					return err
 				}
 			}

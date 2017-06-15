@@ -86,6 +86,16 @@ func (ConnRes) Service() ServiceID {
 	return ConnResService
 }
 
+// Size returns the packed size.
+func (res *ConnRes) Size() uint {
+	return hostInfoSize + 6
+}
+
+// Pack assembles the service payload in the given buffer.
+func (res *ConnRes) Pack(buffer []byte) {
+	util.PackSome(buffer, res.Channel, uint8(res.Status), &res.Control, []byte{4, 4, 0, 0})
+}
+
 // Unpack parses the given service payload in order to initialize the structure.
 func (res *ConnRes) Unpack(data []byte) (uint, error) {
 	return util.UnpackSome(data, &res.Channel, (*uint8)(&res.Status), &res.Control)

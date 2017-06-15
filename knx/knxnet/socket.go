@@ -43,27 +43,6 @@ func DialTunnel(address string) (*TunnelSocket, error) {
 	return &TunnelSocket{conn, inbound}, nil
 }
 
-// ListenTunnel creates a new Socket which can be used to exchange KNXnet/IP packets with multiple
-// clients.
-func ListenTunnel(address string) (*TunnelSocket, error) {
-	addr, err := net.ResolveUDPAddr("udp4", address)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := net.ListenUDP("udp4", addr)
-	if err != nil {
-		return nil, err
-	}
-
-	conn.SetDeadline(time.Time{})
-
-	inbound := make(chan Service)
-	go serveUDPSocket(conn, nil, inbound)
-
-	return &TunnelSocket{conn, inbound}, nil
-}
-
 // Send transmits a KNXnet/IP packet.
 func (sock *TunnelSocket) Send(payload ServicePackable) error {
 	buffer := make([]byte, Size(payload))

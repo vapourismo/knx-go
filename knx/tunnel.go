@@ -526,7 +526,7 @@ func (conn *Tunnel) serve() {
 // the function will take care of filling in the default values.
 func NewTunnel(gatewayAddr string, layer knxnet.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
 	// Create socket which will be used for communication.
-	sock, err := knxnet.NewUnicastSocket(gatewayAddr)
+	sock, err := knxnet.DialTunnel(gatewayAddr)
 	if err != nil {
 		return nil, err
 	}

@@ -16,15 +16,15 @@ type Socket interface {
 	Close() error
 }
 
-// UnicastSocket is a UDP socket for KNXnet/IP packet exchange.
-type UnicastSocket struct {
+// TunnelSocket is a UDP socket for KNXnet/IP packet exchange.
+type TunnelSocket struct {
 	conn    *net.UDPConn
 	inbound <-chan Service
 }
 
-// NewUnicastSocket creates a new Socket which can used to exchange KNXnet/IP packets with a single
+// DialTunnel creates a new Socket which can used to exchange KNXnet/IP packets with a single
 // endpoint.
-func NewUnicastSocket(address string) (*UnicastSocket, error) {
+func DialTunnel(address string) (*TunnelSocket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
 		return nil, err
@@ -40,11 +40,11 @@ func NewUnicastSocket(address string) (*UnicastSocket, error) {
 	inbound := make(chan Service)
 	go serveUDPSocket(conn, addr, inbound)
 
-	return &UnicastSocket{conn, inbound}, nil
+	return &TunnelSocket{conn, inbound}, nil
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *UnicastSocket) Send(payload ServicePackable) error {
+func (sock *TunnelSocket) Send(payload ServicePackable) error {
 	buffer := make([]byte, Size(payload))
 	Pack(buffer, payload)
 
@@ -54,25 +54,25 @@ func (sock *UnicastSocket) Send(payload ServicePackable) error {
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *UnicastSocket) Inbound() <-chan Service {
+func (sock *TunnelSocket) Inbound() <-chan Service {
 	return sock.inbound
 }
 
 // Close shuts the socket down. This will indirectly terminate the associated workers.
-func (sock *UnicastSocket) Close() error {
+func (sock *TunnelSocket) Close() error {
 	return sock.conn.Close()
 }
 
-// MulticastSocket is a UDP socket for KNXnet/IP packet exchange.
-type MulticastSocket struct {
+// RouterSocket is a UDP socket for KNXnet/IP packet exchange.
+type RouterSocket struct {
 	conn    *net.UDPConn
 	addr    *net.UDPAddr
 	inbound <-chan Service
 }
 
-// NewMulticastSocket creates a new Socket which can be used to exchange KNXnet/IP packets with
+// ListenRouter creates a new Socket which can be used to exchange KNXnet/IP packets with
 // multiple endpoints.
-func NewMulticastSocket(multicastAddress string) (*MulticastSocket, error) {
+func ListenRouter(multicastAddress string) (*RouterSocket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", multicastAddress)
 	if err != nil {
 		return nil, err
@@ -88,11 +88,11 @@ func NewMulticastSocket(multicastAddress string) (*MulticastSocket, error) {
 	inbound := make(chan Service)
 	go serveUDPSocket(conn, nil, inbound)
 
-	return &MulticastSocket{conn, addr, inbound}, nil
+	return &RouterSocket{conn, addr, inbound}, nil
 }
 
 // Send transmits a KNXnet/IP packet.
-func (sock *MulticastSocket) Send(payload ServicePackable) error {
+func (sock *RouterSocket) Send(payload ServicePackable) error {
 	buffer := make([]byte, Size(payload))
 	Pack(buffer, payload)
 
@@ -102,12 +102,12 @@ func (sock *MulticastSocket) Send(payload ServicePackable) error {
 }
 
 // Inbound provides a channel from which you can retrieve incoming packets.
-func (sock *MulticastSocket) Inbound() <-chan Service {
+func (sock *RouterSocket) Inbound() <-chan Service {
 	return sock.inbound
 }
 
 // Close shuts the socket down. This will indirectly terminate the associated workers.
-func (sock *MulticastSocket) Close() error {
+func (sock *RouterSocket) Close() error {
 	return sock.conn.Close()
 }
 

@@ -9,7 +9,7 @@ type LData struct {
 	Info        Info
 	Control1    ControlField1
 	Control2    ControlField2
-	Source      uint16
+	Source      IndividualAddr
 	Destination uint16
 	Data        TransportUnit
 }
@@ -21,7 +21,7 @@ func (ldata *LData) Unpack(data []byte) (n uint, err error) {
 		&ldata.Info,
 		(*uint8)(&ldata.Control1),
 		(*uint8)(&ldata.Control2),
-		&ldata.Source,
+		(*uint16)(&ldata.Source),
 		&ldata.Destination,
 	); err != nil {
 		return
@@ -45,7 +45,7 @@ func (ldata *LData) Pack(buffer []byte) {
 		ldata.Info,
 		uint8(ldata.Control1),
 		uint8(ldata.Control2),
-		ldata.Source,
+		uint16(ldata.Source),
 		ldata.Destination,
 		ldata.Data,
 	)

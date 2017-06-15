@@ -69,7 +69,7 @@ func TestLData_Unpack(t *testing.T) {
 			t.Error("Unexpected control field 2", ControlField2(data[1]), ldata.Control2, data)
 		}
 
-		if binary.BigEndian.Uint16(data[2:]) != ldata.Source {
+		if binary.BigEndian.Uint16(data[2:]) != uint16(ldata.Source) {
 			t.Error("Unexpected source:", binary.BigEndian.Uint16(data[2:]), ldata.Source, data)
 		}
 

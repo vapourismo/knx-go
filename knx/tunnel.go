@@ -590,54 +590,15 @@ func NewGroupTunnel(gatewayAddr string, config TunnelConfig) (gt GroupTunnel, er
 
 	if err == nil {
 		gt.inbound = make(chan GroupComm)
-		go gt.serve()
+		go serveGroupInbound(gt.Tunnel.Inbound(), gt.inbound)
 	}
 
 	return
 }
 
-func (gt *GroupTunnel) serve() {
-	util.Log(gt, "Started worker")
-	defer util.Log(gt, "Worker exited")
-
-	for msg := range gt.Tunnel.Inbound() {
-		if ind, ok := msg.(*cemi.LDataInd); ok {
-			if app, ok := ind.Data.(*cemi.AppData); ok && (app.Command == cemi.GroupValueResponse || app.Command == cemi.GroupValueWrite) {
-				gt.inbound <- GroupComm{
-					Source:      ind.Source,
-					Destination: ind.Destination,
-					Data:        app.Data,
-				}
-			} else {
-				util.Log(gt, "Received L_Data.ind frame does not contain application data")
-			}
-		} else {
-			util.Log(gt, "Received frame is not a L_Data.ind frame")
-		}
-	}
-
-	close(gt.inbound)
-}
-
-var defaultReq = cemi.LDataReq{
-	LData: cemi.LData{
-		Control1: cemi.Control1NoRepeat | cemi.Control1NoSysBroadcast | cemi.Control1WantAck | cemi.Control1Prio(cemi.PrioLow),
-		Control2: cemi.Control2GrpAddr | cemi.Control2Hops(6),
-	},
-}
-
 // Send a group communication.
-func (gt *GroupTunnel) Send(src, dest uint16, data []byte) error {
-	req := defaultReq
-	req.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: data}
-	req.Source = src
-	req.Destination = dest
-
-	if len(data) <= 15 {
-		req.Control1 |= cemi.Control1StdFrame
-	}
-
-	return gt.Tunnel.Send(&req)
+func (gt *GroupTunnel) Send(src cemi.IndividualAddr, dest cemi.GroupAddr, data []byte) error {
+	return gt.Tunnel.Send(&cemi.LDataReq{LData: buildGroupOutbound(src, dest, data)})
 }
 
 // Inbound returns the channel on which group communication can be received.

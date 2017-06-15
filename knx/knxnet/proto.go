@@ -86,6 +86,13 @@ func Pack(buffer []byte, srv ServicePackable) {
 	srv.Pack(buffer[6:])
 }
 
+// AllocAndPack allocates a buffer and packs the KNXnet/IP packet into it.
+func AllocAndPack(srv ServicePackable) []byte {
+	buffer := make([]byte, Size(srv))
+	Pack(buffer, srv)
+	return buffer
+}
+
 // These are errors that might occur during unpacking.
 var (
 	ErrHeaderLength  = errors.New("Header length is not 6")

@@ -6,11 +6,18 @@ package knxnet
 import (
 	"errors"
 
+	"fmt"
+
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
 // ServiceID identifies the service that is contained in a packet.
 type ServiceID uint16
+
+// String generates a string representation.
+func (srv ServiceID) String() string {
+	return fmt.Sprintf("%#04x", uint16(srv))
+}
 
 // These are supported services.
 const (
@@ -38,6 +45,33 @@ type ServicePackable interface {
 	Service
 }
 
+// UnknownService is the payload of an unknown service.
+type UnknownService struct {
+	service ServiceID
+	Data    []byte
+}
+
+// Service returns the service identifier.
+func (us *UnknownService) Service() ServiceID {
+	return us.service
+}
+
+// Size returns the size of the payload.
+func (us *UnknownService) Size() uint {
+	return uint(len(us.Data))
+}
+
+// Pack the payload into the buffer.
+func (us *UnknownService) Pack(buffer []byte) {
+	copy(buffer, us.Data)
+}
+
+// Unpack copies the entire data.
+func (us *UnknownService) Unpack(data []byte) (uint, error) {
+	us.Data = make([]byte, len(data))
+	return uint(copy(us.Data, data)), nil
+}
+
 // Size returns the size of a KNXnet/IP packet.
 func Size(service ServicePackable) uint {
 	return 6 + service.Size()
@@ -54,9 +88,8 @@ func Pack(buffer []byte, srv ServicePackable) {
 
 // These are errors that might occur during unpacking.
 var (
-	ErrHeaderLength   = errors.New("Header length is not 6")
-	ErrHeaderVersion  = errors.New("Protocol version is not 16")
-	ErrUnknownService = errors.New("Unknown service identifier")
+	ErrHeaderLength  = errors.New("Header length is not 6")
+	ErrHeaderVersion = errors.New("Protocol version is not 16")
 )
 
 type serviceUnpackable interface {
@@ -140,7 +173,7 @@ func Unpack(data []byte, srv *Service) (uint, error) {
 		body = &RoutingBusy{}
 
 	default:
-		return n, ErrUnknownService
+		body = &UnknownService{service: srvID}
 	}
 
 	m, err := body.Unpack(data[n:])

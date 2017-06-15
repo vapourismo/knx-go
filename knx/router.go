@@ -223,13 +223,13 @@ var defaultInd = cemi.LDataInd{
 }
 
 // Send a group communication.
-func (gr *GroupRouter) Send(comm GroupComm) error {
+func (gr *GroupRouter) Send(src, dest uint16, data []byte) error {
 	ind := defaultInd
-	ind.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: comm.Data}
-	ind.Source = comm.Source
-	ind.Destination = comm.Destination
+	ind.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: data}
+	ind.Source = src
+	ind.Destination = dest
 
-	if len(comm.Data) <= 15 {
+	if len(data) <= 15 {
 		ind.Control1 |= cemi.Control1StdFrame
 	}
 

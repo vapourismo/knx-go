@@ -627,13 +627,13 @@ var defaultReq = cemi.LDataReq{
 }
 
 // Send a group communication.
-func (gt *GroupTunnel) Send(comm GroupComm) error {
+func (gt *GroupTunnel) Send(src, dest uint16, data []byte) error {
 	req := defaultReq
-	req.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: comm.Data}
-	req.Source = comm.Source
-	req.Destination = comm.Destination
+	req.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: data}
+	req.Source = src
+	req.Destination = dest
 
-	if len(comm.Data) <= 15 {
+	if len(data) <= 15 {
 		req.Control1 |= cemi.Control1StdFrame
 	}
 

@@ -11,6 +11,6 @@ type GroupComm struct {
 
 // A GroupClient is a KNX client which supports group communication.
 type GroupClient interface {
-	Send(comm GroupComm) error
+	Send(src, dest uint16, data []byte) error
 	Inbound() <-chan GroupComm
 }

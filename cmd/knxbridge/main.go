@@ -4,11 +4,10 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
-
 	"time"
 
 	"github.com/vapourismo/knx-go/knx"
@@ -17,29 +16,47 @@ import (
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
-var (
-	flagRouter = flag.String("router", "224.0.23.12:3671", "KNXnet/IP router multicast group")
-	flagHelp   = flag.Bool("help", false, "Display usage")
-)
+type relay interface {
+	relay(data cemi.LData) error
+
+	Inbound() <-chan cemi.Message
+	Close()
+}
+
+type reqRelay struct {
+	*knx.Tunnel
+}
+
+func (relay reqRelay) relay(data cemi.LData) error {
+	return relay.Send(&cemi.LDataReq{LData: data})
+}
+
+type indRelay struct {
+	*knx.Router
+}
+
+func (relay indRelay) relay(data cemi.LData) error {
+	return relay.Send(&cemi.LDataInd{LData: data})
+}
 
 func printUsage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s <gateway addr>\n", os.Args[0])
-	flag.PrintDefaults()
+	fmt.Fprintf(os.Stderr, "Usage: %s <gateway addr> <other addr>\n", os.Args[0])
 }
 
 func main() {
-	flag.Parse()
-
-	if *flagHelp || len(flag.Args()) < 1 {
+	if len(os.Args) < 3 {
 		printUsage()
 		return
 	}
 
 	util.Logger = log.New(os.Stdout, "", log.LstdFlags)
 
+	gatewayAddr := os.Args[1]
+	otherAddr := os.Args[2]
+
 	// Loop for ever. Failures don't matter, we'll always retry.
 	for {
-		br, err := newBridge(flag.Arg(0), *flagRouter)
+		br, err := newBridge(gatewayAddr, otherAddr)
 		if err != nil {
 			util.Log(br, "Error while creating: %v", err)
 
@@ -60,24 +77,45 @@ func main() {
 
 type bridge struct {
 	tunnel *knx.Tunnel
-	router *knx.Router
+	other  relay
 }
 
-func newBridge(gatewayAddr, routerAddr string) (*bridge, error) {
+func newBridge(gatewayAddr, otherAddr string) (*bridge, error) {
 	// Instantiate tunnel connection.
 	tunnel, err := knx.NewTunnel(gatewayAddr, knxnet.TunnelLayerData, knx.DefaultTunnelConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	// Instantiate routing facilities.
-	router, err := knx.NewRouter(routerAddr, knx.DefaultRouterConfig)
+	var other relay
+
+	addr, err := net.ResolveUDPAddr("udp4", otherAddr)
 	if err != nil {
 		tunnel.Close()
 		return nil, err
 	}
 
-	return &bridge{tunnel, router}, nil
+	if addr.IP.IsMulticast() {
+		// Instantiate routing facilities.
+		router, err := knx.NewRouter(otherAddr, knx.DefaultRouterConfig)
+		if err != nil {
+			tunnel.Close()
+			return nil, err
+		}
+
+		other = indRelay{router}
+	} else {
+		// Instantiate tunnel connection.
+		otherTunnel, err := knx.NewTunnel(otherAddr, knxnet.TunnelLayerData, knx.DefaultTunnelConfig)
+		if err != nil {
+			tunnel.Close()
+			return nil, err
+		}
+
+		other = reqRelay{otherTunnel}
+	}
+
+	return &bridge{tunnel, other}, nil
 }
 
 func (br *bridge) serve() error {
@@ -90,20 +128,20 @@ func (br *bridge) serve() error {
 			}
 
 			if ind, ok := msg.(*cemi.LDataInd); ok {
-				util.Log(br, "To router: %v", ind)
-				if err := br.router.Send(ind); err != nil {
+				util.Log(br, "%+v", ind)
+				if err := br.other.relay(ind.LData); err != nil {
 					return err
 				}
 			}
 
 		// Receive message from router.
-		case msg, open := <-br.router.Inbound():
+		case msg, open := <-br.other.Inbound():
 			if !open {
 				return errors.New("Router channel closed")
 			}
 
 			if ind, ok := msg.(*cemi.LDataInd); ok {
-				util.Log(br, "To tunnel: %v", ind)
+				util.Log(br, "%+v", ind)
 				if err := br.tunnel.Send(&cemi.LDataReq{LData: ind.LData}); err != nil {
 					return err
 				}
@@ -114,5 +152,5 @@ func (br *bridge) serve() error {
 
 func (br *bridge) close() {
 	br.tunnel.Close()
-	br.router.Close()
+	br.other.Close()
 }

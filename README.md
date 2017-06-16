@@ -16,6 +16,10 @@ networks.
  **knx/cemi**      | CEMI-encoded frames
  **cmd/knxbridge** | Tool to bridge KNX networks between a KNXnet/IP router and gateway
 
+Install the packages using `go get -u github.com/vapourismo/knx-go/knx`.
+
+Install the knxbridge tool using `go get -u github.com/vapourismo/knx-go/cmd/knxbridge`.
+
 ## Examples
 
 ### KNXnet/IP Group Client

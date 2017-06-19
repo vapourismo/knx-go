@@ -37,6 +37,7 @@ import (
 	"os"
 
 	"github.com/vapourismo/knx-go/knx"
+	"github.com/vapourismo/knx-go/knx/cemi"
 	"github.com/vapourismo/knx-go/knx/dpt"
 	"github.com/vapourismo/knx-go/knx/util"
 )
@@ -56,7 +57,7 @@ func main() {
 	defer client.Close()
 
 	// Send 20.5°C to group 1/2/3.
-	err = client.Send(0, 2563, dpt.ValueTemp(20.5).Pack())
+	err = client.Send(0, cemi.NewGroupAddr3(1, 2, 3), dpt.ValueTemp(20.5).Pack())
 	if err != nil {
 		util.Logger.Fatal(err)
 	}

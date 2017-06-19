@@ -1,4 +1,5 @@
 // Copyright 2017 Ole Krüger.
+// Licensed under the MIT license which can be found in the LICENSE file.
 
 // Package knxnet provides the means to parse and generate frames of the KNXnet/IP protocol.
 package knxnet

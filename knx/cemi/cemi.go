@@ -1,4 +1,5 @@
 // Copyright 2017 Ole Krüger.
+// Licensed under the MIT license which can be found in the LICENSE file.
 
 // Package cemi provides the functionality to parse and generate KNX CEMI-encoded frames.
 package cemi

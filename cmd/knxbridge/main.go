@@ -50,7 +50,8 @@ func main() {
 		return
 	}
 
-	util.Logger = log.New(os.Stdout, "", log.LstdFlags)
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+	util.Logger = logger
 
 	gatewayAddr := os.Args[1]
 	otherAddr := os.Args[2]
@@ -59,7 +60,7 @@ func main() {
 	for {
 		br, err := newBridge(gatewayAddr, otherAddr)
 		if err != nil {
-			util.Log(br, "Error while creating: %v", err)
+			logger.Printf("Error while creating: %v\n", err)
 
 			time.Sleep(time.Second)
 			continue
@@ -67,7 +68,7 @@ func main() {
 
 		err = br.serve()
 		if err != nil {
-			util.Log(br, "Server terminated with error: %v", err)
+			logger.Printf("Server terminated with error: %v\n", err)
 		}
 
 		br.close()

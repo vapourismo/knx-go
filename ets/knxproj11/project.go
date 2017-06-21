@@ -45,6 +45,7 @@ func (obj *ComObjectRef) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 		}
 	}
 
+	// Decode element based on the layout above.
 	if err := d.DecodeElement(&doc, &start); err != nil {
 		return err
 	}
@@ -53,6 +54,7 @@ func (obj *ComObjectRef) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 	obj.SendIDs = nil
 	obj.ReceiveIDs = nil
 
+	// Fill in Send/Receive connections to communication object refs.
 	for _, con := range doc.Connectors.A {
 		switch con.XMLName.Local {
 		case "Send":

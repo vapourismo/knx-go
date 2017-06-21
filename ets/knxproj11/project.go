@@ -26,15 +26,15 @@ type GroupObjectRange struct {
 	SubRanges []GroupObjectRange `xml:"GroupRange"`
 }
 
-// ComObjectRef is a reference to a communcation object.
-type ComObjectRef struct {
+// ComObjectConn is a connection to a communcation object reference.
+type ComObjectConn struct {
 	RefID      string
 	SendIDs    []string
 	ReceiveIDs []string
 }
 
 // UnmarshalXML extracts the ComObject information.
-func (obj *ComObjectRef) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (obj *ComObjectConn) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var doc struct {
 		RefID      string `xml:"RefId,attr"`
 		Connectors struct {
@@ -70,10 +70,10 @@ func (obj *ComObjectRef) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 
 // Device is a KNX device.
 type Device struct {
-	ID         string         `xml:"Id,attr"`
-	Name       string         `xml:"Name,attr"`
-	Address    uint           `xml:"Address,attr"`
-	ComObjects []ComObjectRef `xml:"ComObjectInstanceRefs>ComObjectInstanceRef"`
+	ID         string          `xml:"Id,attr"`
+	Name       string          `xml:"Name,attr"`
+	Address    uint            `xml:"Address,attr"`
+	ComObjects []ComObjectConn `xml:"ComObjectInstanceRefs>ComObjectInstanceRef"`
 }
 
 // Line is a KNX line.

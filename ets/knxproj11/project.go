@@ -135,8 +135,8 @@ type Project struct {
 	Installations []Installation `xml:"Installations>Installation"`
 }
 
-// xmlns is the expected namespace for version 1.1 of the project spec.
-const xmlns = "http://knx.org/xml/project/11"
+// DefaultNamespace is the expected namespace for version 1.1 of the project spec.
+const DefaultNamespace = "http://knx.org/xml/project/11"
 
 // ErrInvalidNamespace indicates that given project file is scoped in an unknown namespace.
 // The project that will be returned alongside this warning might still be usable.
@@ -162,7 +162,7 @@ func processProject(r io.Reader) (_ Project, err error) {
 		&doc.Project.CreatedBy.Version.Patch,
 	)
 
-	if doc.Namespace != xmlns {
+	if doc.Namespace != DefaultNamespace {
 		err = ErrInvalidNamespace
 	}
 

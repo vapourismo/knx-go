@@ -23,6 +23,19 @@ type projectMetaDocument struct {
 	}
 }
 
+// readProjectMeta extracts project meta information from a file.
+func readProjectMeta(file *zip.File) (meta projectMetaDocument, err error) {
+	r, err := file.Open()
+	if err != nil {
+		return
+	}
+
+	err = xml.NewDecoder(r).Decode(&meta)
+	r.Close()
+
+	return
+}
+
 // ProjectMeta contains meta information for a project.
 type ProjectMeta struct {
 	file *zip.File
@@ -43,19 +56,6 @@ type ProjectArchive struct {
 
 // projectFileRe is a regular expression that matches against project meta files.
 var projectFileRe = regexp.MustCompile("^(p|P)-([0-9a-zA-Z]+)/(p|P)roject.xml$")
-
-// readProjectMeta extracts project meta information from a file.
-func readProjectMeta(file *zip.File) (meta projectMetaDocument, err error) {
-	r, err := file.Open()
-	if err != nil {
-		return
-	}
-
-	err = xml.NewDecoder(r).Decode(&meta)
-	r.Close()
-
-	return
-}
 
 // Open a .knxproj file.
 func Open(file string) (*ProjectArchive, error) {

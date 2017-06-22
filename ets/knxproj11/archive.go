@@ -36,26 +36,68 @@ func readProjectMeta(file *zip.File) (meta projectMetaDocument, err error) {
 	return
 }
 
-// ProjectMeta contains meta information for a project.
-type ProjectMeta struct {
+// A ProjectFile contains project information.
+type ProjectFile struct {
 	file *zip.File
 	ID   string
 	Name string
 }
 
 // Process the project file in order to retrieve more information.
-func (pm *ProjectMeta) Process() (Project, error) {
+func (pm *ProjectFile) Process() (Project, error) {
 	return processZippedProject(pm.file)
+}
+
+// findProjectFile analyzes the contents of the given project meta file in order to find the file
+// that contains the actual project.
+func findProjectFile(archive *zip.ReadCloser, file *zip.File) (_ ProjectFile, err error) {
+	meta, err := readProjectMeta(file)
+	if err != nil {
+		return
+	}
+
+	// Determine the file name which contains the actual project.
+	projectFile := path.Join(
+		path.Dir(file.Name),
+		fmt.Sprintf("%d.xml", meta.Project.ProjectInformation.Number),
+	)
+
+	// Find the project file.
+	for _, file := range archive.File {
+		if file.Name == projectFile {
+			return ProjectFile{
+				file: file,
+				ID:   meta.Project.ID,
+				Name: meta.Project.ProjectInformation.Name,
+			}, nil
+		}
+	}
+
+	err = fmt.Errorf(
+		"Could not find project file '%s' from project '%s'",
+		projectFile, meta.Project.ID,
+	)
+	return
+}
+
+// A ManufacturerFile contains manufacturerer data.
+type ManufacturerFile struct {
+	file *zip.File
 }
 
 // A ProjectArchive is a handle to a .knxproj file.
 type ProjectArchive struct {
-	archive  *zip.ReadCloser
-	Projects []ProjectMeta
+	archive       *zip.ReadCloser
+	Projects      []ProjectFile
+	Manufacturers []ManufacturerFile
 }
 
-// projectFileRe is a regular expression that matches against project meta files.
-var projectFileRe = regexp.MustCompile("^(p|P)-([0-9a-zA-Z]+)/(p|P)roject.xml$")
+var (
+	projectFileRe      = regexp.MustCompile("^(p|P)-([0-9a-zA-Z]+)/(p|P)roject.xml$")
+	manufacturerFileRe = regexp.MustCompile("^(m|M)-([0-9a-zA-Z]+)/(m|M)-([0-9a-zA-Z]+)([^.]+).xml$")
+
+	// TODO: Figure out if '/' is a universal path seperator in ZIP files.
+)
 
 // Open a .knxproj file.
 func Open(file string) (*ProjectArchive, error) {
@@ -64,44 +106,27 @@ func Open(file string) (*ProjectArchive, error) {
 		return nil, err
 	}
 
-	var projects []ProjectMeta
+	var projects []ProjectFile
+	var manufacturers []ManufacturerFile
 
-outerLoop:
 	for _, file := range archive.File {
-		// Is this a project meta file?
 		if projectFileRe.MatchString(file.Name) {
-			meta, err := readProjectMeta(file)
+			proj, err := findProjectFile(archive, file)
 			if err != nil {
 				archive.Close()
 				return nil, err
 			}
 
-			// Determine the file name which contains the actual project.
-			projectFile := path.Join(
-				path.Dir(file.Name),
-				fmt.Sprintf("%d.xml", meta.Project.ProjectInformation.Number),
-			)
-
-			for _, file := range archive.File {
-				if file.Name == projectFile {
-					projects = append(projects, ProjectMeta{
-						file: file,
-						ID:   meta.Project.ID,
-						Name: meta.Project.ProjectInformation.Name,
-					})
-
-					continue outerLoop
-				}
-			}
-
-			archive.Close()
-			return nil, fmt.Errorf("Could not find file: %s", projectFile)
+			projects = append(projects, proj)
+		} else if manufacturerFileRe.MatchString(file.Name) {
+			manufacturers = append(manufacturers, ManufacturerFile{file: file})
 		}
 	}
 
 	return &ProjectArchive{
-		archive:  archive,
-		Projects: projects,
+		archive:       archive,
+		Projects:      projects,
+		Manufacturers: manufacturers,
 	}, nil
 }
 

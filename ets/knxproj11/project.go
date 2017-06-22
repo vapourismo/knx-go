@@ -14,18 +14,24 @@ import (
 	"github.com/blang/semver"
 )
 
-// A Connector connects a communication object of a device with group objects.
-type Connector struct {
-	RefID      string
-	SendIDs    []string
-	ReceiveIDs []string
+// A ComObjectRefID is the ID of a communication object reference.
+type ComObjectRefID string
+
+// A ComObjectInstanceRef references a communication object via a reference to it. (Yes, you read
+// that correctly.)
+type ComObjectInstanceRef struct {
+	RefID         ComObjectRefID
+	DatapointType string
+	Sends         []GroupAddressID
+	Receives      []GroupAddressID
 }
 
 // UnmarshalXML extracts the ComObject information.
-func (obj *Connector) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (obj *ComObjectInstanceRef) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var doc struct {
-		RefID      string `xml:"RefId,attr"`
-		Connectors struct {
+		RefID         string `xml:"RefID,attr"`
+		DatapointType string `xml:"DatapointType,attr"`
+		Connectors    struct {
 			A []struct {
 				XMLName xml.Name
 				RefID   string `xml:"GroupAddressRefId,attr"`
@@ -38,58 +44,70 @@ func (obj *Connector) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 		return err
 	}
 
-	obj.RefID = doc.RefID
-	obj.SendIDs = nil
-	obj.ReceiveIDs = nil
+	obj.RefID = ComObjectRefID(doc.RefID)
+	obj.DatapointType = doc.DatapointType
+	obj.Sends = nil
+	obj.Receives = nil
 
 	// Fill in Send/Receive connections to communication object refs.
 	for _, con := range doc.Connectors.A {
 		switch con.XMLName.Local {
 		case "Send":
-			obj.SendIDs = append(obj.SendIDs, con.RefID)
+			obj.Sends = append(obj.Sends, GroupAddressID(con.RefID))
 
 		case "Receive":
-			obj.ReceiveIDs = append(obj.ReceiveIDs, con.RefID)
+			obj.Receives = append(obj.Receives, GroupAddressID(con.RefID))
 		}
 	}
 
 	return nil
 }
 
+// A DeviceID is the ID of a device.
+type DeviceID string
+
 // Device is a KNX device.
 type Device struct {
-	ID         string      `xml:"Id,attr"`
-	Name       string      `xml:"Name,attr"`
-	Address    uint        `xml:"Address,attr"`
-	ComObjects []Connector `xml:"ComObjectInstanceRefs>ComObjectInstanceRef"`
+	ID         DeviceID               `xml:"Id,attr"`
+	Name       string                 `xml:"Name,attr"`
+	Address    uint                   `xml:"Address,attr"`
+	ComObjects []ComObjectInstanceRef `xml:"ComObjectInstanceRefs>ComObjectInstanceRef"`
 }
+
+// A LineID is the ID of a line.
+type LineID string
 
 // Line is a KNX line.
 type Line struct {
-	ID      string   `xml:"Id,attr"`
+	ID      LineID   `xml:"Id,attr"`
 	Name    string   `xml:"Name,attr"`
 	Address uint     `xml:"Address,attr"`
 	Devices []Device `xml:"DeviceInstance"`
 }
 
+// An AreaID is the ID of a line.
+type AreaID string
+
 // Area is a KNX area.
 type Area struct {
-	ID      string `xml:"Id,attr"`
+	ID      AreaID `xml:"Id,attr"`
 	Name    string `xml:"Name,attr"`
 	Address uint   `xml:"Address,attr"`
 	Lines   []Line `xml:"Line"`
 }
 
+// A GroupAddressID is the ID of a group address.
+type GroupAddressID string
+
 // GroupAddress is a group address.
 type GroupAddress struct {
-	ID      string `xml:"Id,attr"`
-	Name    string `xml:"Name,attr"`
-	Address uint16 `xml:"Address,attr"`
+	ID      GroupAddressID `xml:"Id,attr"`
+	Name    string         `xml:"Name,attr"`
+	Address uint16         `xml:"Address,attr"`
 }
 
 // GroupAddressRange is a range of group addresses and sub-ranges.
 type GroupAddressRange struct {
-	ID         string              `xml:"Id,attr"`
 	Name       string              `xml:"Name,attr"`
 	RangeStart uint16              `xml:"RangeStart,attr"`
 	RangeEnd   uint16              `xml:"RangeEnd,attr"`
@@ -99,9 +117,8 @@ type GroupAddressRange struct {
 
 // Installation is an installation.
 type Installation struct {
-	ID             string              `xml:"InstallationId,attr"`
 	Name           string              `xml:"Name,attr"`
-	Areas          []Area              `xml:"Topology>Area"`
+	Topology       []Area              `xml:"Topology>Area"`
 	GroupAddresses []GroupAddressRange `xml:"GroupAddresses>GroupRanges>GroupRange"`
 }
 

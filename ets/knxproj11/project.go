@@ -6,35 +6,23 @@ package knxproj11
 import (
 	"archive/zip"
 	"encoding/xml"
-	"io/ioutil"
+	"errors"
+	"io"
 
-	"github.com/vapourismo/knx-go/knx/cemi"
+	"fmt"
+
+	"github.com/blang/semver"
 )
 
-// GroupObject is a group object.
-type GroupObject struct {
-	ID      string         `xml:"Id,attr"`
-	Name    string         `xml:"Name,attr"`
-	Address cemi.GroupAddr `xml:"Address,attr"`
-}
-
-// GroupObjectRange is a range of group objects and ranges.
-type GroupObjectRange struct {
-	ID        string             `xml:"Id,attr"`
-	Name      string             `xml:"Name,attr"`
-	Objects   []GroupObject      `xml:"GroupAddress"`
-	SubRanges []GroupObjectRange `xml:"GroupRange"`
-}
-
-// ComObjectConn is a connection to a communcation object reference.
-type ComObjectConn struct {
+// A Connector connects a communication object of a device with group objects.
+type Connector struct {
 	RefID      string
 	SendIDs    []string
 	ReceiveIDs []string
 }
 
 // UnmarshalXML extracts the ComObject information.
-func (obj *ComObjectConn) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (obj *Connector) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var doc struct {
 		RefID      string `xml:"RefId,attr"`
 		Connectors struct {
@@ -70,10 +58,10 @@ func (obj *ComObjectConn) UnmarshalXML(d *xml.Decoder, start xml.StartElement) e
 
 // Device is a KNX device.
 type Device struct {
-	ID         string          `xml:"Id,attr"`
-	Name       string          `xml:"Name,attr"`
-	Address    uint            `xml:"Address,attr"`
-	ComObjects []ComObjectConn `xml:"ComObjectInstanceRefs>ComObjectInstanceRef"`
+	ID         string      `xml:"Id,attr"`
+	Name       string      `xml:"Name,attr"`
+	Address    uint        `xml:"Address,attr"`
+	ComObjects []Connector `xml:"ComObjectInstanceRefs>ComObjectInstanceRef"`
 }
 
 // Line is a KNX line.
@@ -92,44 +80,88 @@ type Area struct {
 	Lines   []Line `xml:"Line"`
 }
 
+// GroupAddress is a group address.
+type GroupAddress struct {
+	ID      string `xml:"Id,attr"`
+	Name    string `xml:"Name,attr"`
+	Address uint16 `xml:"Address,attr"`
+}
+
+// GroupAddressRange is a range of group addresses and sub-ranges.
+type GroupAddressRange struct {
+	ID         string              `xml:"Id,attr"`
+	Name       string              `xml:"Name,attr"`
+	RangeStart uint16              `xml:"RangeStart,attr"`
+	RangeEnd   uint16              `xml:"RangeEnd,attr"`
+	Addresses  []GroupAddress      `xml:"GroupAddress"`
+	SubRanges  []GroupAddressRange `xml:"GroupRange"`
+}
+
 // Installation is an installation.
 type Installation struct {
-	ID     string             `xml:"InstallationId,attr"`
-	Name   string             `xml:"Name,attr"`
-	Areas  []Area             `xml:"Topology>Area"`
-	Groups []GroupObjectRange `xml:"GroupAddresses>GroupRanges>GroupRange"`
+	ID             string              `xml:"InstallationId,attr"`
+	Name           string              `xml:"Name,attr"`
+	Areas          []Area              `xml:"Topology>Area"`
+	GroupAddresses []GroupAddressRange `xml:"GroupAddresses>GroupRanges>GroupRange"`
+}
+
+// Tool describes a tool.
+type Tool struct {
+	Name    string
+	Version semver.Version
 }
 
 // Project is an ETS project.
 type Project struct {
 	ID            string         `xml:"Id,attr"`
+	CreatedBy     Tool           `xml:"-"`
 	Installations []Installation `xml:"Installations>Installation"`
 }
 
-// processProject
-func processProject(file *zip.File) (proj Project, err error) {
-	// Acquire a handle to the file.
+// xmlns is the expected namespace for version 1.1 of the project spec.
+const xmlns = "http://knx.org/xml/project/11"
+
+// ErrInvalidNamespace indicates that given project file is scoped in an unknown namespace.
+// The project that will be returned alongside this warning might still be usable.
+var ErrInvalidNamespace = errors.New("Namespace does not match version 1.1 namespace")
+
+func processProject(r io.Reader) (_ Project, err error) {
+	var doc struct {
+		Namespace   string `xml:"xmlns,attr"`
+		ToolVersion string `xml:"ToolVersion,attr"`
+		Project     Project
+	}
+
+	if err = xml.NewDecoder(r).Decode(&doc); err != nil {
+		return
+	}
+
+	fmt.Sscanf(
+		doc.ToolVersion,
+		"%s %d.%d.%d",
+		&doc.Project.CreatedBy.Name,
+		&doc.Project.CreatedBy.Version.Major,
+		&doc.Project.CreatedBy.Version.Minor,
+		&doc.Project.CreatedBy.Version.Patch,
+	)
+
+	if doc.Namespace != xmlns {
+		err = ErrInvalidNamespace
+	}
+
+	// We return the project even if namespace does not match. The project might be potentially
+	// usable.
+	return doc.Project, err
+}
+
+func processZippedProject(file *zip.File) (proj Project, err error) {
 	r, err := file.Open()
 	if err != nil {
 		return
 	}
 
-	// Retrieve the contents of the file.
-	contents, err := ioutil.ReadAll(r)
+	proj, err = processProject(r)
 	r.Close()
 
-	if err != nil {
-		return
-	}
-
-	var doc struct {
-		Project Project
-	}
-
-	// Extract the information.
-	if err = xml.Unmarshal(contents, &doc); err != nil {
-		return
-	}
-
-	return doc.Project, nil
+	return
 }

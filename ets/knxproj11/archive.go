@@ -32,7 +32,7 @@ type ProjectMeta struct {
 
 // Process the project file in order to retrieve more information.
 func (pm *ProjectMeta) Process() (Project, error) {
-	return processProject(pm.file)
+	return processZippedProject(pm.file)
 }
 
 // A ProjectArchive is a handle to a .knxproj file.

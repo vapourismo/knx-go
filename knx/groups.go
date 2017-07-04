@@ -11,6 +11,22 @@ import (
 // GroupCommand determines the meaning of a group event.
 type GroupCommand uint8
 
+// String generates a string representation of the command.
+func (cmd GroupCommand) String() string {
+	switch cmd {
+	case GroupRead:
+		return "Read"
+
+	case GroupResponse:
+		return "Response"
+
+	case GroupWrite:
+		return "Write"
+	}
+
+	return "Unknown"
+}
+
 // These are known group commands.
 const (
 	GroupRead     GroupCommand = 0

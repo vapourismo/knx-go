@@ -51,10 +51,20 @@ func Control1Prio(prio Priority) ControlField1 {
 // ControlField2 contains various control information.
 type ControlField2 uint8
 
+// IsGroupAddr determines if the destination address is a group address.
+func (ctrl2 ControlField2) IsGroupAddr() bool {
+	return ctrl2&Control2GroupAddr == Control2GroupAddr
+}
+
+// Hops retrieves the number of hops.
+func (ctrl2 ControlField2) Hops() uint8 {
+	return uint8(ctrl2>>7) & 7
+}
+
 const (
-	// Control2GrpAddr determines that the destination address inside the frame is a group address,
+	// Control2GroupAddr determines that the destination address inside the frame is a group address,
 	// instead of an individual address.
-	Control2GrpAddr ControlField2 = 1 << 7
+	Control2GroupAddr ControlField2 = 1 << 7
 
 	// Control2LTEFrame indicates that the frame is a LTE-frame.
 	Control2LTEFrame ControlField2 = 1 << 2

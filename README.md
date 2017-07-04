@@ -52,16 +52,20 @@ func main() {
 	// Connect to the gateway.
 	client, err := knx.NewGroupTunnel("10.0.0.7:3671", knx.DefaultTunnelConfig)
 	if err != nil {
-		util.Logger.Fatal(err)
+		log.Fatal(err)
 	}
 
 	// Close upon exiting. Even if the gateway closes the connection, we still have to clean up.
 	defer client.Close()
 
 	// Send 20.5°C to group 1/2/3.
-	err = client.Send(0, cemi.NewGroupAddr3(1, 2, 3), dpt.ValueTemp(20.5).Pack())
+	err = client.Send(knx.GroupEvent{
+		Command:     knx.GroupWrite,
+		Destination: cemi.NewGroupAddr3(1, 2, 3),
+		Data:        dpt.ValueTemp(20.5).Pack(),
+	})
 	if err != nil {
-		util.Logger.Fatal(err)
+		log.Fatal(err)
 	}
 
 	// Receive messages from the gateway. The inbound channel is closed with the connection.

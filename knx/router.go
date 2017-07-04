@@ -194,8 +194,8 @@ func NewGroupRouter(multicastAddress string, config RouterConfig) (gr GroupRoute
 }
 
 // Send a group communication.
-func (gr *GroupRouter) Send(src cemi.IndividualAddr, dest cemi.GroupAddr, data []byte) error {
-	return gr.Router.Send(&cemi.LDataInd{LData: buildGroupOutbound(src, dest, data)})
+func (gr *GroupRouter) Send(event GroupEvent) error {
+	return gr.Router.Send(&cemi.LDataInd{LData: buildGroupOutbound(event)})
 }
 
 // Inbound returns the channel on which group communication can be received.

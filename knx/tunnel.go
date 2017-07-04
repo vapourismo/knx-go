@@ -598,8 +598,8 @@ func NewGroupTunnel(gatewayAddr string, config TunnelConfig) (gt GroupTunnel, er
 }
 
 // Send a group communication.
-func (gt *GroupTunnel) Send(src cemi.IndividualAddr, dest cemi.GroupAddr, data []byte) error {
-	return gt.Tunnel.Send(&cemi.LDataReq{LData: buildGroupOutbound(src, dest, data)})
+func (gt *GroupTunnel) Send(event GroupEvent) error {
+	return gt.Tunnel.Send(&cemi.LDataReq{LData: buildGroupOutbound(event)})
 }
 
 // Inbound returns the channel on which group communication can be received.

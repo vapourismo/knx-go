@@ -28,7 +28,7 @@ type GroupEvent struct {
 
 // A GroupClient is a KNX client which supports group communication.
 type GroupClient interface {
-	Send(src cemi.IndividualAddr, dest cemi.GroupAddr, data []byte) error
+	Send(event GroupEvent) error
 	Inbound() <-chan GroupEvent
 }
 
@@ -69,13 +69,16 @@ var defaultGroupLData = cemi.LData{
 }
 
 // buildGroupOutbound constructs the L_Data core frame for group communication.
-func buildGroupOutbound(src cemi.IndividualAddr, dest cemi.GroupAddr, data []byte) cemi.LData {
+func buildGroupOutbound(event GroupEvent) cemi.LData {
 	ldata := defaultGroupLData
-	ldata.Data = &cemi.AppData{Command: cemi.GroupValueWrite, Data: data}
-	ldata.Source = src
-	ldata.Destination = uint16(dest)
+	ldata.Data = &cemi.AppData{
+		Command: cemi.APCI(event.Command),
+		Data:    event.Data,
+	}
+	ldata.Source = event.Source
+	ldata.Destination = uint16(event.Destination)
 
-	if len(data) <= 15 {
+	if len(event.Data) <= 15 {
 		ldata.Control1 |= cemi.Control1StdFrame
 	}
 

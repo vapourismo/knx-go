@@ -56,8 +56,8 @@ func serveGroupInbound(inbound <-chan cemi.Message, outbound chan<- GroupEvent) 
 	for msg := range inbound {
 		if ind, ok := msg.(*cemi.LDataInd); ok {
 			// Filter indications that do not target group addresses.
-			if ind.Control2.IsGroupAddr() {
-				util.Log(inbound, "Received L_Data.ind does target a group address")
+			if !ind.Control2.IsGroupAddr() {
+				util.Log(inbound, "Received L_Data.ind does not target a group address")
 				continue
 			}
 

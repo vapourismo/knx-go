@@ -73,7 +73,7 @@ func NewGroupAddrString(addr string) (GroupAddr, error) {
 		return NewGroupAddr2(uint8(a), uint8(b)), nil
 
 	case num > 0:
-		return GroupAddr(b), nil
+		return GroupAddr(a), nil
 	}
 
 	return 0, errors.New("Input is not a group address")

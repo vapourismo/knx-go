@@ -4,6 +4,7 @@
 package cemi
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -18,6 +19,26 @@ func NewIndividualAddr3(a, b, c uint8) IndividualAddr {
 // NewIndividualAddr2 generates a group address with format a/b.
 func NewIndividualAddr2(a, b uint8) IndividualAddr {
 	return IndividualAddr(a)<<8 | IndividualAddr(b)
+}
+
+// NewIndividualAddrString parses the given string as a individual address. Supported formats are
+// %d.%d.%d, %d.%d and %d.
+func NewIndividualAddrString(addr string) (IndividualAddr, error) {
+	var a, b, c uint
+	num, _ := fmt.Sscanf(addr, "%d.%d.%d", &a, &b, &c)
+
+	switch {
+	case num > 2:
+		return NewIndividualAddr3(uint8(a), uint8(b), uint8(c)), nil
+
+	case num > 1:
+		return NewIndividualAddr2(uint8(a), uint8(b)), nil
+
+	case num > 0:
+		return IndividualAddr(a), nil
+	}
+
+	return 0, errors.New("Input is not an individual address")
 }
 
 // String generates a string representation.
@@ -36,6 +57,26 @@ func NewGroupAddr3(a, b, c uint8) GroupAddr {
 // NewGroupAddr2 generates a group address with format a/b.
 func NewGroupAddr2(a, b uint8) GroupAddr {
 	return GroupAddr(a)<<8 | GroupAddr(b)
+}
+
+// NewGroupAddrString parses the given string as a group address. Supported formats are %d/%d/%d,
+// %d/%d and %d.
+func NewGroupAddrString(addr string) (GroupAddr, error) {
+	var a, b, c uint
+	num, _ := fmt.Sscanf(addr, "%d/%d/%d", &a, &b, &c)
+
+	switch {
+	case num > 2:
+		return NewGroupAddr3(uint8(a), uint8(b), uint8(c)), nil
+
+	case num > 1:
+		return NewGroupAddr2(uint8(a), uint8(b)), nil
+
+	case num > 0:
+		return GroupAddr(b), nil
+	}
+
+	return 0, errors.New("Input is not a group address")
 }
 
 // String generates a string representation.

@@ -178,7 +178,7 @@ func (router *Router) Close() {
 // GroupRouter is a Router that provides only a group communication interface.
 type GroupRouter struct {
 	*Router
-	inbound chan GroupComm
+	inbound chan GroupEvent
 }
 
 // NewGroupRouter creates a new Router for group communication.
@@ -186,7 +186,7 @@ func NewGroupRouter(multicastAddress string, config RouterConfig) (gr GroupRoute
 	gr.Router, err = NewRouter(multicastAddress, config)
 
 	if err == nil {
-		gr.inbound = make(chan GroupComm)
+		gr.inbound = make(chan GroupEvent)
 		go serveGroupInbound(gr.Router.Inbound(), gr.inbound)
 	}
 
@@ -199,6 +199,6 @@ func (gr *GroupRouter) Send(src cemi.IndividualAddr, dest cemi.GroupAddr, data [
 }
 
 // Inbound returns the channel on which group communication can be received.
-func (gr *GroupRouter) Inbound() <-chan GroupComm {
+func (gr *GroupRouter) Inbound() <-chan GroupEvent {
 	return gr.inbound
 }

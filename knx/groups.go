@@ -8,8 +8,19 @@ import (
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
-// GroupComm represents a group communication.
-type GroupComm struct {
+// GroupCommand determines the meaning of a group event.
+type GroupCommand uint8
+
+// These are known group commands.
+const (
+	GroupRead     GroupCommand = 0
+	GroupResponse GroupCommand = 1
+	GroupWrite    GroupCommand = 2
+)
+
+// GroupEvent represents a group communication event.
+type GroupEvent struct {
+	Command     GroupCommand
 	Source      cemi.IndividualAddr
 	Destination cemi.GroupAddr
 	Data        []byte
@@ -18,18 +29,25 @@ type GroupComm struct {
 // A GroupClient is a KNX client which supports group communication.
 type GroupClient interface {
 	Send(src cemi.IndividualAddr, dest cemi.GroupAddr, data []byte) error
-	Inbound() <-chan GroupComm
+	Inbound() <-chan GroupEvent
 }
 
 // serveGroupInbound serves a group communication.
-func serveGroupInbound(inbound <-chan cemi.Message, outbound chan<- GroupComm) {
+func serveGroupInbound(inbound <-chan cemi.Message, outbound chan<- GroupEvent) {
 	util.Log(inbound, "Started worker")
 	defer util.Log(inbound, "Worker exited")
 
 	for msg := range inbound {
 		if ind, ok := msg.(*cemi.LDataInd); ok {
-			if app, ok := ind.Data.(*cemi.AppData); ok && (app.Command == cemi.GroupValueResponse || app.Command == cemi.GroupValueWrite) {
-				outbound <- GroupComm{
+			// Filter indications that do not target group addresses.
+			if ind.Control2&cemi.Control2GrpAddr == 0 {
+				util.Log(inbound, "Received L_Data.ind does target a group address")
+				continue
+			}
+
+			if app, ok := ind.Data.(*cemi.AppData); ok && app.Command < 3 {
+				outbound <- GroupEvent{
+					Command:     GroupCommand(app.Command),
 					Source:      ind.Source,
 					Destination: cemi.GroupAddr(ind.Destination),
 					Data:        app.Data,

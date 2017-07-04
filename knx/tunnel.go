@@ -582,7 +582,7 @@ func (conn *Tunnel) Send(data cemi.Message) error {
 // GroupTunnel is a Tunnel that provides only a group communication interface.
 type GroupTunnel struct {
 	*Tunnel
-	inbound chan GroupComm
+	inbound chan GroupEvent
 }
 
 // NewGroupTunnel creates a new Tunnel for group communication.
@@ -590,7 +590,7 @@ func NewGroupTunnel(gatewayAddr string, config TunnelConfig) (gt GroupTunnel, er
 	gt.Tunnel, err = NewTunnel(gatewayAddr, knxnet.TunnelLayerData, config)
 
 	if err == nil {
-		gt.inbound = make(chan GroupComm)
+		gt.inbound = make(chan GroupEvent)
 		go serveGroupInbound(gt.Tunnel.Inbound(), gt.inbound)
 	}
 
@@ -603,6 +603,6 @@ func (gt *GroupTunnel) Send(src cemi.IndividualAddr, dest cemi.GroupAddr, data [
 }
 
 // Inbound returns the channel on which group communication can be received.
-func (gt *GroupTunnel) Inbound() <-chan GroupComm {
+func (gt *GroupTunnel) Inbound() <-chan GroupEvent {
 	return gt.inbound
 }

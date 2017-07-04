@@ -12,6 +12,11 @@ import (
 // APCI is the Application-layer Protocol Control Information.
 type APCI uint8
 
+// IsGroupCommand determines if the APCI indicates a group command.
+func (apci APCI) IsGroupCommand() bool {
+	return apci < 3
+}
+
 // These are usable APCI values.
 const (
 	GroupValueRead         APCI = 0

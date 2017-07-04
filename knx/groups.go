@@ -61,7 +61,7 @@ func serveGroupInbound(inbound <-chan cemi.Message, outbound chan<- GroupEvent) 
 				continue
 			}
 
-			if app, ok := ind.Data.(*cemi.AppData); ok && app.Command < 3 {
+			if app, ok := ind.Data.(*cemi.AppData); ok && app.Command.IsGroupCommand() {
 				outbound <- GroupEvent{
 					Command:     GroupCommand(app.Command),
 					Source:      ind.Source,

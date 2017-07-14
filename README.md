@@ -70,7 +70,14 @@ func main() {
 
 	// Receive messages from the gateway. The inbound channel is closed with the connection.
 	for msg := range client.Inbound() {
-		util.Logger.Printf("%T %+v", msg, msg)
+		var temp dpt.ValueTemp
+
+		err := temp.Unpack(msg.Data)
+		if err != nil {
+			continue
+		}
+
+		util.Logger.Printf("%+v: %v", msg, temp)
 	}
 }
 ```

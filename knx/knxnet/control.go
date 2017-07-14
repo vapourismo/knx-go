@@ -89,17 +89,33 @@ func (ConnRes) Service() ServiceID {
 
 // Size returns the packed size.
 func (res *ConnRes) Size() uint {
-	return hostInfoSize + 6
+	if res.Status == 0 {
+		return hostInfoSize + 6
+	}
+
+	return 2
 }
 
 // Pack assembles the service payload in the given buffer.
 func (res *ConnRes) Pack(buffer []byte) {
-	util.PackSome(buffer, res.Channel, uint8(res.Status), &res.Control, []byte{4, 4, 0, 0})
+	if res.Status == 0 {
+		util.PackSome(buffer, res.Channel, uint8(0), &res.Control, []byte{4, 4, 0, 0})
+	} else {
+		util.PackSome(buffer, res.Channel, uint8(res.Status))
+	}
 }
 
 // Unpack parses the given service payload in order to initialize the structure.
-func (res *ConnRes) Unpack(data []byte) (uint, error) {
-	return util.UnpackSome(data, &res.Channel, (*uint8)(&res.Status), &res.Control)
+func (res *ConnRes) Unpack(data []byte) (n uint, err error) {
+	n, err = util.UnpackSome(data, &res.Channel, (*uint8)(&res.Status))
+
+	if res.Status == 0 {
+		var m uint
+		m, err = res.Control.Unpack(data[2:])
+		n += m
+	}
+
+	return
 }
 
 // A ConnStateReq requests the connection state from a gateway.

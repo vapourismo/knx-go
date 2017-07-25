@@ -119,7 +119,7 @@ func (router *Router) serve() {
 
 // NewRouter creates a new Router that joins the given multicast group. You may pass a
 // zero-initialized value as parameter config, the default values will be set up.
-func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
+func NewRouter(multicastAddress knxnet.MulticastAddress, config RouterConfig) (*Router, error) {
 	sock, err := knxnet.ListenRouter(multicastAddress)
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ type GroupRouter struct {
 }
 
 // NewGroupRouter creates a new Router for group communication.
-func NewGroupRouter(multicastAddress string, config RouterConfig) (gr GroupRouter, err error) {
+func NewGroupRouter(multicastAddress knxnet.MulticastAddress, config RouterConfig) (gr GroupRouter, err error) {
 	gr.Router, err = NewRouter(multicastAddress, config)
 
 	if err == nil {

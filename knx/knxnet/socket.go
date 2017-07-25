@@ -23,6 +23,15 @@ type TunnelSocket struct {
 	inbound <-chan Service
 }
 
+// Multicast address is sensitive to the interface it is sent through. This structure provides a way to select
+// network interface explicitly. If none passed then default interface (e.g. eth0) will be chosen.
+// See net.Interface* methods
+type MulticastAddress struct {
+	Addr  *net.UDPAddr
+	Iface *net.Interface
+}
+
+
 // DialTunnel creates a new Socket which can used to exchange KNXnet/IP packets with a single
 // endpoint.
 func DialTunnel(address string) (*TunnelSocket, error) {
@@ -73,13 +82,8 @@ type RouterSocket struct {
 
 // ListenRouter creates a new Socket which can be used to exchange KNXnet/IP packets with
 // multiple endpoints.
-func ListenRouter(multicastAddress string) (*RouterSocket, error) {
-	addr, err := net.ResolveUDPAddr("udp4", multicastAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := net.ListenMulticastUDP("udp4", nil, addr)
+func ListenRouter(multicastAddress MulticastAddress) (*RouterSocket, error) {
+	conn, err := net.ListenMulticastUDP(multicastAddress.Addr.Network(), multicastAddress.Iface, multicastAddress.Addr)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +93,7 @@ func ListenRouter(multicastAddress string) (*RouterSocket, error) {
 	inbound := make(chan Service)
 	go serveUDPSocket(conn, nil, inbound)
 
-	return &RouterSocket{conn, addr, inbound}, nil
+	return &RouterSocket{conn, multicastAddress.Addr, inbound}, nil
 }
 
 // Send transmits a KNXnet/IP packet.

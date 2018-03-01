@@ -52,3 +52,21 @@ func (temp *ValueTemp) Unpack(data []byte) error {
 func (temp ValueTemp) String() string {
 	return fmt.Sprintf("%.2f°C", float32(temp))
 }
+
+// ValueBrightness is DPT 5.001 (0% - 100%)
+type ValueBrightness int32
+
+// Pack the datapoint value.
+func (brightness ValueBrightness) Pack() []byte {
+	return packI32(int32(brightness))
+}
+
+// Unpack the datapoint value from the given data.
+func (brightness *ValueBrightness) Unpack(data []byte) error {
+	return unpackI32(data, (*int32)(brightness))
+}
+
+// String generates a string representation.
+func (brightness ValueBrightness) StringBrightness() string {
+	return fmt.Sprintf("%d3", uint8(brightness))
+}

@@ -73,3 +73,20 @@ func unpackF16(data []byte, f *float32) error {
 	*f = 0.01 * float32(m) * float32(uint(1)<<e)
 	return nil
 }
+
+
+// int32 to 2-byte array of uint8, leading zero
+func packI32(i int32) []byte {
+	buffer := []byte{0, 0}
+	buffer[1] = uint8(i)
+	return buffer
+}
+
+// int8 to int32
+func unpackI32(data []byte, i *int32) error {
+	if len(data) != 2 {
+		return ErrInvalidLength
+	}
+	*i = int32(data[1])
+	return nil
+}

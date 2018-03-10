@@ -28,28 +28,28 @@ func (sw *Switch) Unpack(data []byte) error {
 }
 
 // String generates a string representation.
-func (sw Switch) SwitchString() string {
+func (sw Switch) String() string {
 	if sw {
 		return "On"
 	}
 	return "Off"
 }
 
-// Bool is DPT 1.002
-type Bool bool
+// TrueFalse is DPT 1.002
+type TrueFalse bool
 
 // Pack the datapoint value.
-func (b Bool) Pack() []byte {
+func (b TrueFalse) Pack() []byte {
 	return packB1(bool(b))
 }
 
 // Unpack the datapoint value from the given data.
-func (b *Bool) Unpack(data []byte) error {
+func (b *TrueFalse) Unpack(data []byte) error {
 	return unpackB1(data, (*bool)(b))
 }
 
 // String generates a string representation.
-func (sw Switch) BoolString() string {
+func (sw TrueFalse) String() string {
 	if sw {
 		return "True"
 	}
@@ -70,58 +70,54 @@ func (oc *OpenClose) Unpack(data []byte) error {
 }
 
 // String generates a string representation.
-func (oc OpenClose) OpenCloseString() string {
+func (oc OpenClose) String() string {
 	if oc {
 		return "Close"
 	}
 	return "Open"
 }
 
-// DPT 1.010 Start
-type Start bool
+// DPT 1.010 StartStop
+type StartStop bool
 
 // Pack the datapoint value.
-func (st Start) Pack() []byte {
-	return packB1(bool(st))
+func (ss StartStop) Pack() []byte {
+	return packB1(bool(ss))
 }
 
 // Unpack the datapoint value from the given data.
-func (st *Start) Unpack(data []byte) error {
-	return unpackB1(data, (*bool)(st))
+func (ss *StartStop) Unpack(data []byte) error {
+	return unpackB1(data, (*bool)(ss))
 }
 
 // String generates a string representation.
-func (sw Switch) StartString() string {
-	if sw {
+func (ss StartStop) String() string {
+	if ss {
 		return "Start"
 	}
 	return "Stop"
 }
 
-
-
 // DPT 5.001  (0% - 100%)
-type Scaling int32
+type Scaling int
 
 // Pack the datapoint value.
 func (sc Scaling) Pack() []byte {
-	v := packI32(int32(sc))
-	//fmt.Printf(" packI32: %+v\n", v)
-	return v
+	sc = sc * 255 / 100
+	return packInt(uint(sc))
 }
 
 // Unpack the datapoint value from the given data.
 func (sc *Scaling) Unpack(data []byte) error {
-	//v := unpackI32(data, (*int32)(sc))
-	return unpackI32(data, (*int32)(sc))
+	var d uint = (uint(data[1]) * 100) / 255
+	data[1] = byte(d)
+	return unpackInt(data, (*Scaling)(sc))
 }
 
 // String generates a string representation.
-func (sc Scaling) StringScaling() string {
-
-	return fmt.Sprintf("%d3", uint8(sc))
+func (sc Scaling) String() string {
+	return fmt.Sprintf("%d%%", uint(sc))
 }
-
 
 // ValueTemp DPT 9.001
 type ValueTemp float32
@@ -140,9 +136,3 @@ func (vt *ValueTemp) Unpack(data []byte) error {
 func (vt ValueTemp) String() string {
 	return fmt.Sprintf("%.2f°C", float32(vt))
 }
-
-
-
-
-
-

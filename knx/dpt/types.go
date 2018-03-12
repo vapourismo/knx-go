@@ -104,14 +104,13 @@ type Scaling int
 // Pack the datapoint value.
 func (sc Scaling) Pack() []byte {
 	sc = sc * 255 / 100
-	return packInt(uint(sc))
+	return packInt(int(sc))
 }
 
 // Unpack the datapoint value from the given data.
 func (sc *Scaling) Unpack(data []byte) error {
-	var d uint = (uint(data[1]) * 100) / 255
-	data[1] = byte(d)
-	return unpackInt(data, (*Scaling)(sc))
+	data[1] = byte(int(data[1]) * 100 / 255)
+	return unpackInt(data, (*int)(sc))
 }
 
 // String generates a string representation.

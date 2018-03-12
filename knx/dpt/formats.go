@@ -3,7 +3,9 @@
 
 package dpt
 
-import "errors"
+import (
+	"errors"
+)
 
 // ErrInvalidLength is returned when the application data has unexpected length.
 var ErrInvalidLength = errors.New("Given application data has invalid length")
@@ -71,5 +73,17 @@ func unpackF16(data []byte, f *float32) error {
 	e := (data[1] >> 3) & 15
 
 	*f = 0.01 * float32(m) * float32(uint(1)<<e)
+	return nil
+}
+
+func packU8(i uint8) []byte {
+	return []byte{0, i}
+}
+
+func unpackU8(data []byte, i *uint8) error {
+	if len(data) != 2 {
+		return ErrInvalidLength
+	}
+	*i = uint8(data[1])
 	return nil
 }

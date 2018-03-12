@@ -99,18 +99,18 @@ func (ss StartStop) String() string {
 }
 
 // DPT 5.001  (0% - 100%)
-type Scaling int
+type Scaling uint8
 
 // Pack the datapoint value.
 func (sc Scaling) Pack() []byte {
 	sc = sc * 255 / 100
-	return packInt(int(sc))
+	return packU8(uint8(sc))
 }
 
 // Unpack the datapoint value from the given data.
 func (sc *Scaling) Unpack(data []byte) error {
 	data[1] = byte(int(data[1]) * 100 / 255)
-	return unpackInt(data, (*int)(sc))
+	return unpackU8(data, (*uint8)(sc))
 }
 
 // String generates a string representation.

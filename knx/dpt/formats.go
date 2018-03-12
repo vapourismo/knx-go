@@ -76,16 +76,14 @@ func unpackF16(data []byte, f *float32) error {
 	return nil
 }
 
-func packInt(i int) []byte {
-	data := []byte{0, 0}
-	data[1] = byte(i)
-	return data
+func packU8(i uint8) []byte {
+	return []byte{0, i}
 }
 
-func unpackInt(data []byte, i *int) error {
+func unpackU8(data []byte, i *uint8) error {
 	if len(data) != 2 {
 		return ErrInvalidLength
 	}
-	*i = int(data[1])
+	*i = uint8(data[1])
 	return nil
 }

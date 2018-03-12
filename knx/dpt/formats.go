@@ -83,7 +83,6 @@ func packInt(i uint) []byte {
 	return data
 }
 
-//
 func unpackInt(data []byte, i *Scaling) error {
 	if len(data) != 2 {
 		return ErrInvalidLength

@@ -14,7 +14,7 @@ type DatapointValue interface {
 	Unpack(data []byte) error
 }
 
-// Switch is DPT 1.001.
+// Switch DPT 1.001.
 type Switch bool
 
 // Pack the datapoint value.
@@ -35,7 +35,7 @@ func (sw Switch) String() string {
 	return "Off"
 }
 
-// TrueFalse is DPT 1.002
+// TrueFalse DPT 1.002
 type TrueFalse bool
 
 // Pack the datapoint value.

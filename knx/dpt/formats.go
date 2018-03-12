@@ -84,6 +84,8 @@ func unpackU8(data []byte, i *uint8) error {
 	if len(data) != 2 {
 		return ErrInvalidLength
 	}
+
 	*i = uint8(data[1])
+
 	return nil
 }

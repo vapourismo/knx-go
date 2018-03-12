@@ -76,7 +76,6 @@ func unpackF16(data []byte, f *float32) error {
 	return nil
 }
 
-
 func packInt(i uint) []byte {
 	data := []byte{0, 0}
 	data[1] = byte(i)

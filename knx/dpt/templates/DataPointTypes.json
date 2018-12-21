@@ -92,5 +92,16 @@
     },
     "Unit": "°C",
     "Format": "F16"
+  },
+  {
+    "ID":   "9.004",
+    "Name": "Illumination",
+    "Type": "float32",
+    "Range": {
+      "low":   0.0,
+      "high":  670760.0
+    },
+    "Unit": "lux",
+    "Format": "F16"
   }
 ]

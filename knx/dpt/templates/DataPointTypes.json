@@ -1,0 +1,64 @@
+[
+  {
+    "ID":   "1.001",
+    "Name": "Switch",
+    "Type": "bool",
+    "Format": "B1",
+    "ValueMap": {
+      "false": "Off",
+      "true":  "On"
+    }
+  },
+  {
+    "ID":   "1.002",
+    "Name": "Bool",
+    "Type": "bool",
+    "Format": "B1",
+    "ValueMap": {
+      "false": "False",
+      "true":  "True"
+    }
+  },
+  {
+    "ID":   "1.009",
+    "Name": "OpenClose",
+    "Type": "bool",
+    "Format": "B1",
+    "ValueMap": {
+      "false": "Open",
+      "true":  "Close"
+    }
+  },
+  {
+    "ID":   "1.010",
+    "Name": "Start",
+    "Type": "bool",
+    "Format": "B1",
+    "ValueMap": {
+      "false": "Stop",
+      "true":  "Start"
+    }
+  },
+  {
+    "ID":   "5.001",
+    "Name": "Scaling",
+    "Type": "float32",
+    "Range": {
+      "low":  0.0,
+      "high": 100.0
+    },
+    "Unit": "%",
+    "Format": "U8"
+  },
+  {
+    "ID":   "9.001",
+    "Name": "Temperature",
+    "Type": "float32",
+    "Range": {
+      "low":  -273.0,
+      "high":  670760.0
+    },
+    "Unit": "°C",
+    "Format": "F16"
+  }
+]

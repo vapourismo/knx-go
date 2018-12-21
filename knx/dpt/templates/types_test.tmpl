@@ -1,0 +1,120 @@
+// Copyright 2017 Ole Krüger.
+// Licensed under the MIT license which can be found in the LICENSE file.
+
+package dpt
+
+import (
+	"testing"
+
+	"math"
+	"math/rand"
+)
+
+// Define epsilon constant for floating point checks
+const epsilon = 1E-3
+
+func abs(x float32) float32 {
+	if x < 0.0 {
+		return -x
+	}
+	return x
+}
+
+func get_float_quantization_error(value, resolution float32, mantis int) float32 {
+	// Calculate the exponent for the value given the mantis and value resolution
+	value_m := value / (resolution * float32(mantis))
+	value_exp := math.Ceil(math.Log2(float64(value_m)))
+
+	// Calculate the worst quantization error by assuming the
+	// mantis to be off by one
+	q := math.Pow(2, value_exp)
+
+	// Scale back the quantization error with the given resolution
+	return float32(q) / resolution
+}
+
+{{ range $i,$desc := . -}}
+{{- /* Define some useful variables */ -}}
+{{- $src := (print "src_" $i) -}}
+{{- $dst := (print "dst_" $i) -}}
+{{- $dpt_apprev := (replace $desc.Id "." "") -}}
+{{- $dpt_type := (print "DPT_" $dpt_apprev) -}}
+{{- $dpt_type_title := (title $desc.Type) -}}
+{{- /* Format specific variable declaration */ -}}
+{{- $format_type       := "" -}}
+{{- $format_scale      := false -}}
+{{- $format_range_low  := 0 -}}
+{{- $format_range_high := 1 -}}
+{{- $format_resolution := 0 -}}
+{{- $format_mantis     := 0 -}}
+{{- /* Set format specific constants */ -}}
+{{- if eq $desc.Format "B1" -}}
+{{-   $format_type       = "bool" -}}
+{{- else if eq $desc.Format "U8" -}}
+{{-   $format_type       = "uint8" -}}
+{{-   $format_scale      = true -}}
+{{-   $format_range_low  = 0 -}}
+{{-   $format_range_high = 255 -}}
+{{- else if eq $desc.Format "F16" -}}
+{{-   $format_type       = "float32" -}}
+{{-   $format_resolution = 0.01 -}}
+{{-   $format_mantis     = 2047 -}}
+{{- end -}}
+
+// Test DPT {{$desc.Id}} ({{$desc.Name}}) with values within range
+func Test{{$dpt_type}}(t *testing.T) {
+	var buf []byte
+	var src, dst {{$dpt_type}}
+
+{{- if eq $desc.Type "bool" }}
+
+	for _, value := range []{{$desc.Type}}{true, false} {
+		src = {{$dpt_type}}(value)
+		if {{$desc.Type}}(src) != value {
+			t.Errorf("Assignment of value \"%v\" failed! Has value \"%s\".", value, src)
+		}
+		buf = src.Pack()
+		dst.Unpack(buf)
+		if {{$desc.Type}}(dst) != value {
+			t.Errorf("Wrong value \"%s\" after pack/unpack! Original value was \"%v\".", dst, value)
+		}
+	}
+{{- else }}
+{{-   if and $format_scale (ne $format_type "float32") }}
+
+	// Calculate the quantization error we expect
+	const Q = float32({{$desc.Range.High}}) / {{$format_range_high}}
+{{-   end }}
+
+	for i := 1; i <= 10; i++ {
+		value := rand.{{$dpt_type_title}}()
+
+		// Scale the random number to the given range
+{{-   if $desc.Range.Low }}
+		value *= {{$desc.Range.High}} - {{$desc.Range.Low}}
+		value += {{$desc.Range.Low}}
+{{-   else }}
+		value *= {{$desc.Range.High}}
+{{-   end }}
+
+{{-   if eq $format_type "float32" }}
+
+		// Calculate the quantization error we expect
+		Q := get_float_quantization_error(value, {{$format_resolution}}, {{$format_mantis}})
+{{-   end }}
+
+		// Pack and unpack to test value
+		src = {{$dpt_type}}(value)
+		if abs({{$desc.Type}}(src)-value) > epsilon {
+			t.Errorf("Assignment of value \"%v\" failed for source of type {{$dpt_type}}! Has value \"%s\".", value, src)
+		}
+		buf = src.Pack()
+		dst.Unpack(buf)
+		if abs({{$desc.Type}}(dst)-value) > (Q + epsilon) {
+			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
+		}
+	}
+{{-   end }}
+}
+
+{{ end -}}

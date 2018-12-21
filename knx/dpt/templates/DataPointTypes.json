@@ -20,6 +20,16 @@
     }
   },
   {
+    "ID":   "1.003",
+    "Name": "Enable",
+    "Type": "bool",
+    "Format": "B1",
+    "ValueMap": {
+      "false": "Disable",
+      "true":  "Enable"
+    }
+  },
+  {
     "ID":   "1.009",
     "Name": "OpenClose",
     "Type": "bool",

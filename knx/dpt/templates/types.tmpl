@@ -136,7 +136,7 @@ func (d {{$dpt_type}}) String() string {
 {{-   else if not $desc.Unit }}
 	return fmt.Sprintf("{{$format_print}}", $desc.Type(d))
 {{-   else }}
-	return fmt.Sprintf("{{$format_print}}{{$dpt_unit}}", {{$desc.Type}}(d))
+	return fmt.Sprintf("{{$format_print}} {{$dpt_unit}}", {{$desc.Type}}(d))
 {{-   end }}
 }
 

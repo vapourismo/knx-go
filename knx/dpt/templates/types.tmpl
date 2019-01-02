@@ -11,6 +11,7 @@ import (
 type DatapointValue interface {
 	Pack() []byte
 	Unpack(data []byte) error
+	Unit() string
 }
 
 {{ range $i,$desc := . -}}
@@ -107,6 +108,15 @@ func (d *{{$dpt_type}}) Unpack(data []byte) error {
 	}
 
 	return nil
+{{- end }}
+}
+
+// Returns string representation of unit or nil if value has no unit
+func (d {{$dpt_type}}) Unit() string {
+{{- if $desc.Unit }}
+	return "{{$desc.Unit}}"
+{{- else }}
+	return ""
 {{- end }}
 }
 

@@ -150,7 +150,7 @@ func (d DPT_5001) Pack() []byte {
 	}
 }
 
-func (d *DPT_5001) Unpack(data []byte) (err error) {
+func (d *DPT_5001) Unpack(data []byte) error {
 	var value uint8
 	if err := unpackU8(data, &value); err != nil {
 		return err
@@ -173,41 +173,22 @@ func (d DPT_5001) String() string {
 type DPT_5003 float32
 
 func (d DPT_5003) Pack() []byte {
-	value := d
-
-	// Clip the value to a valid range
-	if value < 0 {
-		value = 0
+	if d <= 0 {
+		return packU8(0)
+	} else if d >= 360 {
+		return packU8(255)
+	} else {
+		return packU8(uint8(d * (255 / 360)))
 	}
-	if value > 360 {
-		value = 360
-	}
-
-	// Scale the value to the target range
-	value /= 360
-	value *= 255
-
-	return packU8(uint8(value))
 }
 
 func (d *DPT_5003) Unpack(data []byte) error {
-	var buf uint8
-
-	err := unpackU8(data, &buf)
-	if err == nil {
-		value := DPT_5003(buf)
-
-		// Scale the value
-		value *= 360
-		value /= 255
-
-		// Check the value for valid range
-		if value > 360 {
-			return fmt.Errorf("value \"%.2f\" outside range [0, 360]", value)
-		}
-
-		*d = value
+	var value uint8
+	if err := unpackU8(data, &value); err != nil {
+		return err
 	}
+
+	*d = DPT_5003(value) / (255 / 360)
 
 	return nil
 }
@@ -217,7 +198,7 @@ func (d DPT_5003) Unit() string {
 }
 
 func (d DPT_5003) String() string {
-	return fmt.Sprintf("%.2f °", float32(d))
+	return fmt.Sprintf("%.2f°", float32(d))
 }
 
 // DPT_5004 represents DPT 5.004 / Percent_U8.

@@ -22,7 +22,6 @@ type DatapointMeta interface {
 	Unit() string
 }
 
-
 // DPT_1001 represents DPT 1.001 / Switch.
 type DPT_1001 bool
 
@@ -39,9 +38,11 @@ func (d DPT_1001) Unit() string {
 }
 
 func (d DPT_1001) String() string {
-	value_map := map[bool]string{false: "Off", true: "On"}
-
-	return value_map[bool(d)]
+	if d {
+		return "On"
+	} else {
+		return "Off"
+	}
 }
 
 // DPT_1002 represents DPT 1.002 / Bool.
@@ -60,9 +61,11 @@ func (d DPT_1002) Unit() string {
 }
 
 func (d DPT_1002) String() string {
-	value_map := map[bool]string{false: "False", true: "True"}
-
-	return value_map[bool(d)]
+	if d {
+		return "True"
+	} else {
+		return "False"
+	}
 }
 
 // DPT_1003 represents DPT 1.003 / Enable.
@@ -81,9 +84,11 @@ func (d DPT_1003) Unit() string {
 }
 
 func (d DPT_1003) String() string {
-	value_map := map[bool]string{false: "Disable", true: "Enable"}
-
-	return value_map[bool(d)]
+	if d {
+		return "Enable"
+	} else {
+		return "Disable"
+	}
 }
 
 // DPT_1009 represents DPT 1.009 / OpenClose.
@@ -102,9 +107,11 @@ func (d DPT_1009) Unit() string {
 }
 
 func (d DPT_1009) String() string {
-	value_map := map[bool]string{false: "Open", true: "Close"}
-
-	return value_map[bool(d)]
+	if d {
+		return "Close"
+	} else {
+		return "Open"
+	}
 }
 
 // DPT_1010 represents DPT 1.010 / Start.
@@ -123,9 +130,11 @@ func (d DPT_1010) Unit() string {
 }
 
 func (d DPT_1010) String() string {
-	value_map := map[bool]string{false: "Stop", true: "Start"}
-
-	return value_map[bool(d)]
+	if d {
+		return "Start"
+	} else {
+		return "Stop"
+	}
 }
 
 // DPT_5001 represents DPT 5.001 / Scaling.

@@ -141,41 +141,22 @@ func (d DPT_1010) String() string {
 type DPT_5001 float32
 
 func (d DPT_5001) Pack() []byte {
-	value := d
-
-	// Clip the value to a valid range
-	if value < 0 {
-		value = 0
+	if d <= 0 {
+		return packU8(0)
+	} else if d >= 100 {
+		return packU8(255)
+	} else {
+		return packU8(uint8(d * 2.55))
 	}
-	if value > 100 {
-		value = 100
-	}
-
-	// Scale the value to the target range
-	value /= 100
-	value *= 255
-
-	return packU8(uint8(value))
 }
 
-func (d *DPT_5001) Unpack(data []byte) error {
-	var buf uint8
-
-	err := unpackU8(data, &buf)
-	if err == nil {
-		value := DPT_5001(buf)
-
-		// Scale the value
-		value *= 100
-		value /= 255
-
-		// Check the value for valid range
-		if value > 100 {
-			return fmt.Errorf("value \"%.2f\" outside range [0, 100]", value)
-		}
-
-		*d = value
+func (d *DPT_5001) Unpack(data []byte) (err error) {
+	var value uint8
+	if err := unpackU8(data, &value); err != nil {
+		return err
 	}
+
+	*d = DPT_5001(value) / 2.55
 
 	return nil
 }
@@ -185,7 +166,7 @@ func (d DPT_5001) Unit() string {
 }
 
 func (d DPT_5001) String() string {
-	return fmt.Sprintf("%.2f %%", float32(d))
+	return fmt.Sprintf("%.2f%%", float32(d))
 }
 
 // DPT_5003 represents DPT 5.003 / Angle.

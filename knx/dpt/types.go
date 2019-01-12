@@ -9,15 +9,22 @@ import (
 
 // A DatapointValue is a value of a datapoint.
 type DatapointValue interface {
+	// Pack the datapoint to a byte array.
 	Pack() []byte
+
+	// Unpack a the datapoint value from a byte array.
 	Unpack(data []byte) error
+}
+
+// DatapointMeta gives meta information about a datapoint type.
+type DatapointMeta interface {
 	Unit() string
 }
 
-// DPT 1.001 (Switch)
+
+// DPT_1001 represents DPT 1.001 / Switch.
 type DPT_1001 bool
 
-// DatapointValue interface functions
 func (d DPT_1001) Pack() []byte {
 	return packB1(bool(d))
 }
@@ -26,22 +33,19 @@ func (d *DPT_1001) Unpack(data []byte) error {
 	return unpackB1(data, (*bool)(d))
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_1001) Unit() string {
-	return ""
+	return nil
 }
 
-// Generates string representation of value
 func (d DPT_1001) String() string {
 	value_map := map[bool]string{false: "Off", true: "On"}
 
 	return value_map[bool(d)]
 }
 
-// DPT 1.002 (Bool)
+// DPT_1002 represents DPT 1.002 / Bool.
 type DPT_1002 bool
 
-// DatapointValue interface functions
 func (d DPT_1002) Pack() []byte {
 	return packB1(bool(d))
 }
@@ -50,22 +54,19 @@ func (d *DPT_1002) Unpack(data []byte) error {
 	return unpackB1(data, (*bool)(d))
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_1002) Unit() string {
-	return ""
+	return nil
 }
 
-// Generates string representation of value
 func (d DPT_1002) String() string {
 	value_map := map[bool]string{false: "False", true: "True"}
 
 	return value_map[bool(d)]
 }
 
-// DPT 1.003 (Enable)
+// DPT_1003 represents DPT 1.003 / Enable.
 type DPT_1003 bool
 
-// DatapointValue interface functions
 func (d DPT_1003) Pack() []byte {
 	return packB1(bool(d))
 }
@@ -74,22 +75,19 @@ func (d *DPT_1003) Unpack(data []byte) error {
 	return unpackB1(data, (*bool)(d))
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_1003) Unit() string {
-	return ""
+	return nil
 }
 
-// Generates string representation of value
 func (d DPT_1003) String() string {
 	value_map := map[bool]string{false: "Disable", true: "Enable"}
 
 	return value_map[bool(d)]
 }
 
-// DPT 1.009 (OpenClose)
+// DPT_1009 represents DPT 1.009 / OpenClose.
 type DPT_1009 bool
 
-// DatapointValue interface functions
 func (d DPT_1009) Pack() []byte {
 	return packB1(bool(d))
 }
@@ -98,22 +96,19 @@ func (d *DPT_1009) Unpack(data []byte) error {
 	return unpackB1(data, (*bool)(d))
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_1009) Unit() string {
 	return ""
 }
 
-// Generates string representation of value
 func (d DPT_1009) String() string {
 	value_map := map[bool]string{false: "Open", true: "Close"}
 
 	return value_map[bool(d)]
 }
 
-// DPT 1.010 (Start)
+// DPT_1010 represents DPT 1.010 / Start.
 type DPT_1010 bool
 
-// DatapointValue interface functions
 func (d DPT_1010) Pack() []byte {
 	return packB1(bool(d))
 }
@@ -122,22 +117,19 @@ func (d *DPT_1010) Unpack(data []byte) error {
 	return unpackB1(data, (*bool)(d))
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_1010) Unit() string {
-	return ""
+	return nil
 }
 
-// Generates string representation of value
 func (d DPT_1010) String() string {
 	value_map := map[bool]string{false: "Stop", true: "Start"}
 
 	return value_map[bool(d)]
 }
 
-// DPT 5.001 (Scaling)
+// DPT_5001 represents DPT 5.001 / Scaling.
 type DPT_5001 float32
 
-// DatapointValue interface functions
 func (d DPT_5001) Pack() []byte {
 	value := d
 
@@ -178,20 +170,17 @@ func (d *DPT_5001) Unpack(data []byte) error {
 	return nil
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_5001) Unit() string {
 	return "%"
 }
 
-// Generates string representation of value
 func (d DPT_5001) String() string {
 	return fmt.Sprintf("%.2f %%", float32(d))
 }
 
-// DPT 5.003 (Angle)
+// DPT_5003 represents DPT 5.003 / Angle.
 type DPT_5003 float32
 
-// DatapointValue interface functions
 func (d DPT_5003) Pack() []byte {
 	value := d
 
@@ -232,20 +221,17 @@ func (d *DPT_5003) Unpack(data []byte) error {
 	return nil
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_5003) Unit() string {
 	return "°"
 }
 
-// Generates string representation of value
 func (d DPT_5003) String() string {
 	return fmt.Sprintf("%.2f °", float32(d))
 }
 
-// DPT 5.004 (Percept)
+// DPT_5004 represents DPT 5.004 / Percent_U8.
 type DPT_5004 float32
 
-// DatapointValue interface functions
 func (d DPT_5004) Pack() []byte {
 	value := d
 
@@ -278,20 +264,17 @@ func (d *DPT_5004) Unpack(data []byte) error {
 	return nil
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_5004) Unit() string {
 	return "%"
 }
 
-// Generates string representation of value
 func (d DPT_5004) String() string {
 	return fmt.Sprintf("%.2f %%", float32(d))
 }
 
-// DPT 9.001 (Temperature)
+// DPT_9001 represents DPT 9.001 / Temperature.
 type DPT_9001 float32
 
-// DatapointValue interface functions
 func (d DPT_9001) Pack() []byte {
 	value := d
 
@@ -327,20 +310,17 @@ func (d *DPT_9001) Unpack(data []byte) error {
 	return nil
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_9001) Unit() string {
 	return "°C"
 }
 
-// Generates string representation of value
 func (d DPT_9001) String() string {
 	return fmt.Sprintf("%.2f °C", float32(d))
 }
 
-// DPT 9.004 (Illumination)
+// DPT_9004 represents DPT 9.004 / Illumination.
 type DPT_9004 float32
 
-// DatapointValue interface functions
 func (d DPT_9004) Pack() []byte {
 	value := d
 
@@ -373,12 +353,10 @@ func (d *DPT_9004) Unpack(data []byte) error {
 	return nil
 }
 
-// Returns string representation of unit or nil if value has no unit
 func (d DPT_9004) Unit() string {
 	return "lux"
 }
 
-// Generates string representation of value
 func (d DPT_9004) String() string {
 	return fmt.Sprintf("%.2f lux", float32(d))
 }

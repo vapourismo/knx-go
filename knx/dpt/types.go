@@ -202,38 +202,14 @@ func (d DPT_5003) String() string {
 }
 
 // DPT_5004 represents DPT 5.004 / Percent_U8.
-type DPT_5004 float32
+type DPT_5004 uint8
 
 func (d DPT_5004) Pack() []byte {
-	value := d
-
-	// Clip the value to a valid range
-	if value < 0 {
-		value = 0
-	}
-	if value > 255 {
-		value = 255
-	}
-
-	return packU8(uint8(value))
+	return packU8(uint8(d))
 }
 
 func (d *DPT_5004) Unpack(data []byte) error {
-	var buf uint8
-
-	err := unpackU8(data, &buf)
-	if err == nil {
-		value := DPT_5004(buf)
-
-		// Check the value for valid range
-		if value > 255 {
-			return fmt.Errorf("value \"%.2f\" outside range [0, 255]", value)
-		}
-
-		*d = value
-	}
-
-	return nil
+	return unpackU8(data, (*uint8)(d))
 }
 
 func (d DPT_5004) Unit() string {
@@ -241,7 +217,7 @@ func (d DPT_5004) Unit() string {
 }
 
 func (d DPT_5004) String() string {
-	return fmt.Sprintf("%.2f %%", float32(d))
+	return fmt.Sprintf("%.2f%%", float32(d))
 }
 
 // DPT_9001 represents DPT 9.001 / Temperature.

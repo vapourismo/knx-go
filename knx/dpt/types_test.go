@@ -177,33 +177,6 @@ func TestDPT_5003(t *testing.T) {
 	}
 }
 
-// Test DPT 5.004 (Percept) with values within range
-func TestDPT_5004(t *testing.T) {
-	var buf []byte
-	var src, dst DPT_5004
-
-	// Calculate the quantization error we expect
-	const Q = float32(255) / 255
-
-	for i := 1; i <= 10; i++ {
-		value := rand.Float32()
-
-		// Scale the random number to the given range
-		value *= 255
-
-		// Pack and unpack to test value
-		src = DPT_5004(value)
-		if abs(float32(src)-value) > epsilon {
-			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_5004! Has value \"%s\".", value, src)
-		}
-		buf = src.Pack()
-		dst.Unpack(buf)
-		if abs(float32(dst)-value) > (Q + epsilon) {
-			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
-		}
-	}
-}
-
 // Test DPT 9.001 (Temperature) with values within range
 func TestDPT_9001(t *testing.T) {
 	var buf []byte

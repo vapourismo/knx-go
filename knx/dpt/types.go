@@ -224,36 +224,29 @@ func (d DPT_5004) String() string {
 type DPT_9001 float32
 
 func (d DPT_9001) Pack() []byte {
-	value := d
-
-	// Clip the value to a valid range
-	if value < -273 {
-		value = -273
+	if d <= -273 {
+		return packF16(-273)
+	} else if d >= 670760 {
+		return packF16(670760)
+	} else {
+		return packF16(float32(d))
 	}
-	if value > 670760 {
-		value = 670760
-	}
-
-	return packF16(float32(value))
 }
 
 func (d *DPT_9001) Unpack(data []byte) error {
-	var buf float32
-
-	err := unpackF16(data, &buf)
-	if err == nil {
-		value := DPT_9001(buf)
-
-		// Check the value for valid range
-		if value < -273 {
-			return fmt.Errorf("value \"%.2f\" outside range [-273, 670760]", value)
-		}
-		if value > 670760 {
-			return fmt.Errorf("value \"%.2f\" outside range [-273, 670760]", value)
-		}
-
-		*d = value
+	var value float32
+	if err := unpackF16(data, &value); err != nil {
+		return err
 	}
+
+	// Check the value for valid range
+	if value < -273 {
+		return fmt.Errorf("Temperatur \"%.2f\" outside range [-273, 670760]", value)
+	} else if value > 670760 {
+		return fmt.Errorf("Temperatur \"%.2f\" outside range [-273, 670760]", value)
+	}
+
+	*d = DPT_9001(value)
 
 	return nil
 }

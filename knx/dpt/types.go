@@ -382,4 +382,3 @@ func (d DPT_9004) Unit() string {
 func (d DPT_9004) String() string {
 	return fmt.Sprintf("%.2f lux", float32(d))
 }
-

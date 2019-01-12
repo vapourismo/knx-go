@@ -18,6 +18,7 @@ type DatapointValue interface {
 
 // DatapointMeta gives meta information about a datapoint type.
 type DatapointMeta interface {
+	// Unit returns the unit of this datapoint type or empty string if it doesn't have a unit.
 	Unit() string
 }
 
@@ -34,7 +35,7 @@ func (d *DPT_1001) Unpack(data []byte) error {
 }
 
 func (d DPT_1001) Unit() string {
-	return nil
+	return ""
 }
 
 func (d DPT_1001) String() string {
@@ -55,7 +56,7 @@ func (d *DPT_1002) Unpack(data []byte) error {
 }
 
 func (d DPT_1002) Unit() string {
-	return nil
+	return ""
 }
 
 func (d DPT_1002) String() string {
@@ -76,7 +77,7 @@ func (d *DPT_1003) Unpack(data []byte) error {
 }
 
 func (d DPT_1003) Unit() string {
-	return nil
+	return ""
 }
 
 func (d DPT_1003) String() string {
@@ -118,7 +119,7 @@ func (d *DPT_1010) Unpack(data []byte) error {
 }
 
 func (d DPT_1010) Unit() string {
-	return nil
+	return ""
 }
 
 func (d DPT_1010) String() string {

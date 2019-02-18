@@ -297,3 +297,42 @@ func (d DPT_9004) Unit() string {
 func (d DPT_9004) String() string {
 	return fmt.Sprintf("%.2f lux", float32(d))
 }
+
+// DPT_12001 represents DPT 12.001 / Unsigned counter.
+type DPT_12001 uint32
+
+func (d DPT_12001) Pack() []byte {
+	if d <= 0 {
+		return packU32(0)
+	} else if d >= 4294967295 {
+		return packU32(4294967295)
+	} else {
+		return packU32(uint32(d))
+	}
+}
+
+func (d *DPT_12001) Unpack(data []byte) error {
+	var value uint32
+	if err := unpackU32(data, &value); err != nil {
+		return err
+	}
+
+	// Check the value for valid range
+	if value < 0 {
+		return fmt.Errorf("Counter \"%d\" outside range [0, 4294967295]", value)
+	} else if value > 4294967295 {
+		return fmt.Errorf("Counter \"%d\" outside range [0, 4294967295]", value)
+	}
+
+	*d = DPT_12001(value)
+
+	return nil
+}
+
+func (d DPT_12001) Unit() string {
+	return ""
+}
+
+func (d DPT_12001) String() string {
+	return fmt.Sprintf("%d", uint32(d))
+}

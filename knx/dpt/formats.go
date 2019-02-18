@@ -5,6 +5,7 @@ package dpt
 
 import (
 	"errors"
+	"fmt"
 )
 
 // ErrInvalidLength is returned when the application data has unexpected length.
@@ -87,5 +88,25 @@ func unpackU8(data []byte, i *uint8) error {
 
 	*i = uint8(data[1])
 
+	return nil
+}
+
+func packU32(i uint32) []byte {
+	buffer := []byte{0, 0, 0, 0, 0}
+	buffer[1] = uint8(i >> 24)
+	buffer[2] = uint8(i >> 16)
+	buffer[3] = uint8(i >> 8)
+	buffer[4] = uint8(i & 0xff)
+	return buffer
+}
+
+func unpackU32(data []byte, i *uint32) error {
+	if len(data) != 5 {
+		return ErrInvalidLength
+	}
+
+	*i = uint32(data[1])<<24 | uint32(data[2])<<16 | uint32(data[3])<<8 | uint32(data[4])
+
+	fmt.Printf("%#v -> %d\n", data, *i)
 	return nil
 }

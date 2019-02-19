@@ -297,3 +297,22 @@ func (d DPT_9004) Unit() string {
 func (d DPT_9004) String() string {
 	return fmt.Sprintf("%.2f lux", float32(d))
 }
+
+// DPT_12001 represents DPT 12.001 / Unsigned counter.
+type DPT_12001 uint32
+
+func (d DPT_12001) Pack() []byte {
+	return packU32(uint32(d))
+}
+
+func (d *DPT_12001) Unpack(data []byte) error {
+	return unpackU32(data, (*uint32)(d))
+}
+
+func (d DPT_12001) Unit() string {
+	return ""
+}
+
+func (d DPT_12001) String() string {
+	return fmt.Sprintf("%d", uint32(d))
+}

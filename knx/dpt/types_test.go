@@ -289,3 +289,39 @@ func TestDPT_13001(t *testing.T) {
 		}
 	}
 }
+
+// Test DPT 13.002 (flow rate)
+func TestDPT_13002(t *testing.T) {
+	var buf []byte
+	var src, dst DPT_13002
+
+	// Positive
+	for i := 1; i <= 10; i++ {
+		value := rand.Int31()
+
+		src = DPT_13002(value)
+		if int32(src) != value {
+			t.Errorf("Assignment of value \"%v\" failed! Has value \"%s\".", value, src)
+		}
+		buf = src.Pack()
+		dst.Unpack(buf)
+		if int32(dst) != value {
+			t.Errorf("Wrong value \"%s\" after pack/unpack! Original value was \"%v\".", dst, value)
+		}
+	}
+
+	// Negative
+	for i := 1; i <= 10; i++ {
+		value := -rand.Int31()
+
+		src = DPT_13002(value)
+		if int32(src) != value {
+			t.Errorf("Assignment of value \"%v\" failed! Has value \"%s\".", value, src)
+		}
+		buf = src.Pack()
+		dst.Unpack(buf)
+		if int32(dst) != value {
+			t.Errorf("Wrong value \"%s\" after pack/unpack! Original value was \"%v\".", dst, value)
+		}
+	}
+}

@@ -342,3 +342,29 @@ func (d DPT_13001) Unit() string {
 func (d DPT_13001) String() string {
 	return fmt.Sprintf("%d pulses", int32(d))
 }
+
+// DPT_13002 represents DPT 13.002 / flow rate.
+type DPT_13002 int32
+
+func (d DPT_13002) Pack() []byte {
+	return packV32(int32(d))
+}
+
+func (d *DPT_13002) Unpack(data []byte) error {
+	var value int32
+
+	if err := unpackV32(data, &value); err != nil {
+		return err
+	}
+	*d = DPT_13002(value)
+
+	return nil
+}
+
+func (d DPT_13002) Unit() string {
+	return "m^3/h"
+}
+
+func (d DPT_13002) String() string {
+	return fmt.Sprintf("%d m^3/h", int32(d))
+}

@@ -498,3 +498,29 @@ func (d DPT_13014) Unit() string {
 func (d DPT_13014) String() string {
 	return fmt.Sprintf("%d kVAh", int32(d))
 }
+
+// DPT_13015 represents DPT 13.015 / reactive energy (kVARh).
+type DPT_13015 int32
+
+func (d DPT_13015) Pack() []byte {
+	return packV32(int32(d))
+}
+
+func (d *DPT_13015) Unpack(data []byte) error {
+	var value int32
+
+	if err := unpackV32(data, &value); err != nil {
+		return err
+	}
+	*d = DPT_13015(value)
+
+	return nil
+}
+
+func (d DPT_13015) Unit() string {
+	return "kVARh"
+}
+
+func (d DPT_13015) String() string {
+	return fmt.Sprintf("%d kVARh", int32(d))
+}

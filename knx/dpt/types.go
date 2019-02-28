@@ -420,3 +420,29 @@ func (d DPT_13011) Unit() string {
 func (d DPT_13011) String() string {
 	return fmt.Sprintf("%d VAh", int32(d))
 }
+
+// DPT_13012 represents DPT 13.012 / reactive energy.
+type DPT_13012 int32
+
+func (d DPT_13012) Pack() []byte {
+	return packV32(int32(d))
+}
+
+func (d *DPT_13012) Unpack(data []byte) error {
+	var value int32
+
+	if err := unpackV32(data, &value); err != nil {
+		return err
+	}
+	*d = DPT_13012(value)
+
+	return nil
+}
+
+func (d DPT_13012) Unit() string {
+	return "VARh"
+}
+
+func (d DPT_13012) String() string {
+	return fmt.Sprintf("%d VARh", int32(d))
+}

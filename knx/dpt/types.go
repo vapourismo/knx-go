@@ -394,3 +394,29 @@ func (d DPT_13010) Unit() string {
 func (d DPT_13010) String() string {
 	return fmt.Sprintf("%d Wh", int32(d))
 }
+
+// DPT_13011 represents DPT 13.011 / apparant energy.
+type DPT_13011 int32
+
+func (d DPT_13011) Pack() []byte {
+	return packV32(int32(d))
+}
+
+func (d *DPT_13011) Unpack(data []byte) error {
+	var value int32
+
+	if err := unpackV32(data, &value); err != nil {
+		return err
+	}
+	*d = DPT_13011(value)
+
+	return nil
+}
+
+func (d DPT_13011) Unit() string {
+	return "VAh"
+}
+
+func (d DPT_13011) String() string {
+	return fmt.Sprintf("%d VAh", int32(d))
+}

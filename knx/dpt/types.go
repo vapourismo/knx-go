@@ -472,3 +472,29 @@ func (d DPT_13013) Unit() string {
 func (d DPT_13013) String() string {
 	return fmt.Sprintf("%d kWh", int32(d))
 }
+
+// DPT_13014 represents DPT 13.014 / apparant energy (kVAh).
+type DPT_13014 int32
+
+func (d DPT_13014) Pack() []byte {
+	return packV32(int32(d))
+}
+
+func (d *DPT_13014) Unpack(data []byte) error {
+	var value int32
+
+	if err := unpackV32(data, &value); err != nil {
+		return err
+	}
+	*d = DPT_13014(value)
+
+	return nil
+}
+
+func (d DPT_13014) Unit() string {
+	return "kVAh"
+}
+
+func (d DPT_13014) String() string {
+	return fmt.Sprintf("%d kVAh", int32(d))
+}

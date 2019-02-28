@@ -368,3 +368,29 @@ func (d DPT_13002) Unit() string {
 func (d DPT_13002) String() string {
 	return fmt.Sprintf("%d m^3/h", int32(d))
 }
+
+// DPT_13010 represents DPT 13.010 / active energy.
+type DPT_13010 int32
+
+func (d DPT_13010) Pack() []byte {
+	return packV32(int32(d))
+}
+
+func (d *DPT_13010) Unpack(data []byte) error {
+	var value int32
+
+	if err := unpackV32(data, &value); err != nil {
+		return err
+	}
+	*d = DPT_13010(value)
+
+	return nil
+}
+
+func (d DPT_13010) Unit() string {
+	return "Wh"
+}
+
+func (d DPT_13010) String() string {
+	return fmt.Sprintf("%d Wh", int32(d))
+}

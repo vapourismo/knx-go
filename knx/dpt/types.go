@@ -310,9 +310,9 @@ func (d *DPT_12001) Unpack(data []byte) error {
 }
 
 func (d DPT_12001) Unit() string {
-	return ""
+	return "pulses"
 }
 
 func (d DPT_12001) String() string {
-	return fmt.Sprintf("%d", uint32(d))
+	return fmt.Sprintf("%d pulses", uint32(d))
 }

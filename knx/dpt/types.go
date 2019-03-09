@@ -325,14 +325,7 @@ func (d DPT_13001) Pack() []byte {
 }
 
 func (d *DPT_13001) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13001(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13001) Unit() string {
@@ -351,14 +344,7 @@ func (d DPT_13002) Pack() []byte {
 }
 
 func (d *DPT_13002) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13002(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13002) Unit() string {
@@ -377,14 +363,7 @@ func (d DPT_13010) Pack() []byte {
 }
 
 func (d *DPT_13010) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13010(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13010) Unit() string {
@@ -403,14 +382,7 @@ func (d DPT_13011) Pack() []byte {
 }
 
 func (d *DPT_13011) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13011(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13011) Unit() string {
@@ -429,14 +401,7 @@ func (d DPT_13012) Pack() []byte {
 }
 
 func (d *DPT_13012) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13012(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13012) Unit() string {
@@ -455,14 +420,7 @@ func (d DPT_13013) Pack() []byte {
 }
 
 func (d *DPT_13013) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13013(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13013) Unit() string {
@@ -481,14 +439,7 @@ func (d DPT_13014) Pack() []byte {
 }
 
 func (d *DPT_13014) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13014(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13014) Unit() string {
@@ -507,14 +458,7 @@ func (d DPT_13015) Pack() []byte {
 }
 
 func (d *DPT_13015) Unpack(data []byte) error {
-	var value int32
-
-	if err := unpackV32(data, &value); err != nil {
-		return err
-	}
-	*d = DPT_13015(value)
-
-	return nil
+	return unpackV32(data, (*int32)(d))
 }
 
 func (d DPT_13015) Unit() string {

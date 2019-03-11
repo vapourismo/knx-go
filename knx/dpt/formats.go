@@ -108,3 +108,25 @@ func unpackU32(data []byte, i *uint32) error {
 
 	return nil
 }
+
+func packV32(i int32) []byte {
+	b := make([]byte, 5)
+
+	b[0] = 0
+	b[1] = byte((i >> 24) & 0xff)
+	b[2] = byte((i >> 16) & 0xff)
+	b[3] = byte((i >> 8) & 0xff)
+	b[4] = byte(i & 0xff)
+
+	return b
+}
+
+func unpackV32(data []byte, i *int32) error {
+	if len(data) != 5 {
+		return ErrInvalidLength
+	}
+
+	*i = int32(data[1]) << 24 | int32(data[2]) << 16 | int32(data[3]) << 8 | int32(data[4])
+
+	return nil
+}

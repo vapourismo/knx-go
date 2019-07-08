@@ -6,6 +6,7 @@ package knx
 import (
 	"container/list"
 	"errors"
+	"net"
 	"sync"
 	"time"
 
@@ -19,6 +20,9 @@ type RouterConfig struct {
 	// Specify how many sent messages to retain. This is important for when a router indicates that
 	// it has lost some messages. If you do not expect to saturate the router, keep this low.
 	RetainCount uint
+	// Specifies the interface used to send and receive KNXNet/IP packets. If the interface
+	// is nil, the system-assigned multicast interface is used.
+	Interface *net.Interface
 }
 
 // DefaultRouterConfig is a good default configuration for a Router client.
@@ -120,7 +124,7 @@ func (router *Router) serve() {
 // NewRouter creates a new Router that joins the given multicast group. You may pass a
 // zero-initialized value as parameter config, the default values will be set up.
 func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
-	sock, err := knxnet.ListenRouter(multicastAddress)
+	sock, err := knxnet.ListenRouterOnInterface(config.Interface, multicastAddress)
 	if err != nil {
 		return nil, err
 	}

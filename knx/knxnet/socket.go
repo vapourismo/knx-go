@@ -74,12 +74,19 @@ type RouterSocket struct {
 // ListenRouter creates a new Socket which can be used to exchange KNXnet/IP packets with
 // multiple endpoints.
 func ListenRouter(multicastAddress string) (*RouterSocket, error) {
+	return ListenRouterOnInterface(nil, multicastAddress)
+}
+
+// ListenRouterOnInterface creates a new Socket which can be used to exchange KNXnet/IP packets with
+// multiple endpoints. The interface is used to send or listen for KNXNet/IP packets. If the
+// interface is nil, the system-assigned multicast interface is used.
+func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string) (*RouterSocket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", multicastAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := net.ListenMulticastUDP("udp4", nil, addr)
+	conn, err := net.ListenMulticastUDP("udp4", ifi, addr)
 	if err != nil {
 		return nil, err
 	}

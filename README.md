@@ -62,7 +62,7 @@ func main() {
 	err = client.Send(knx.GroupEvent{
 		Command:     knx.GroupWrite,
 		Destination: cemi.NewGroupAddr3(1, 2, 3),
-		Data:        dpt.ValueTemp(20.5).Pack(),
+		Data:        dpt.DPT_9001(20.5).Pack(),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -70,7 +70,7 @@ func main() {
 
 	// Receive messages from the gateway. The inbound channel is closed with the connection.
 	for msg := range client.Inbound() {
-		var temp dpt.ValueTemp
+		var temp dpt.DPT_9001
 
 		err := temp.Unpack(msg.Data)
 		if err != nil {

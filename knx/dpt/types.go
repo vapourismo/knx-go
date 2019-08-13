@@ -337,6 +337,43 @@ func (d DPT_9005) String() string {
     return fmt.Sprintf("%.2f m/s", float32(d))
 }
 
+// DPT_9007 represents DPT 9.007 / Humidity
+type DPT_9007 float32
+
+func (d DPT_9007) Pack() []byte {
+    if d <= 0 {
+        return packF16(0)
+    } else if d >= 670760 {
+        return packF16(670760)
+    } else {
+        return packF16(float32(d))
+    }
+}
+
+func (d *DPT_9007) Unpack(data []byte) error {
+    var value float32
+    if err := unpackF16(data, &value); err != nil {
+        return err
+    }
+
+    // Check the value for valid range
+    if value < 0 || value > 670760 {
+        return fmt.Errorf("Humidity \"%.2f\" outside range [0, 670760]", value)
+    }
+
+    *d = DPT_9007(value)
+
+    return nil
+}
+
+func (d DPT_9007) Unit() string {
+    return "%"
+}
+
+func (d DPT_9007) String() string {
+    return fmt.Sprintf("%.2f %%", float32(d))
+}
+
 // DPT_12001 represents DPT 12.001 / Unsigned counter.
 type DPT_12001 uint32
 

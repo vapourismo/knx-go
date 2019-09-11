@@ -22,6 +22,8 @@ func (srv ServiceID) String() string {
 
 // These are supported services.
 const (
+	SearchReqService    ServiceID = 0x0201
+	SearchResService    ServiceID = 0x0202
 	ConnReqService      ServiceID = 0x0205
 	ConnResService      ServiceID = 0x0206
 	ConnStateReqService ServiceID = 0x0207
@@ -147,6 +149,12 @@ func Unpack(data []byte, srv *Service) (uint, error) {
 
 	var body serviceUnpackable
 	switch srvID {
+	case SearchReqService:
+		body = &SearchReq{}
+
+	case SearchResService:
+		body = &SearchRes{}
+
 	case ConnReqService:
 		body = &ConnReq{}
 

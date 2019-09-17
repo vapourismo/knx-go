@@ -3,7 +3,16 @@
 
 package util
 
-import "fmt"
+import (
+	"fmt"
+
+	"golang.org/x/text/encoding/charmap"
+)
+
+var (
+	stringCharmap = charmap.ISO8859_1
+	stringEncoder = stringCharmap.NewEncoder()
+)
 
 // Packable is implemented by types that can be packed into a byte slice.
 type Packable interface {
@@ -106,4 +115,24 @@ func AllocAndPack(inputs ...Packable) []byte {
 	}
 
 	return buffer
+}
+
+// PackString packs a string into the buffer
+func PackString(buffer []byte, maxLen uint, input string) (uint, error) {
+	encoded, err := stringEncoder.Bytes([]byte(input))
+	if err != nil {
+		return 0, fmt.Errorf("Unable to encode string: %s", err)
+	}
+
+	if len(encoded) >= int(maxLen) {
+		encoded = encoded[:maxLen]
+		encoded[maxLen] = 0x00
+	}
+
+	copy(buffer, encoded)
+	for i := len(encoded); i < int(maxLen); i++ {
+		buffer[i] = 0x00
+	}
+
+	return maxLen, nil
 }

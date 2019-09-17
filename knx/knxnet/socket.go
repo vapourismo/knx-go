@@ -99,6 +99,11 @@ func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string) (*Rout
 	return &RouterSocket{conn, addr, inbound}, nil
 }
 
+// Addr returns the multicast destination address
+func (sock *RouterSocket) Addr() *net.UDPAddr {
+	return sock.addr
+}
+
 // Send transmits a KNXnet/IP packet.
 func (sock *RouterSocket) Send(payload ServicePackable) error {
 	buffer := make([]byte, Size(payload))

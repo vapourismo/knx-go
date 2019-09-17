@@ -113,3 +113,35 @@ Connect two KNX networks through gateways. In this example one gateway is at `10
 other is at `10.0.0.3:3671`.
 
 	$ knxbridge 10.0.0.2:3671 10.0.0.3:3671
+
+### Discover all KNXnet/IP Servers
+
+The following example shows how to discover all routers/gateways on a network.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	"time"
+
+	"github.com/kr/pretty"
+
+	"github.com/vapourismo/knx-go/knx"
+	"github.com/vapourismo/knx-go/knx/util"
+)
+
+func main() {
+	// Setup logger for auxiliary logging. This enables us to see log messages from internal
+	// routines.
+	util.Logger = log.New(os.Stdout, "", log.LstdFlags)
+
+	servers, err := knx.Discover("224.0.23.12:3671", time.Millisecond*750)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	util.Logger.Printf("%# v", pretty.Formatter(servers))
+}
+```

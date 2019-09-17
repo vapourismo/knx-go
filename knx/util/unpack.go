@@ -4,8 +4,13 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+)
+
+var (
+	stringDecoder = stringCharmap.NewDecoder()
 )
 
 // Unpackable is implemented by types that can be initialized by reading from a byte slice.
@@ -117,4 +122,17 @@ func UnpackSome(data []byte, outputs ...interface{}) (uint, error) {
 	}
 
 	return n, nil
+}
+
+// UnpackString unpacks a string
+func UnpackString(buffer []byte, len uint, output *string) (uint, error) {
+	buffer = buffer[:len]
+	buffer = bytes.TrimRight(buffer, string(byte(0x0)))
+	buffer, err := stringDecoder.Bytes(buffer)
+	if err != nil {
+		return 0, fmt.Errorf("Unable to decode string: %s", err)
+	}
+
+	*output = string(buffer)
+	return len, nil
 }

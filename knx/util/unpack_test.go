@@ -11,6 +11,8 @@ import (
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type unpackableTester [10]byte
@@ -171,4 +173,29 @@ func TestUnpackSome(t *testing.T) {
 			t.Errorf("Unexpected length: %v %v", num, buffer)
 		}
 	}
+}
+
+func TestUnpackString(t *testing.T) {
+	testCases := []struct {
+		MaxLen   uint
+		Data     []byte
+		Expected string
+	}{
+		{
+			MaxLen:   30,
+			Data:     []byte{0x41, 0x42, 0x42, 0x20, 0x49, 0x50, 0x53, 0x2f, 0x53, 0x32, 0x2e, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			Expected: "ABB IPS/S2.1",
+		},
+	}
+
+	for _, testCase := range testCases {
+		var output string
+		n, err := UnpackString(testCase.Data, testCase.MaxLen, &output)
+
+		if assert.Nil(t, err) {
+			assert.Equal(t, testCase.MaxLen, n, "Consumed bytes not equal")
+			assert.Equal(t, testCase.Expected, output, "Unpacked string not equal")
+		}
+	}
+
 }

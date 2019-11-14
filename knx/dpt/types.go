@@ -241,9 +241,9 @@ func (d *DPT_9001) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -273 {
-		return fmt.Errorf("Temperatur \"%.2f\" outside range [-273, 670760]", value)
+		return fmt.Errorf("Temperature \"%.2f\" outside range [-273, 670760]", value)
 	} else if value > 670760 {
-		return fmt.Errorf("Temperatur \"%.2f\" outside range [-273, 670760]", value)
+		return fmt.Errorf("Temperature \"%.2f\" outside range [-273, 670760]", value)
 	}
 
 	*d = DPT_9001(value)

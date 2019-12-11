@@ -141,6 +141,11 @@ func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- Service
 			return
 		}
 
+		// discard empty frames
+		if len == 0 {
+			continue
+		}
+
 		// Validate sender origin if necessary
 		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
 			util.Log(conn, "Origin validation failed: %v != %v", addr, sender)

@@ -133,10 +133,6 @@ func Unpack(data []byte, srv *Service) (uint, error) {
 	var headerLen, version uint8
 	var srvID ServiceID
 	var totalLen uint16
-	
-	if len(data) == 0 {
-		return 0, nil
-	}
 
 	n, err := util.UnpackSome(data, &headerLen, &version, (*uint16)(&srvID), &totalLen)
 	if err != nil {

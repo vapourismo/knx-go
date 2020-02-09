@@ -144,6 +144,9 @@ func TestDPT_5001(t *testing.T) {
 		}
 		buf = src.Pack()
 		dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
 		if abs(float32(dst)-value) > (Q + epsilon) {
 			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
 		}
@@ -171,6 +174,9 @@ func TestDPT_5003(t *testing.T) {
 		}
 		buf = src.Pack()
 		dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
 		if abs(float32(dst)-value) > (Q + epsilon) {
 			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
 		}
@@ -199,6 +205,9 @@ func TestDPT_9001(t *testing.T) {
 		}
 		buf = src.Pack()
 		dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
 		if abs(float32(dst)-value) > (Q + epsilon) {
 			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
 		}
@@ -226,6 +235,9 @@ func TestDPT_9004(t *testing.T) {
 		}
 		buf = src.Pack()
 		dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
 		if abs(float32(dst)-value) > (Q + epsilon) {
 			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
 		}
@@ -253,6 +265,9 @@ func TestDPT_9005(t *testing.T) {
 		}
 		buf = src.Pack()
 		dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
 		if abs(float32(dst)-value) > (Q + epsilon) {
 			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
 		}
@@ -280,6 +295,9 @@ func TestDPT_9007(t *testing.T) {
 		}
 		buf = src.Pack()
 		dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
 		if abs(float32(dst)-value) > (Q + epsilon) {
 			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
 		}

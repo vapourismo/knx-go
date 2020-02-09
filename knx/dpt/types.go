@@ -178,7 +178,7 @@ func (d DPT_5003) Pack() []byte {
 	} else if d >= 360 {
 		return packU8(255)
 	} else {
-		return packU8(uint8(d * (255 / 360)))
+		return packU8(uint8(d * 255 / 360))
 	}
 }
 
@@ -188,7 +188,7 @@ func (d *DPT_5003) Unpack(data []byte) error {
 		return err
 	}
 
-	*d = DPT_5003(value) / (255 / 360)
+	*d = DPT_5003(value) * 360 / 255
 
 	return nil
 }

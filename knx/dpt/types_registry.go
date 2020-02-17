@@ -9,16 +9,10 @@ import (
 	"strings"
 )
 
-type Registry struct {
-	lut map[string]DatapointValue
-}
+type Registry map[string]DatapointValue
 
-// Fill the LUT with the given datatype
+// Fill the registry with the given datatype
 func (r *Registry) add(d DatapointValue) error {
-	if r.lut == nil {
-		return fmt.Errorf("registry is not initialized!")
-	}
-
 	// Determine the name of the datatype
 	d_type := reflect.TypeOf(d)
 	name := d_type.Name()
@@ -36,14 +30,14 @@ func (r *Registry) add(d DatapointValue) error {
 	name = name[:len(name)-3] + "." + name[len(name)-3:]
 
 	// Register the type
-	r.lut[name] = d
+	(*r)[name] = d
 
 	return nil
 }
 
 // Init function used to add all types
-func (r *Registry) Init() error {
-	r.lut = make(map[string]DatapointValue)
+func NewRegistry() (r *Registry, err error) {
+	r = &Registry{}
 
 	// Create a list of all known datapoint-types
 	dpts := make([]DatapointValue, 0)
@@ -81,22 +75,22 @@ func (r *Registry) Init() error {
 
 	// Register the types
 	for _, d := range dpts {
-		err := r.add(d)
+		err = r.add(d)
 		if err != nil {
-			return err
+			return
 		}
 	}
 
-	return nil
+	return
 }
 
 func (r Registry) List() []string {
 	// Initialize the key-list
-	keys := make([]string, len(r.lut))
+	keys := make([]string, len(r))
 
 	// Fill the key-list
 	i := 0
-	for k := range r.lut {
+	for k := range r {
 		keys[i] = k
 		i++
 	}
@@ -104,13 +98,7 @@ func (r Registry) List() []string {
 	return keys
 }
 
-func (r Registry) Lookup(name string) (t DatapointValue, err error) {
-	t, ok := r.lut[name]
-	if ok {
-		err = nil
-	} else {
-		err = fmt.Errorf("datapoint-type \"%v\" not found!", name)
-	}
-
+func (r Registry) Lookup(name string) (d DatapointValue, ok bool) {
+	d, ok = r[name]
 	return
 }

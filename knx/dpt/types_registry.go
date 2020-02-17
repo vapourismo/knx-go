@@ -9,15 +9,16 @@ import (
 	"strings"
 )
 
-type Registry map[string]DatapointValue
+type Registry map[string]reflect.Type
 
 // Fill the registry with the given datatype
-func (r *Registry) add(d DatapointValue) error {
+func (r Registry) add(d DatapointValue) error {
 	// Determine the name of the datatype
 	d_type := reflect.TypeOf(d)
 	name := d_type.Name()
 	if d_type.Kind() == reflect.Ptr {
-		name = d_type.Elem().Name()
+		d_type = d_type.Elem()
+		name = d_type.Name()
 	}
 
 	// Make sure we only handle DPT types^
@@ -30,7 +31,7 @@ func (r *Registry) add(d DatapointValue) error {
 	name = name[:len(name)-3] + "." + name[len(name)-3:]
 
 	// Register the type
-	(*r)[name] = d
+	r[name] = d_type
 
 	return nil
 }
@@ -98,7 +99,11 @@ func (r Registry) List() []string {
 	return keys
 }
 
-func (r Registry) Lookup(name string) (d DatapointValue, ok bool) {
-	d, ok = r[name]
+func (r Registry) Produce(name string) (d DatapointValue, ok bool) {
+	x, ok := r[name]
+
+	if ok {
+		d = reflect.New(x).Interface().(DatapointValue)
+	}
 	return
 }

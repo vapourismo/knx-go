@@ -47,24 +47,27 @@ var (
 
 // Init function used to add all types
 func setup() {
-	// Register the types
-	registry = make(map[string]reflect.Type)
-	for _, d := range types {
-		// Determine the name of the datatype
-		d_type := reflect.TypeOf(d).Elem()
-		name := d_type.Name()
+	// Singleton, can only run once
+	once.Do(func() {
+		// Register the types
+		registry = make(map[string]reflect.Type)
+		for _, d := range types {
+			// Determine the name of the datatype
+			d_type := reflect.TypeOf(d).Elem()
+			name := d_type.Name()
 
-		// Convert the name into KNX yy.xxx (e.g. DPT_1001 --> 1.001) format
-		name = name[4:len(name)-3] + "." + name[len(name)-3:]
+			// Convert the name into KNX yy.xxx (e.g. DPT_1001 --> 1.001) format
+			name = name[4:len(name)-3] + "." + name[len(name)-3:]
 
-		// Register the type
-		registry[name] = d_type
-	}
+			// Register the type
+			registry[name] = d_type
+		}
+	})
 }
 
 func ListSupportedTypes() []string {
-	// Singleton, can only run once
-	once.Do(setup)
+	// Setup the registry
+	setup()
 
 	// Initialize the key-list
 	keys := make([]string, len(registry))
@@ -80,13 +83,13 @@ func ListSupportedTypes() []string {
 }
 
 func Produce(name string) (d DatapointValue, ok bool) {
-	// Singleton, can only run once
-	once.Do(setup)
+	// Setup the registry
+	setup()
 
+	// Lookup the given type and create a new instance of that type
 	x, ok := registry[name]
-
 	if ok {
 		d = reflect.New(x).Interface().(DatapointValue)
 	}
-	return
+	return d, ok
 }

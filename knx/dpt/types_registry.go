@@ -65,6 +65,7 @@ func setup() {
 	})
 }
 
+// ListSupportedTypes returns the name all known datapoint-types (DPTs).
 func ListSupportedTypes() []string {
 	// Setup the registry
 	setup()
@@ -82,6 +83,7 @@ func ListSupportedTypes() []string {
 	return keys
 }
 
+// Produce creates a new instance of the given datapoint-type name e.g. "1.001".
 func Produce(name string) (d DatapointValue, ok bool) {
 	// Setup the registry
 	setup()

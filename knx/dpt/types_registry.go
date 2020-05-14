@@ -40,6 +40,10 @@ var (
 		new(DPT_13013),
 		new(DPT_13014),
 		new(DPT_13015),
+		// 17.xxx
+		new(DPT_17001),
+		// 18.xxx
+		new(DPT_18001),
 	}
 	once     sync.Once
 	registry map[string]reflect.Type

@@ -95,23 +95,23 @@ func (d DPT_1003) String() string {
 type DPT_1009 bool
 
 func (d DPT_1009) Pack() []byte {
-        return packB1(bool(d))
+	return packB1(bool(d))
 }
 
 func (d *DPT_1009) Unpack(data []byte) error {
-        return unpackB1(data, (*bool)(d))
+	return unpackB1(data, (*bool)(d))
 }
 
 func (d DPT_1009) Unit() string {
-        return ""
+	return ""
 }
 
 func (d DPT_1009) String() string {
-        if d {
-                return "Close"
-        } else {
-                return "Open"
-        }
+	if d {
+		return "Close"
+	} else {
+		return "Open"
+	}
 }
 
 // DPT_1010 represents DPT 1.010 / Start.
@@ -578,7 +578,7 @@ func (d DPT_17001) Unit() string {
 }
 
 func (d DPT_17001) String() string {
-   return fmt.Sprintf("%d", uint8(d))
+	return fmt.Sprintf("%d", uint8(d))
 }
 
 // DPT_18001 represents DPT 18.001 / Scene Control.

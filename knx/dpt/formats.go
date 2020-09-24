@@ -126,7 +126,7 @@ func unpackV32(data []byte, i *int32) error {
 		return ErrInvalidLength
 	}
 
-	*i = int32(data[1]) << 24 | int32(data[2]) << 16 | int32(data[3]) << 8 | int32(data[4])
+	*i = int32(data[1])<<24 | int32(data[2])<<16 | int32(data[3])<<8 | int32(data[4])
 
 	return nil
 }

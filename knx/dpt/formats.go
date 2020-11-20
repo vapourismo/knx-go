@@ -4,11 +4,13 @@
 package dpt
 
 import (
+	"encoding/binary"
 	"errors"
+	"math"
 )
 
 // ErrInvalidLength is returned when the application data has unexpected length.
-var ErrInvalidLength = errors.New("Given application data has invalid length")
+var ErrInvalidLength = errors.New("given application data has invalid length")
 
 func packB1(b bool) []byte {
 	if b {
@@ -76,6 +78,20 @@ func unpackF16(data []byte, f *float32) error {
 	return nil
 }
 
+func packF32(f float32) []byte {
+	buffer := []byte{0, 0, 0, 0, 0}
+	binary.BigEndian.PutUint32(buffer[1:], math.Float32bits(f))
+	return buffer
+}
+
+func unpackF32(data []byte, f *float32) error {
+	if len(data) != 5 {
+		return ErrInvalidLength
+	}
+	*f = math.Float32frombits(binary.BigEndian.Uint32(data[1:]))
+	return nil
+}
+
 func packU8(i uint8) []byte {
 	return []byte{0, i}
 }
@@ -92,10 +108,7 @@ func unpackU8(data []byte, i *uint8) error {
 
 func packU32(i uint32) []byte {
 	buffer := []byte{0, 0, 0, 0, 0}
-	buffer[1] = uint8(i >> 24)
-	buffer[2] = uint8(i >> 16)
-	buffer[3] = uint8(i >> 8)
-	buffer[4] = uint8(i & 0xff)
+	binary.BigEndian.PutUint32(buffer[1:], i)
 	return buffer
 }
 
@@ -103,9 +116,7 @@ func unpackU32(data []byte, i *uint32) error {
 	if len(data) != 5 {
 		return ErrInvalidLength
 	}
-
-	*i = uint32(data[1])<<24 | uint32(data[2])<<16 | uint32(data[3])<<8 | uint32(data[4])
-
+	*i = binary.BigEndian.Uint32(data[1:])
 	return nil
 }
 

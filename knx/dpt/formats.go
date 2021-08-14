@@ -106,6 +106,20 @@ func unpackU8(data []byte, i *uint8) error {
 	return nil
 }
 
+func packU16(i uint16) []byte {
+	buffer := []byte{0, 0, 0}
+	binary.BigEndian.PutUint16(buffer[1:], i)
+	return buffer
+}
+
+func unpackU16(data []byte, i *uint16) error {
+	if len(data) != 3 {
+		return ErrInvalidLength
+	}
+	*i = binary.BigEndian.Uint16(data[1:])
+	return nil
+}
+
 func packU32(i uint32) []byte {
 	buffer := []byte{0, 0, 0, 0, 0}
 	binary.BigEndian.PutUint32(buffer[1:], i)

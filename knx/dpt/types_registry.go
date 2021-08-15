@@ -115,7 +115,7 @@ var (
 		new(DPT_14077),
 		new(DPT_14078),
 		new(DPT_14079),
-		
+
 		// 17.xxx
 		new(DPT_17001),
 		// 18.xxx

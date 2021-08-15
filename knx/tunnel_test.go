@@ -20,7 +20,7 @@ func makeTunnelConn(
 		config:  config,
 		channel: channel,
 		ack:     make(chan *knxnet.TunnelRes),
-		inbound: make(chan cemi.Message),
+		inbound: make(chan cemi.Message, 100),
 	}
 }
 
@@ -807,7 +807,6 @@ func TestTunnelConn_handleTunnelReq(t *testing.T) {
 
 	t.Run("Ok", func(t *testing.T) {
 		client, gateway := newDummySockets()
-		inbound := make(chan cemi.Message)
 
 		const (
 			channel       uint8 = 1
@@ -845,7 +844,6 @@ func TestTunnelConn_handleTunnelReq(t *testing.T) {
 			seqNumber := sendSeqNumber
 
 			conn := makeTunnelConn(client, DefaultTunnelConfig, channel)
-			conn.inbound = inbound
 
 			req := &knxnet.TunnelReq{
 				Channel:   channel,
@@ -861,12 +859,8 @@ func TestTunnelConn_handleTunnelReq(t *testing.T) {
 			if seqNumber != sendSeqNumber+1 {
 				t.Error("Sequence number has not been increased")
 			}
-		})
 
-		t.Run("Client", func(t *testing.T) {
-			t.Parallel()
-
-			<-inbound
+			<-conn.Inbound()
 		})
 	})
 }

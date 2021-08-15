@@ -201,17 +201,17 @@ func (d DPT_7012) String() string {
 type DPT_7013 uint16
 
 func (d DPT_7013) Pack() []byte {
- return packU16(uint16(d))
+	return packU16(uint16(d))
 }
 
 func (d *DPT_7013) Unpack(data []byte) error {
- return unpackU16(data, (*uint16)(d))
+	return unpackU16(data, (*uint16)(d))
 }
 
 func (d DPT_7013) Unit() string {
- return "lux"
+	return "lux"
 }
 
 func (d DPT_7013) String() string {
- return fmt.Sprintf("%d lux", uint16(d))
+	return fmt.Sprintf("%d lux", uint16(d))
 }

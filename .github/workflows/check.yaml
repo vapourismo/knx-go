@@ -1,0 +1,53 @@
+name: Check
+on:
+  push: {}
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "0 8 * * *"
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+          - "1.16.7"
+          - "1.15.15"
+        stable:
+          - true
+        may-fail:
+          - false
+    continue-on-error: ${{ matrix.may-fail }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "${{ matrix.go }}"
+          stable: ${{ matrix.stable }}
+      - run: go version
+      - run: go build -v ./...
+      - run: go test -race -parallel 4 -timeout 30s -v ./...
+  Format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "1.16.7"
+      - run: |
+          unformatted=$(gofmt -l .)
+          if [[ ! -z "$unformatted" ]]; then
+            echo "Files need formatting!"
+            echo $unformatted
+            exit 1
+          fi
+  Vet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "1.16.7"
+      - run: go vet ./...

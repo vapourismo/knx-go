@@ -1,9 +1,0 @@
-language: go
-go:
-  - "1.13"
-  - "1.14"
-  - "tip"
-script:
-  - go build ./...
-  - go get -u github.com/stretchr/testify/assert
-  - go test -race -parallel 4 -timeout 30s -v ./...

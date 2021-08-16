@@ -37,9 +37,24 @@ var (
 
 		// 9.xxx
 		new(DPT_9001),
+		new(DPT_9002),
+		new(DPT_9003),
 		new(DPT_9004),
 		new(DPT_9005),
+		new(DPT_9006),
 		new(DPT_9007),
+		new(DPT_9008),
+		new(DPT_9010),
+		new(DPT_9011),
+		new(DPT_9020),
+		new(DPT_9021),
+		new(DPT_9022),
+		new(DPT_9023),
+		new(DPT_9024),
+		new(DPT_9025),
+		new(DPT_9026),
+		new(DPT_9027),
+		new(DPT_9028),
 
 		// 12.xxx
 		new(DPT_12001),

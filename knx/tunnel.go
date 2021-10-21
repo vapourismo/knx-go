@@ -24,6 +24,9 @@ type TunnelConfig struct {
 
 	// ResponseTimeout specifies how long to wait for a response.
 	ResponseTimeout time.Duration
+
+	// SendLocalAddress specifies if local address should be sent on connection request.
+	SendLocalAddress bool
 }
 
 // DefaultTunnelConfig is a good default configuration for a Tunnel client.
@@ -31,6 +34,7 @@ var DefaultTunnelConfig = TunnelConfig{
 	ResendInterval:    500 * time.Millisecond,
 	HeartbeatInterval: 10 * time.Second,
 	ResponseTimeout:   10 * time.Second,
+	SendLocalAddress:  false,
 }
 
 // checkTunnelConfig makes sure that the configuration is actually usable.
@@ -83,7 +87,18 @@ type Tunnel struct {
 // reponse timeout is reached or a response is received. A response that renders the gateway as busy
 // will not stop requestConn.
 func (conn *Tunnel) requestConn() (err error) {
-	conn.control = knxnet.HostInfo{Protocol: knxnet.UDP4}
+
+	if conn.config.SendLocalAddress {
+		hostInfo, err := knxnet.HostInfoFromAddress(conn.sock.LocalAddr())
+
+		if err != nil {
+			return err
+		}
+
+		conn.control = hostInfo
+	} else {
+		conn.control = knxnet.HostInfo{Protocol: knxnet.UDP4}
+	}
 
 	req := &knxnet.ConnReq{
 		Layer:   conn.layer,

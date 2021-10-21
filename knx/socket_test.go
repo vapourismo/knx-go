@@ -6,6 +6,7 @@ package knx
 import (
 	"container/list"
 	"errors"
+	"net"
 	"sync"
 
 	"github.com/vapourismo/knx-go/knx/knxnet"
@@ -96,6 +97,13 @@ func (sock *dummySocket) Close() error {
 	sock.cond.Broadcast()
 
 	return nil
+}
+
+func (sock *dummySocket) LocalAddr() *net.UDPAddr {
+	return &net.UDPAddr{
+		IP:   net.IPv4(192, 168, 1, 82),
+		Port: 4321,
+	}
 }
 
 func newDummySockets() (*dummySocket, *dummySocket) {

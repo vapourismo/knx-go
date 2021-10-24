@@ -6,6 +6,7 @@ package knxnet
 import (
 	"errors"
 	"fmt"
+	"net"
 
 	"github.com/vapourismo/knx-go/knx/util"
 )
@@ -37,6 +38,21 @@ type HostInfo struct {
 	Protocol Protocol
 	Address  Address
 	Port     Port
+}
+
+// HostInfoFromAddress returns HostInfo from a UDP address
+func HostInfoFromAddress(address *net.UDPAddr) (HostInfo, error) {
+	ipAddress := address.IP.To4()
+
+	if ipAddress == nil {
+		return HostInfo{}, errors.New("unsupported local address")
+	}
+
+	var localIP Address
+	copy(localIP[:], ipAddress)
+
+	port := (Port)(address.Port)
+	return HostInfo{Protocol: UDP4, Address: localIP, Port: port}, nil
 }
 
 // Equals checks whether both structures are equal.

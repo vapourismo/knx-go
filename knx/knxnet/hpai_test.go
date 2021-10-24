@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"net"
 	"testing"
 
 	"github.com/vapourismo/knx-go/knx/util"
@@ -103,4 +104,39 @@ func TestHostInfo_Pack(t *testing.T) {
 			t.Errorf("Result does not match: %v != %v", hiCmp, hi)
 		}
 	}
+}
+
+func TestHostInfoFromAddress(t *testing.T) {
+	t.Run("valid UDP4 address", func(t *testing.T) {
+		address := net.UDPAddr{
+			IP:   net.IPv4(192, 168, 1, 15),
+			Port: 1234,
+		}
+
+		expected := HostInfo{
+			Protocol: UDP4,
+			Address:  [4]byte{192, 168, 1, 15},
+			Port:     1234,
+		}
+
+		info, err := HostInfoFromAddress(&address)
+
+		if err != nil {
+			t.Fatal("Expected error to be nil, but it was '", err, "'")
+		}
+
+		if !expected.Equals(info) {
+			t.Fatal("Expected", expected, "but it was", info)
+		}
+	})
+
+	t.Run("invalid UDP address", func(t *testing.T) {
+		address := net.UDPAddr{}
+		_, err := HostInfoFromAddress(&address)
+
+		if err == nil {
+			t.Fatal("Should not succeed")
+		}
+	})
+
 }

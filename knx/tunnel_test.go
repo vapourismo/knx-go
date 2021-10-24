@@ -205,7 +205,7 @@ func TestTunnelConn_requestConn(t *testing.T) {
 	})
 
 	// The gateway responds to the connection request with local address.
-	t.Run("Ok - without local address", func(t *testing.T) {
+	t.Run("Ok - with local address", func(t *testing.T) {
 		client, gateway := newDummySockets()
 
 		t.Run("Gateway", func(t *testing.T) {

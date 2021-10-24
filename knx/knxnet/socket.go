@@ -15,14 +15,13 @@ type Socket interface {
 	Send(payload ServicePackable) error
 	Inbound() <-chan Service
 	Close() error
-	LocalAddr() *net.UDPAddr
+	LocalAddr() (*net.UDPAddr, error)
 }
 
 // TunnelSocket is a UDP socket for KNXnet/IP packet exchange.
 type TunnelSocket struct {
-	conn      *net.UDPConn
-	inbound   <-chan Service
-	localAddr *net.UDPAddr
+	conn    *net.UDPConn
+	inbound <-chan Service
 }
 
 // DialTunnel creates a new Socket which can used to exchange KNXnet/IP packets with a single
@@ -38,17 +37,12 @@ func DialTunnel(address string) (*TunnelSocket, error) {
 		return nil, err
 	}
 
-	localAddr, err := net.ResolveUDPAddr("udp4", conn.LocalAddr().String())
-	if err != nil {
-		return nil, err
-	}
-
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan Service)
 	go serveUDPSocket(conn, addr, inbound)
 
-	return &TunnelSocket{conn, inbound, localAddr}, nil
+	return &TunnelSocket{conn, inbound}, nil
 }
 
 // Send transmits a KNXnet/IP packet.
@@ -72,16 +66,16 @@ func (sock *TunnelSocket) Close() error {
 }
 
 // LocalAddr returns the local UDP address.
-func (sock *TunnelSocket) LocalAddr() *net.UDPAddr {
-	return sock.localAddr
+func (sock *TunnelSocket) LocalAddr() (localAddr *net.UDPAddr, err error) {
+	localAddr, err = net.ResolveUDPAddr("udp4", sock.conn.LocalAddr().String())
+	return
 }
 
 // RouterSocket is a UDP socket for KNXnet/IP packet exchange.
 type RouterSocket struct {
-	conn      *net.UDPConn
-	addr      *net.UDPAddr
-	inbound   <-chan Service
-	localAddr *net.UDPAddr
+	conn    *net.UDPConn
+	addr    *net.UDPAddr
+	inbound <-chan Service
 }
 
 // ListenRouter creates a new Socket which can be used to exchange KNXnet/IP packets with
@@ -104,17 +98,12 @@ func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string) (*Rout
 		return nil, err
 	}
 
-	localAddr, err := net.ResolveUDPAddr("udp4", conn.LocalAddr().String())
-	if err != nil {
-		return nil, err
-	}
-
 	conn.SetDeadline(time.Time{})
 
 	inbound := make(chan Service)
 	go serveUDPSocket(conn, nil, inbound)
 
-	return &RouterSocket{conn, addr, inbound, localAddr}, nil
+	return &RouterSocket{conn, addr, inbound}, nil
 }
 
 // Addr returns the multicast destination address
@@ -143,8 +132,9 @@ func (sock *RouterSocket) Close() error {
 }
 
 // LocalAddr returns the local UDP address.
-func (sock *RouterSocket) LocalAddr() *net.UDPAddr {
-	return sock.localAddr
+func (sock *RouterSocket) LocalAddr() (localAddr *net.UDPAddr, err error) {
+	localAddr, err = net.ResolveUDPAddr("udp4", sock.conn.LocalAddr().String())
+	return
 }
 
 // serveUDPSocket is the receiver worker for a UDP socket.

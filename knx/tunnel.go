@@ -83,22 +83,31 @@ type Tunnel struct {
 	wait sync.WaitGroup
 }
 
+func (conn *Tunnel) hostInfo() (knxnet.HostInfo, error) {
+	if conn.config.SendLocalAddress {
+		localAddr, err := conn.sock.LocalAddr()
+
+		if err != nil {
+			return knxnet.HostInfo{}, err
+		}
+
+		return knxnet.HostInfoFromAddress(localAddr)
+	} else {
+		return knxnet.HostInfo{Protocol: knxnet.UDP4}, nil
+	}
+}
+
 // requestConn repeatedly sends a connection request through the socket until the configured
 // reponse timeout is reached or a response is received. A response that renders the gateway as busy
 // will not stop requestConn.
 func (conn *Tunnel) requestConn() (err error) {
 
-	if conn.config.SendLocalAddress {
-		hostInfo, err := knxnet.HostInfoFromAddress(conn.sock.LocalAddr())
-
-		if err != nil {
-			return err
-		}
-
-		conn.control = hostInfo
-	} else {
-		conn.control = knxnet.HostInfo{Protocol: knxnet.UDP4}
+	hostInfo, err := conn.hostInfo()
+	if err != nil {
+		return err
 	}
+
+	conn.control = hostInfo
 
 	req := &knxnet.ConnReq{
 		Layer:   conn.layer,

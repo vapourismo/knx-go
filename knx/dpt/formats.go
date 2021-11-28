@@ -30,20 +30,20 @@ func unpackB1(data []byte, b *bool) error {
 	return nil
 }
 
-func packB4(b0 bool, b1 bool, b2 bool, b3 bool) byte {
-	var b int
+func packB4(bs [4]bool) byte {
+	var b byte
 	b = 0
-	if b3 {
-		b += 1 << 0
+	if bs[0] {
+		b |= 1 << 0
 	}
-	if b2 {
-		b += 1 << 1
+	if bs[1] {
+		b |= 1 << 1
 	}
-	if b1 {
-		b += 1 << 2
+	if bs[2] {
+		b |= 1 << 2
 	}
-	if b0 {
-		b += 1 << 3
+	if bs[3] {
+		b |= 1 << 3
 	}
 
 	return byte(b)
@@ -56,10 +56,10 @@ func unpackB4(data byte, b0 *bool, b1 *bool, b2 *bool, b3 *bool) error {
 		return ErrInvalidLength
 	}
 
-	*b3 = ((data >> 0) & 1) != 0
-	*b2 = ((data >> 1) & 1) != 0
-	*b1 = ((data >> 2) & 1) != 0
-	*b0 = ((data >> 3) & 1) != 0
+	*b0 = ((data >> 0) & 1) != 0
+	*b1 = ((data >> 1) & 1) != 0
+	*b2 = ((data >> 2) & 1) != 0
+	*b3 = ((data >> 3) & 1) != 0
 
 	return nil
 }

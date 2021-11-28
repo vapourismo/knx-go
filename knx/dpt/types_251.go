@@ -18,7 +18,7 @@ type DPT_251600 struct {
 
 func (d DPT_251600) Pack() []byte {
 
-	validBits := packB4(d.RedValid, d.GreenValid, d.BlueValid, d.WhiteValid)
+	validBits := packB4([4]bool{d.WhiteValid, d.BlueValid, d.GreenValid, d.RedValid})
 
 	return []byte{0, d.Red, d.Green, d.Blue, d.White, uint8(0), validBits}
 }
@@ -31,7 +31,7 @@ func (d *DPT_251600) Unpack(data []byte) error {
 
 	var redValid, greenValid, blueValid, whiteValid bool
 
-	err := unpackB4(data[6], &redValid, &greenValid, &blueValid, &whiteValid)
+	err := unpackB4(data[6], &whiteValid, &blueValid, &greenValid, &redValid)
 
 	if err != nil {
 		return ErrInvalidLength

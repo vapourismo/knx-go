@@ -9,8 +9,12 @@ import (
 	"math"
 )
 
-// ErrInvalidLength is returned when the application data has unexpected length.
-var ErrInvalidLength = errors.New("given application data has invalid length")
+var (
+	// ErrInvalidLength is returned when the application data has unexpected length.
+	ErrInvalidLength = errors.New("given application data has invalid length")
+	// ErrBadReservedBits is returned when reserved bits are populated. E.g. if bit number 5 of a r4B4 field is populated
+	ErrBadReservedBits = errors.New("reserved bits in the input data have been populated")
+)
 
 func packB1(b bool) []byte {
 	if b {
@@ -26,6 +30,38 @@ func unpackB1(data []byte, b *bool) error {
 	}
 
 	*b = data[0]&1 == 1
+
+	return nil
+}
+
+func packB4(bs [4]bool) byte {
+	var b byte = 0
+	if bs[0] {
+		b |= 1 << 0
+	}
+	if bs[1] {
+		b |= 1 << 1
+	}
+	if bs[2] {
+		b |= 1 << 2
+	}
+	if bs[3] {
+		b |= 1 << 3
+	}
+
+	return byte(b)
+}
+
+func unpackB4(data byte, b0 *bool, b1 *bool, b2 *bool, b3 *bool) error {
+
+	if uint8(data) > 15 {
+		return ErrBadReservedBits
+	}
+
+	*b0 = ((data >> 0) & 1) != 0
+	*b1 = ((data >> 1) & 1) != 0
+	*b2 = ((data >> 2) & 1) != 0
+	*b3 = ((data >> 3) & 1) != 0
 
 	return nil
 }

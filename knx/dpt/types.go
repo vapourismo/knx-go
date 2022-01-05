@@ -91,6 +91,29 @@ func (d DPT_1003) String() string {
 	}
 }
 
+// DPT_1008 represents DPT 1.008 / Up/Down
+type DPT_1008 bool
+
+func (d DPT_1008) Pack() []byte {
+	return packB1(bool(d))
+}
+
+func (d *DPT_1008) Unpack(data []byte) error {
+	return unpackB1(data, (*bool)(d))
+}
+
+func (d DPT_1008) Unit() string {
+	return ""
+}
+
+func (d DPT_1008) String() string {
+	if d {
+		return "Down"
+	} else {
+		return "Up"
+	}
+}
+
 // DPT_1009 represents DPT 1.009 / OpenClose.
 type DPT_1009 bool
 

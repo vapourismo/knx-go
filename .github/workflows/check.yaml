@@ -13,7 +13,9 @@ jobs:
       fail-fast: false
       matrix:
         go:
-          - "1.16.7"
+          - "^1.17.5"
+          - "1.17.5"
+          - "1.16.12"
           - "1.15.15"
         stable:
           - true

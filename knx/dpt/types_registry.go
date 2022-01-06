@@ -14,6 +14,7 @@ var (
 		new(DPT_1001),
 		new(DPT_1002),
 		new(DPT_1003),
+		new(DPT_1008),
 		new(DPT_1009),
 		new(DPT_1010),
 

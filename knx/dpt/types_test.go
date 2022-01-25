@@ -141,6 +141,24 @@ func TestDPT_1010(t *testing.T) {
 	}
 }
 
+// Test DPT 1.100 (Heat/Cool) with values within range
+func TestDPT_1100(t *testing.T) {
+	var buf []byte
+	var src, dst DPT_1100
+
+	for _, value := range []bool{true, false} {
+		src = DPT_1100(value)
+		if bool(src) != value {
+			t.Errorf("Assignment of value \"%v\" failed! Has value \"%s\".", value, src)
+		}
+		buf = src.Pack()
+		dst.Unpack(buf)
+		if bool(dst) != value {
+			t.Errorf("Wrong value \"%s\" after pack/unpack! Original value was \"%v\".", dst, value)
+		}
+	}
+}
+
 // Test DPT 5.001 (Scaling) with values within range
 func TestDPT_5001(t *testing.T) {
 	var buf []byte

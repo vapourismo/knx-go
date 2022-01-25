@@ -160,6 +160,29 @@ func (d DPT_1010) String() string {
 	}
 }
 
+// DPT_1100 represents DPT 1.100 / Heat/Cool.
+type DPT_1100 bool
+
+func (d DPT_1100) Pack() []byte {
+	return packB1(bool(d))
+}
+
+func (d *DPT_1100) Unpack(data []byte) error {
+	return unpackB1(data, (*bool)(d))
+}
+
+func (d DPT_1100) Unit() string {
+	return ""
+}
+
+func (d DPT_1100) String() string {
+	if d {
+		return "Heat"
+	} else {
+		return "Cool"
+	}
+}
+
 // DPT_5001 represents DPT 5.001 / Scaling.
 type DPT_5001 float32
 

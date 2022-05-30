@@ -9,7 +9,7 @@ import (
 
 // DPT_10001 represents DPT 10.001 / TimeOfDay p. 34.
 // Weekday is NOT a golang Weekday, but a KNX Day [0,...,7].
-// It may be 0, indicating "no day" provided.
+// It may be 0, indicating "no day" was provided.
 type DPT_10001 struct {
 	Weekday uint8
 	Hour    uint8
@@ -29,7 +29,7 @@ func (d DPT_10001) Pack() []byte {
 
 func (d *DPT_10001) Unpack(data []byte) error {
 	if len(data) != 4 {
-		return nil
+		return ErrInvalidLength
 	}
 
 	d.Weekday = uint8(data[1] >> 5)

@@ -20,7 +20,7 @@ type DPT_10001 struct {
 func (d DPT_10001) Pack() []byte {
 	var buf = []byte{0, 0, 0, 0}
 	if d.IsValid() {
-		buf[1] = d.Weekday<<5 | d.Hour
+		buf[1] = d.Weekday<<5 | d.Hour&0x1F
 		buf[2] = d.Minutes
 		buf[3] = d.Seconds
 	}
@@ -53,12 +53,10 @@ func (d DPT_10001) IsValid() bool {
 }
 
 func (d DPT_10001) String() string {
-	weekday := []string{"", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
-	if d.Weekday == 0 {
-		return fmt.Sprintf("%02d:%02d:%02d", d.Hour, d.Minutes, d.Seconds)
-	} else if d.Weekday <= 7 {
-		return fmt.Sprintf("%s %02d:%02d:%02d", weekday[d.Weekday], d.Hour, d.Minutes, d.Seconds)
+	weekday := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+	if 0 < d.Weekday && d.Weekday <= 7 {
+		return fmt.Sprintf("%s %02d:%02d:%02d", weekday[d.Weekday - 1], d.Hour, d.Minutes, d.Seconds)
 	} else {
-		return ""
+		return fmt.Sprintf("%02d:%02d:%02d", d.Hour, d.Minutes, d.Seconds)
 	}
 }

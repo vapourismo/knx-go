@@ -20,8 +20,8 @@ func (d DPT_11001) Pack() []byte {
 	var buf = []byte{0, 0, 0, 0}
 
 	if d.Year >= 1990 && d.Year <= 2089 && d.IsValid() {
-		buf[1] = d.Day
-		buf[2] = d.Month
+		buf[1] = d.Day & 0x1F
+		buf[2] = d.Month & 0xF
 
 		if d.Year < 2000 {
 			buf[3] = uint8(d.Year - 1900)
@@ -29,29 +29,37 @@ func (d DPT_11001) Pack() []byte {
 			buf[3] = uint8(d.Year - 2000)
 		}
 	}
-	return []byte(buf)
+
+	buf[3] &= 0x7F
+
+	return buf
 }
 
 func (d *DPT_11001) Unpack(data []byte) error {
 	if len(data) != 4 {
-		return nil
+		return fmt.Errorf("invalid payload length")
 	}
+
 	d.Day = uint8(data[1] & 0x1F)
 	d.Month = uint8(data[2] & 0xF)
 	d.Year = uint16(data[3] & 0x7F)
+
 	if d.Year > 99 {
 		return fmt.Errorf("payload is out of range")
 	}
+
 	if d.Year == 0 && d.Month == 0 && d.Day == 0 {
 		d.Year = 90
 		d.Month = 1
 		d.Day = 1
 	}
+
 	if d.Year >= 90 {
 		d.Year += 1900
 	} else {
 		d.Year += 2000
 	}
+
 	if !d.IsValid() {
 		return fmt.Errorf("payload is out of range")
 	}

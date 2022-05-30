@@ -58,6 +58,12 @@ var (
 		new(DPT_9027),
 		new(DPT_9028),
 
+		// 10.xxx
+		new(DPT_10001),
+
+		// 11.xxx
+		new(DPT_11001),
+
 		// 12.xxx
 		new(DPT_12001),
 

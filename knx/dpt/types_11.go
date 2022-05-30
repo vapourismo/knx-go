@@ -37,7 +37,7 @@ func (d DPT_11001) Pack() []byte {
 
 func (d *DPT_11001) Unpack(data []byte) error {
 	if len(data) != 4 {
-		return fmt.Errorf("invalid payload length")
+		return ErrInvalidLength
 	}
 
 	d.Day = uint8(data[1] & 0x1F)

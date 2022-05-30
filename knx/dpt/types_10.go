@@ -55,7 +55,7 @@ func (d DPT_10001) IsValid() bool {
 func (d DPT_10001) String() string {
 	weekday := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
 	if 0 < d.Weekday && d.Weekday <= 7 {
-		return fmt.Sprintf("%s %02d:%02d:%02d", weekday[d.Weekday - 1], d.Hour, d.Minutes, d.Seconds)
+		return fmt.Sprintf("%s %02d:%02d:%02d", weekday[d.Weekday-1], d.Hour, d.Minutes, d.Seconds)
 	} else {
 		return fmt.Sprintf("%02d:%02d:%02d", d.Hour, d.Minutes, d.Seconds)
 	}

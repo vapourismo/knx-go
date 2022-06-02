@@ -154,10 +154,19 @@ var (
 		new(DPT_14078),
 		new(DPT_14079),
 
+		// 16.xxx
+		new(DPT_16000),
+		new(DPT_16001),
+
 		// 17.xxx
 		new(DPT_17001),
+
 		// 18.xxx
 		new(DPT_18001),
+
+		// 28.xxx
+		new(DPT_28001),
+
 		// 251.xxx
 		new(DPT_251600),
 	}

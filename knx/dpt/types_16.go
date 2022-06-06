@@ -106,12 +106,12 @@ func (d DPT_16001) Unit() string {
 }
 
 func (d DPT_16001) IsValid() bool {
-
 	for _, c := range d {
 		if c > unicode.MaxLatin1 {
 			return false
 		}
 	}
+
 	return len(d) <= 14
 }
 

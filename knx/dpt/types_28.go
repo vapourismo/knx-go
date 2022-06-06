@@ -7,7 +7,8 @@ package dpt
 type DPT_28001 string
 
 func (d DPT_28001) Pack() []byte {
-	var buf = []byte{0x00}
+	// len(d) is gives us the number of bytes in d
+	var buf = make([]byte, 1, len(d)+2)
 
 	buf = append(buf, d...)
 	buf = append(buf, 0x00)

@@ -19,7 +19,7 @@ func (d DPT_16000) Pack() []byte {
 	r := []rune(d)
 
 	for i := 0; i < len(r) && i < 14; i++ {
-		if rune(r[i]) > unicode.MaxASCII {
+		if r[i] > unicode.MaxASCII {
 			buf[i+1] = 0x20
 		} else {
 			buf[i+1] = byte(r[i])
@@ -75,7 +75,7 @@ func (d DPT_16001) Pack() []byte {
 	r := []rune(d)
 
 	for i := 0; i < len(r) && i < 14; i++ {
-		if byte(r[i]) > unicode.MaxLatin1 {
+		if r[i] > unicode.MaxLatin1 {
 			buf[i+1] = 0x20
 		} else {
 			buf[i+1] = byte(r[i])

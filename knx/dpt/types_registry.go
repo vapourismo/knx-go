@@ -10,13 +10,29 @@ import (
 
 var (
 	types = [...]DatapointValue{
-		// 1.xxx
 		new(DPT_1001),
 		new(DPT_1002),
 		new(DPT_1003),
+		new(DPT_1004),
+		new(DPT_1005),
+		new(DPT_1006),
+		new(DPT_1007),
 		new(DPT_1008),
 		new(DPT_1009),
 		new(DPT_1010),
+		new(DPT_1011),
+		new(DPT_1012),
+		new(DPT_1013),
+		new(DPT_1014),
+		new(DPT_1015),
+		new(DPT_1016),
+		new(DPT_1017),
+		new(DPT_1018),
+		new(DPT_1019),
+		new(DPT_1021),
+		new(DPT_1022),
+		new(DPT_1023),
+		new(DPT_1024),
 		new(DPT_1100),
 
 		// 5.xxx

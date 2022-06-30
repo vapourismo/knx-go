@@ -98,7 +98,7 @@ func newBridge(gatewayAddr, otherAddr string) (*bridge, error) {
 	}
 
 	if addr.IP.IsMulticast() {
-		// Instantiate routing facilities.
+		// Instantiate routing facilities. MulticastLoopback is disabled by default.
 		router, err := knx.NewRouter(otherAddr, knx.DefaultRouterConfig)
 		if err != nil {
 			tunnel.Close()

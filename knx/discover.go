@@ -9,15 +9,15 @@ import (
 	"github.com/vapourismo/knx-go/knx/knxnet"
 )
 
-// Discover all KNXnet/IP Server
+// Discover all KNXnet/IP servers.
 func Discover(multicastDiscoveryAddress string, searchTimeout time.Duration) ([]*knxnet.SearchRes, error) {
 	return DiscoverOnInterface(nil, multicastDiscoveryAddress, searchTimeout)
 }
 
-// DiscoverOnInterface discovers all KNXnet/IP Server on a specific interface. If the
+// DiscoverOnInterface discovers all KNXnet/IP servers on a specific interface. If the
 // interface is nil, the system-assigned multicast interface is used.
 func DiscoverOnInterface(ifi *net.Interface, multicastDiscoveryAddress string, searchTimeout time.Duration) ([]*knxnet.SearchRes, error) {
-	socket, err := knxnet.ListenRouterOnInterface(ifi, multicastDiscoveryAddress)
+	socket, err := knxnet.ListenRouterOnInterface(ifi, multicastDiscoveryAddress, false)
 	if err != nil {
 		return nil, err
 	}

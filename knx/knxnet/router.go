@@ -94,10 +94,10 @@ type RoutingBusy struct {
 	// Device status
 	Status DeviceState
 
-	// Time to wait
+	// Time to wait (received in milliseconds)
 	WaitTime time.Duration
 
-	// ?
+	// If set to 0x00, must pause sending
 	Control uint16
 }
 

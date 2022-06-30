@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/vapourismo/knx-go/knx/util"
+	"golang.org/x/net/ipv4"
 )
 
 // A Socket is a socket, duh.
@@ -81,21 +82,51 @@ type RouterSocket struct {
 // ListenRouter creates a new Socket which can be used to exchange KNXnet/IP packets with
 // multiple endpoints.
 func ListenRouter(multicastAddress string) (*RouterSocket, error) {
-	return ListenRouterOnInterface(nil, multicastAddress)
+	return ListenRouterOnInterface(nil, multicastAddress, false)
 }
 
 // ListenRouterOnInterface creates a new Socket which can be used to exchange KNXnet/IP packets with
-// multiple endpoints. The interface is used to send or listen for KNXNet/IP packets. If the
+// multiple endpoints. The interface is used to send or listen for KNXnet/IP packets. If the
 // interface is nil, the system-assigned multicast interface is used.
-func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string) (*RouterSocket, error) {
+func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string, multicastLoopbackEnabled bool) (*RouterSocket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", multicastAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := net.ListenMulticastUDP("udp4", ifi, addr)
+	conn, err := net.ListenUDP("udp4", addr)
 	if err != nil {
 		return nil, err
+	}
+	pc := ipv4.NewPacketConn(conn)
+
+	if err := pc.JoinGroup(ifi, addr); err != nil {
+		return nil, err
+	}
+
+	// Setup interface with Multicast Loopback enabled if desired.
+	// Set it verbosely in case logging is enabled.
+	if loopOn, err := pc.MulticastLoopback(); err == nil {
+		util.Log(conn, "MulticastLoopback status: %t", loopOn)
+		if loopOn {
+			if !multicastLoopbackEnabled {
+				if err := pc.SetMulticastLoopback(false); err != nil {
+					util.Log(conn, "SetMulticastLoopback error: %v", err)
+				} else {
+					util.Log(conn, "MulticastLoopback disabled")
+				}
+			}
+		} else {
+			if multicastLoopbackEnabled {
+				if err := pc.SetMulticastLoopback(true); err != nil {
+					util.Log(conn, "SetMulticastLoopback error: %v", err)
+				} else {
+					util.Log(conn, "MulticastLoopback enabled")
+				}
+			}
+		}
+	} else {
+		util.Log(conn, "Cannot query MulticastLoopback: %v", err)
 	}
 
 	conn.SetDeadline(time.Time{})
@@ -106,7 +137,7 @@ func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string) (*Rout
 	return &RouterSocket{conn, addr, inbound}, nil
 }
 
-// Addr returns the multicast destination address
+// Addr returns the multicast destination address.
 func (sock *RouterSocket) Addr() *net.UDPAddr {
 	return sock.addr
 }
@@ -154,7 +185,7 @@ func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- Service
 			return
 		}
 
-		// discard empty frames
+		// Discard empty frames
 		if len == 0 {
 			continue
 		}

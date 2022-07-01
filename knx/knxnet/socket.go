@@ -104,30 +104,18 @@ func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string, multic
 		return nil, err
 	}
 
-	// Setup interface with Multicast Loopback enabled if desired.
-	// Set it verbosely in case logging is enabled.
+	// Just for logging purposes.
 	if loopOn, err := pc.MulticastLoopback(); err == nil {
-		util.Log(conn, "MulticastLoopback status: %t", loopOn)
-		if loopOn {
-			if !multicastLoopbackEnabled {
-				if err := pc.SetMulticastLoopback(false); err != nil {
-					util.Log(conn, "SetMulticastLoopback error: %v", err)
-				} else {
-					util.Log(conn, "MulticastLoopback disabled")
-				}
-			}
-		} else {
-			if multicastLoopbackEnabled {
-				if err := pc.SetMulticastLoopback(true); err != nil {
-					util.Log(conn, "SetMulticastLoopback error: %v", err)
-				} else {
-					util.Log(conn, "MulticastLoopback enabled")
-				}
-			}
-		}
-	} else {
-		util.Log(conn, "Cannot query MulticastLoopback: %v", err)
+		util.Log(conn, "MulticastLoopback status: %v", loopOn)
 	}
+	// Setup interface with Multicast Loopback enabled if desired.
+	/*
+		if err := pc.SetMulticastLoopback(multicastLoopbackEnabled); err != nil {
+			util.Log(conn, "SetMulticastLoopback error: %v", err)
+		} else {
+			util.Log(conn, "MulticastLoopbackEnabled: %t", multicastLoopbackEnabled)
+		}
+	*/
 
 	conn.SetDeadline(time.Time{})
 

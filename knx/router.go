@@ -134,11 +134,7 @@ func (router *Router) serve() {
 
 // NewRouter creates a new Router that joins the given multicast group. You may pass a
 // zero-initialized value as parameter config, the default values will be set up.
-// If multicastAddress is an empty string, KNX default, "224.0.23.12:3671", will be used.
 func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
-	if multicastAddress == "" {
-		multicastAddress = "224.0.23.12:3671"
-	}
 	config = checkRouterConfig(config)
 
 	sock, err := knxnet.ListenRouterOnInterface(config.Interface, multicastAddress, config.MulticastLoopbackEnabled)

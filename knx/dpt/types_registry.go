@@ -10,6 +10,7 @@ import (
 
 var (
 	types = [...]DatapointValue{
+		// 1.xxx
 		new(DPT_1001),
 		new(DPT_1002),
 		new(DPT_1003),

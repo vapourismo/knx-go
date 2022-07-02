@@ -46,7 +46,7 @@ jobs:
             echo $unformatted
             exit 1
           fi
-  Staticchek:
+  Staticcheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

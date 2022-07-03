@@ -109,13 +109,11 @@ func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string, multic
 		util.Log(conn, "MulticastLoopback status: %v", loopOn)
 	}
 	// Setup interface with Multicast Loopback enabled if desired.
-	/*
-		if err := pc.SetMulticastLoopback(multicastLoopbackEnabled); err != nil {
-			util.Log(conn, "SetMulticastLoopback error: %v", err)
-		} else {
-			util.Log(conn, "MulticastLoopbackEnabled: %t", multicastLoopbackEnabled)
-		}
-	*/
+	if err := pc.SetMulticastLoopback(multicastLoopbackEnabled); err != nil {
+		util.Log(conn, "SetMulticastLoopback error: %v", err)
+	} else {
+		util.Log(conn, "MulticastLoopbackEnabled: %t", multicastLoopbackEnabled)
+	}
 
 	conn.SetDeadline(time.Time{})
 

@@ -52,7 +52,7 @@ func (req *TunnelReq) Unpack(data []byte) (n uint, err error) {
 	}
 
 	if length != 4 {
-		return n, errors.New("Length header is not 4")
+		return n, errors.New("header length is not 4")
 	}
 
 	m, err := cemi.Unpack(data[n:], &req.Payload)
@@ -101,7 +101,7 @@ func (res *TunnelRes) Unpack(data []byte) (n uint, err error) {
 	}
 
 	if length != 4 {
-		return n, errors.New("Length header is not 4")
+		return n, errors.New("header length is not 4")
 	}
 
 	return

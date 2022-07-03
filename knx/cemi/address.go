@@ -38,7 +38,7 @@ func NewIndividualAddrString(addr string) (IndividualAddr, error) {
 		return IndividualAddr(a), nil
 	}
 
-	return 0, errors.New("Input is not an individual address")
+	return 0, errors.New("input is not an individual address")
 }
 
 // String generates a string representation.
@@ -76,7 +76,7 @@ func NewGroupAddrString(addr string) (GroupAddr, error) {
 		return GroupAddr(a), nil
 	}
 
-	return 0, errors.New("Input is not a group address")
+	return 0, errors.New("input is not a group address")
 }
 
 // String generates a string representation.

@@ -11,7 +11,7 @@ import (
 type BadReader struct{}
 
 // ErrBadRead is the error that occurs when reading from BadReader.
-var ErrBadRead = errors.New("Bad read")
+var ErrBadRead = errors.New("bad read")
 
 // Read implements the Reader Read method.
 func (BadReader) Read([]byte) (int, error) {

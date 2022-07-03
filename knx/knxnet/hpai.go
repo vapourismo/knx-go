@@ -89,7 +89,7 @@ func (info *HostInfo) Unpack(data []byte) (n uint, err error) {
 	}
 
 	if length != 8 {
-		return n, errors.New("Host info structure length is invalid")
+		return n, errors.New("host info structure length is invalid")
 	}
 
 	return

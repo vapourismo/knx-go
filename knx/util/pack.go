@@ -121,7 +121,7 @@ func AllocAndPack(inputs ...Packable) []byte {
 func PackString(buffer []byte, maxLen uint, input string) (uint, error) {
 	encoded, err := stringEncoder.Bytes([]byte(input))
 	if err != nil {
-		return 0, fmt.Errorf("Unable to encode string: %s", err)
+		return 0, fmt.Errorf("unable to encode string: %s", err)
 	}
 
 	if len(encoded) >= int(maxLen) {

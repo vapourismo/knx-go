@@ -19,17 +19,17 @@ func NewSearchReq(addr net.Addr) (*SearchReq, error) {
 
 	ip := net.ParseIP(ipS)
 	if ip == nil {
-		return nil, fmt.Errorf("Unable to determine IP")
+		return nil, fmt.Errorf("unable to determine IP")
 	}
 
 	ipv4 := ip.To4()
 	if ipv4 == nil {
-		return nil, fmt.Errorf("Only IPv4 is currently supported")
+		return nil, fmt.Errorf("only IPv4 is currently supported")
 	}
 
 	port, _ := strconv.ParseUint(portS, 10, 16)
 	if port == 0 {
-		return nil, fmt.Errorf("Unable to determine port")
+		return nil, fmt.Errorf("unable to determine port")
 	}
 
 	req := &SearchReq{}
@@ -39,7 +39,7 @@ func NewSearchReq(addr net.Addr) (*SearchReq, error) {
 	case "tcp":
 		req.Protocol = TCP4
 	default:
-		return nil, fmt.Errorf("Unsupported network")
+		return nil, fmt.Errorf("unsupported network")
 	}
 
 	copy(req.Address[:], ipv4)

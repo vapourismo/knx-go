@@ -144,7 +144,7 @@ func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
 // Send transmits a packet.
 func (router *Router) Send(data cemi.Message) error {
 	if data == nil {
-		return errors.New("Nil-pointers are not sendable")
+		return errors.New("nil-pointers are not sendable")
 	}
 
 	// We lock this before doing any sending so the server goroutine can adjust the flow control.

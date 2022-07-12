@@ -11,7 +11,7 @@ import (
 type BadWriter struct{}
 
 // ErrBadWrite is the error that occurs when writing to BadWriter.
-var ErrBadWrite = errors.New("Bad write")
+var ErrBadWrite = errors.New("bad write")
 
 // Write implements the Writer Write method.
 func (BadWriter) Write([]byte) (int, error) {

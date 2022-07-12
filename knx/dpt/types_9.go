@@ -28,7 +28,7 @@ func (d *DPT_9001) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -273 || value > 670760 {
-		return fmt.Errorf("Temperature \"%.2f\" outside range [-273, 670760]", value)
+		return fmt.Errorf("temperature \"%.2f\" outside range [-273, 670760]", value)
 	}
 
 	*d = DPT_9001(value)
@@ -64,7 +64,7 @@ func (d *DPT_9002) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Temperature \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("temperature \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9002(value)
@@ -100,7 +100,7 @@ func (d *DPT_9003) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Temperature \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("temperature \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9003(value)
@@ -136,7 +136,7 @@ func (d *DPT_9004) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < 0 || value > 670760 {
-		return fmt.Errorf("Illumination \"%.2f\" outside range [0, 670760]", value)
+		return fmt.Errorf("illumination \"%.2f\" outside range [0, 670760]", value)
 	}
 
 	*d = DPT_9004(value)
@@ -173,7 +173,7 @@ func (d *DPT_9005) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < 0 || value > 670760 {
-		return fmt.Errorf("Wind speed \"%.2f\" outside range [0, 670760]", value)
+		return fmt.Errorf("wind speed \"%.2f\" outside range [0, 670760]", value)
 	}
 
 	*d = DPT_9005(value)
@@ -210,7 +210,7 @@ func (d *DPT_9006) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < 0 || value > 670760 {
-		return fmt.Errorf("Pressure \"%.2f\" outside range [0, 670760]", value)
+		return fmt.Errorf("pressure \"%.2f\" outside range [0, 670760]", value)
 	}
 
 	*d = DPT_9006(value)
@@ -247,7 +247,7 @@ func (d *DPT_9007) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < 0 || value > 670760 {
-		return fmt.Errorf("Humidity \"%.2f\" outside range [0, 670760]", value)
+		return fmt.Errorf("humidity \"%.2f\" outside range [0, 670760]", value)
 	}
 
 	*d = DPT_9007(value)
@@ -284,7 +284,7 @@ func (d *DPT_9008) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < 0 || value > 670760 {
-		return fmt.Errorf("Air quality \"%.2f\" outside range [0, 670760]", value)
+		return fmt.Errorf("air quality \"%.2f\" outside range [0, 670760]", value)
 	}
 
 	*d = DPT_9008(value)
@@ -321,7 +321,7 @@ func (d *DPT_9010) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Time \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("time \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9010(value)
@@ -357,7 +357,7 @@ func (d *DPT_9011) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Time \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("time \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9011(value)
@@ -393,7 +393,7 @@ func (d *DPT_9020) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Volt \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("volt \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9020(value)
@@ -429,7 +429,7 @@ func (d *DPT_9021) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Current \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("current \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9021(value)
@@ -465,7 +465,7 @@ func (d *DPT_9022) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Power Density \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("power Density \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9022(value)
@@ -501,7 +501,7 @@ func (d *DPT_9023) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Kelvin per percent \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("kelvin per percent \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9023(value)
@@ -537,7 +537,7 @@ func (d *DPT_9024) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Power \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("power \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9024(value)
@@ -573,7 +573,7 @@ func (d *DPT_9025) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Volume flow \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("volume flow \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9025(value)
@@ -609,7 +609,7 @@ func (d *DPT_9026) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -670760 || value > 670760 {
-		return fmt.Errorf("Rain amount \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("rain amount \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9026(value)
@@ -645,7 +645,7 @@ func (d *DPT_9027) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -459.6 || value > 670760 {
-		return fmt.Errorf("Rain amount \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("rain amount \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9027(value)
@@ -681,7 +681,7 @@ func (d *DPT_9028) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < 0 || value > 670760 {
-		return fmt.Errorf("Wind speed \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("wind speed \"%.2f\" outside range [-670760, 670760]", value)
 	}
 
 	*d = DPT_9028(value)

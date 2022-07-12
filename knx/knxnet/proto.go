@@ -98,8 +98,8 @@ func AllocAndPack(srv ServicePackable) []byte {
 
 // These are errors that might occur during unpacking.
 var (
-	ErrHeaderLength  = errors.New("Header length is not 6")
-	ErrHeaderVersion = errors.New("Protocol version is not 16")
+	ErrHeaderLength  = errors.New("header length is not 6")
+	ErrHeaderVersion = errors.New("protocol version is not 16")
 )
 
 type serviceUnpackable interface {

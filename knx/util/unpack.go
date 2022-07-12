@@ -106,7 +106,7 @@ func Unpack(data []byte, output interface{}) (uint, error) {
 		return output.Unpack(data)
 	}
 
-	return 0, fmt.Errorf("Can't unpack type %T", output)
+	return 0, fmt.Errorf("can't unpack type %T", output)
 }
 
 // UnpackSome unpacks multiple values.
@@ -130,7 +130,7 @@ func UnpackString(buffer []byte, len uint, output *string) (uint, error) {
 	buffer = bytes.TrimRight(buffer, string(byte(0x0)))
 	buffer, err := stringDecoder.Bytes(buffer)
 	if err != nil {
-		return 0, fmt.Errorf("Unable to decode string: %s", err)
+		return 0, fmt.Errorf("unable to decode string: %s", err)
 	}
 
 	*output = string(buffer)

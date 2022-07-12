@@ -65,11 +65,11 @@ func (req *ConnReq) Unpack(data []byte) (n uint, err error) {
 	}
 
 	if length != 4 {
-		return n, errors.New("Invalid connection request info structure length")
+		return n, errors.New("invalid connection request info structure length")
 	}
 
 	if connType != 4 {
-		return n, errors.New("Invalid connection type")
+		return n, errors.New("invalid connection type")
 	}
 
 	return

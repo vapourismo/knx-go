@@ -16,21 +16,11 @@ func makeRandBuffer(n int) []byte {
 	return buffer
 }
 
-func makeRandTPDUSegment() []byte {
-	n := rand.Int() % 256
-
-	buffer := make([]byte, n+2)
-	buffer[0] = byte(n)
-	rand.Read(buffer[1:])
-
-	return buffer
-}
-
 func makeRandLData() []byte {
 	return bytes.Join([][]byte{
 		makeRandInfoSegment(),
 		makeRandBuffer(6),
-		[]byte{0, 1 << 7},
+		{0, 1 << 7},
 	}, nil)
 }
 

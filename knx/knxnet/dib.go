@@ -121,7 +121,7 @@ func (info *DeviceInformationBlock) Unpack(data []byte) (n uint, err error) {
 	n += nn
 
 	if length != uint8(info.Size()) {
-		return n, errors.New("Device info structure length is invalid")
+		return n, errors.New("device info structure length is invalid")
 	}
 
 	return
@@ -171,7 +171,7 @@ func (sdib *SupportedServicesDIB) Unpack(data []byte) (n uint, err error) {
 		f := ServiceFamily{}
 		nn, err := f.Unpack(data[n:])
 		if err != nil {
-			return n, errors.New("Unable to unpack service family")
+			return n, errors.New("unable to unpack service family")
 		}
 
 		n += nn
@@ -179,7 +179,7 @@ func (sdib *SupportedServicesDIB) Unpack(data []byte) (n uint, err error) {
 	}
 
 	if length != uint8(sdib.Size()) {
-		return n, errors.New("Supported Services structure length is invalid")
+		return n, errors.New("supported Services structure length is invalid")
 	}
 
 	return

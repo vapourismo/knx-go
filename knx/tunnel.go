@@ -55,7 +55,7 @@ func checkTunnelConfig(config TunnelConfig) TunnelConfig {
 }
 
 var (
-	errResponseTimeout = errors.New("Response timeout reached")
+	errResponseTimeout = errors.New("response timeout reached")
 )
 
 // A Tunnel provides methods to communicate with a KNXnet/IP gateway.
@@ -145,7 +145,7 @@ func (conn *Tunnel) requestConn() (err error) {
 		// A message has been received or the channel has been closed.
 		case msg, open := <-conn.sock.Inbound():
 			if !open {
-				return errors.New("Socket's inbound channel has been closed")
+				return errors.New("socket's inbound channel has been closed")
 			}
 
 			// We're only interested in connection responses.
@@ -210,7 +210,7 @@ func (conn *Tunnel) requestConnState(
 		// Received a connection state response.
 		case res, open := <-heartbeat:
 			if !open {
-				return knxnet.ErrConnectionID, errors.New("Connection server has terminated")
+				return knxnet.ErrConnectionID, errors.New("connection server has terminated")
 			}
 
 			return res, nil
@@ -268,7 +268,7 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 		// Received a tunnel response.
 		case res, open := <-conn.ack:
 			if !open {
-				return errors.New("Connection server has terminated")
+				return errors.New("connection server has terminated")
 			}
 
 			// Ignore mismatching sequence numbers.
@@ -315,7 +315,7 @@ func (conn *Tunnel) performHeartbeat(
 func (conn *Tunnel) handleDiscReq(req *knxnet.DiscReq) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
-		return errors.New("Invalid communication channel in disconnect request")
+		return errors.New("invalid communication channel in disconnect request")
 	}
 
 	// We don't need to check if this errors or not. It doesn't matter.
@@ -328,7 +328,7 @@ func (conn *Tunnel) handleDiscReq(req *knxnet.DiscReq) error {
 func (conn *Tunnel) handleDiscRes(res *knxnet.DiscRes) error {
 	// Validate the response channel.
 	if res.Channel != conn.channel {
-		return errors.New("Invalid communication channel in disconnect response")
+		return errors.New("invalid communication channel in disconnect response")
 	}
 
 	return nil
@@ -356,7 +356,7 @@ func (conn *Tunnel) pushInbound(msg cemi.Message) {
 func (conn *Tunnel) handleTunnelReq(req *knxnet.TunnelReq, seqNumber *uint8) error {
 	// Validate the request channel.
 	if req.Channel != conn.channel {
-		return errors.New("Invalid communication channel in tunnel request")
+		return errors.New("invalid communication channel in tunnel request")
 	}
 
 	expected := *seqNumber
@@ -369,7 +369,7 @@ func (conn *Tunnel) handleTunnelReq(req *knxnet.TunnelReq, seqNumber *uint8) err
 		conn.pushInbound(req.Payload)
 	} else if req.SeqNumber != expected-1 {
 		// The sequence number is out of the range which we would have to acknowledge.
-		return errors.New("Out of sequence tunnel acknowledgement")
+		return errors.New("out of sequence tunnel acknowledgement")
 	}
 
 	// Send the acknowledgement.
@@ -385,7 +385,7 @@ func (conn *Tunnel) handleTunnelReq(req *knxnet.TunnelReq, seqNumber *uint8) err
 func (conn *Tunnel) handleTunnelRes(res *knxnet.TunnelRes) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
-		return errors.New("Invalid communication channel in connection state response")
+		return errors.New("invalid communication channel in connection state response")
 	}
 
 	// Send to client.
@@ -412,7 +412,7 @@ func (conn *Tunnel) handleConnStateRes(
 ) error {
 	// Validate the request channel.
 	if res.Channel != conn.channel {
-		return errors.New("Invalid communication channel in connection state response")
+		return errors.New("invalid communication channel in connection state response")
 	}
 
 	// Send connection state to the heartbeat goroutine.
@@ -432,9 +432,9 @@ func (conn *Tunnel) handleConnStateRes(
 }
 
 var (
-	errHeartbeatFailed = errors.New("Heartbeat did not succeed")
-	errInboundClosed   = errors.New("Socket's inbound channel is closed")
-	errDisconnected    = errors.New("Gateway terminated the connection")
+	errHeartbeatFailed = errors.New("heartbeat did not succeed")
+	errInboundClosed   = errors.New("socket's inbound channel is closed")
+	errDisconnected    = errors.New("gateway terminated the connection")
 )
 
 // process incoming packets.

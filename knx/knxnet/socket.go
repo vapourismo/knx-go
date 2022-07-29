@@ -4,6 +4,7 @@
 package knxnet
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -32,6 +33,10 @@ func DialTunnel(address string) (*TunnelSocket, error) {
 		return nil, err
 	}
 
+	if addr.IP.IsMulticast() {
+		return nil, fmt.Errorf("cannot tunnel to multicast address")
+	}
+
 	conn, err := net.DialUDP("udp4", nil, addr)
 	if err != nil {
 		return nil, err
@@ -50,7 +55,7 @@ func (sock *TunnelSocket) Send(payload ServicePackable) error {
 	buffer := make([]byte, Size(payload))
 	Pack(buffer, payload)
 
-	// Transmission of the buffer contents
+	// Transmission of the buffer contents.
 	_, err := sock.conn.Write(buffer)
 	return err
 }
@@ -106,7 +111,7 @@ func ListenRouterOnInterface(ifi *net.Interface, multicastAddress string) (*Rout
 	return &RouterSocket{conn, addr, inbound}, nil
 }
 
-// Addr returns the multicast destination address
+// Addr returns the multicast destination address.
 func (sock *RouterSocket) Addr() *net.UDPAddr {
 	return sock.addr
 }
@@ -156,10 +161,11 @@ func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- Service
 
 		// discard empty frames
 		if len == 0 {
+			util.Log(conn, "Empty frame discarded")
 			continue
 		}
 
-		// Validate sender origin if necessary
+		// Validate sender origin if necessary.
 		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
 			util.Log(conn, "Origin validation failed: %v != %v", addr, sender)
 			continue

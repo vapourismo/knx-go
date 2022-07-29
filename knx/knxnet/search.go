@@ -3,83 +3,56 @@
 package knxnet
 
 import (
-	"fmt"
 	"net"
-	"strconv"
 
 	"github.com/vapourismo/knx-go/knx/util"
 )
 
-// NewSearchReq creates a new SearchReq, addr defines where ObjectServers should send the reponse to
+// NewSearchReq creates a new SearchReq, addr defines where KNXnet/IP server should send the reponse to.
 func NewSearchReq(addr net.Addr) (*SearchReq, error) {
-	ipS, portS, err := net.SplitHostPort(addr.String())
+	req := &SearchReq{}
+
+	hostinfo, err := HostInfoFromAddress(addr)
 	if err != nil {
 		return nil, err
 	}
+	req.HostInfo = hostinfo
 
-	ip := net.ParseIP(ipS)
-	if ip == nil {
-		return nil, fmt.Errorf("unable to determine IP")
-	}
-
-	ipv4 := ip.To4()
-	if ipv4 == nil {
-		return nil, fmt.Errorf("only IPv4 is currently supported")
-	}
-
-	port, _ := strconv.ParseUint(portS, 10, 16)
-	if port == 0 {
-		return nil, fmt.Errorf("unable to determine port")
-	}
-
-	req := &SearchReq{}
-	switch addr.Network() {
-	case "udp":
-		req.Protocol = UDP4
-	case "tcp":
-		req.Protocol = TCP4
-	default:
-		return nil, fmt.Errorf("unsupported network")
-	}
-
-	copy(req.Address[:], ipv4)
-	req.Port = Port(port)
 	return req, nil
 }
 
-// A SearchReq requests a discovery from all KNXnet/IP Servers
+// A SearchReq requests a discovery from all KNXnet/IP servers via multicast.
 type SearchReq struct {
 	HostInfo
 }
 
-// Service returns the service identifier for search request
+// Service returns the service identifier for Search Request.
 func (SearchReq) Service() ServiceID {
 	return SearchReqService
 }
 
-// A SearchRes is a discovery response from a KNXnet/IP Server
+// A SearchRes is a Search Response from a KNXnet/IP server.
 type SearchRes struct {
-	Control           HostInfo
-	DeviceHardware    DeviceInformationBlock
-	SupportedServices SupportedServicesDIB
+	Control      HostInfo
+	DescriptionB DescriptionBlock
 }
 
-// Service returns the service identifier for search response
+// Service returns the service identifier for the Search Response.
 func (SearchRes) Service() ServiceID {
 	return SearchResService
 }
 
 // Size returns the packed size.
 func (res SearchRes) Size() uint {
-	return res.Control.Size() + res.DeviceHardware.Size() + res.SupportedServices.Size()
+	return res.Control.Size() + res.DescriptionB.DeviceHardware.Size() + res.DescriptionB.SupportedServices.Size()
 }
 
-// Pack assembles the search response structure in the given buffer.
+// Pack assembles the Search Response structure in the given buffer.
 func (res *SearchRes) Pack(buffer []byte) {
-	util.PackSome(buffer, res.Control, res.DeviceHardware, res.SupportedServices)
+	util.PackSome(buffer, res.Control, res.DescriptionB.DeviceHardware, res.DescriptionB.SupportedServices)
 }
 
-// Unpack parses the given service payload in order to initialize the structure.
+// Unpack parses the given service payload in order to initialize the Search Response structure.
 func (res *SearchRes) Unpack(data []byte) (n uint, err error) {
-	return util.UnpackSome(data, &res.Control, &res.DeviceHardware, &res.SupportedServices)
+	return util.UnpackSome(data, &res.Control, &res.DescriptionB.DeviceHardware, &res.DescriptionB.SupportedServices)
 }

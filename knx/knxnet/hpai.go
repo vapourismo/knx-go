@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/vapourismo/knx-go/knx/util"
 )
@@ -40,19 +41,42 @@ type HostInfo struct {
 	Port     Port
 }
 
-// HostInfoFromAddress returns HostInfo from a UDP address
-func HostInfoFromAddress(address *net.UDPAddr) (HostInfo, error) {
-	ipAddress := address.IP.To4()
+// HostInfoFromAddress returns HostInfo from an address.
+func HostInfoFromAddress(address net.Addr) (HostInfo, error) {
+	hostinfo := HostInfo{}
 
-	if ipAddress == nil {
-		return HostInfo{}, errors.New("unsupported local address")
+	ipS, portS, err := net.SplitHostPort(address.String())
+	if err != nil {
+		return hostinfo, err
 	}
 
-	var localIP Address
-	copy(localIP[:], ipAddress)
+	ip := net.ParseIP(ipS)
+	if ip == nil {
+		return hostinfo, fmt.Errorf("unable to determine IP")
+	}
 
-	port := (Port)(address.Port)
-	return HostInfo{Protocol: UDP4, Address: localIP, Port: port}, nil
+	ipv4 := ip.To4()
+	if ipv4 == nil {
+		return hostinfo, fmt.Errorf("only IPv4 is currently supported")
+	}
+
+	port, _ := strconv.ParseUint(portS, 10, 16)
+	if port == 0 {
+		return hostinfo, fmt.Errorf("unable to determine port")
+	}
+
+	copy(hostinfo.Address[:], ipv4)
+	hostinfo.Port = Port(port)
+
+	switch address.Network() {
+	case "udp":
+		hostinfo.Protocol = UDP4
+	case "tcp":
+		hostinfo.Protocol = TCP4
+	default:
+		return hostinfo, fmt.Errorf("unsupported network")
+	}
+	return hostinfo, nil
 }
 
 // Equals checks whether both structures are equal.
@@ -67,7 +91,7 @@ func (HostInfo) Size() uint {
 	return 8
 }
 
-// Pack assembles the host info structure in the given buffer.
+// Pack assembles the Host Info structure in the given buffer.
 func (info *HostInfo) Pack(buffer []byte) {
 	util.PackSome(
 		buffer,

@@ -97,7 +97,7 @@ type RoutingBusy struct {
 	// Time to wait
 	WaitTime time.Duration
 
-	// ?
+	// If set to 0x00, must pause sending
 	Control uint16
 }
 

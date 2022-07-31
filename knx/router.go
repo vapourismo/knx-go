@@ -6,6 +6,7 @@ package knx
 import (
 	"container/list"
 	"errors"
+	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -20,14 +21,17 @@ type RouterConfig struct {
 	// Specify how many sent messages to retain. This is important for when a router indicates that
 	// it has lost some messages. If you do not expect to saturate the router, keep this low.
 	RetainCount uint
-	// Specifies the interface used to send and receive KNXNet/IP packets. If the interface
+	// Specifies the interface used to send and receive KNXnet/IP packets. If the interface
 	// is nil, the system-assigned multicast interface is used.
 	Interface *net.Interface
+	// Specifies if Multicast Loopback should be enabled.
+	MulticastLoopbackEnabled bool
 }
 
 // DefaultRouterConfig is a good default configuration for a Router client.
 var DefaultRouterConfig = RouterConfig{
-	RetainCount: 32,
+	RetainCount:              32,
+	MulticastLoopbackEnabled: false,
 }
 
 // checkRouterConfig validates the given RouterConfig.
@@ -104,15 +108,22 @@ func (router *Router) serve() {
 	for msg := range router.sock.Inbound() {
 		switch msg := msg.(type) {
 		case *knxnet.RoutingInd:
-			// Try to push it to the client without blocking this goroutine to long.
+			// Try to push it to the client without blocking this goroutine too long.
 			router.pushInbound(msg.Payload)
 
 		case *knxnet.RoutingBusy:
+			var trandom time.Duration
+			// If Control is 0, we should add a specified random amount of time
+			// to the WaitTime. Otherwise, it is not specified, we just wait WaitTime.
+			if msg.Control == 0 {
+				trandom = time.Duration(rand.Float64()*50) * time.Millisecond
+			}
+
 			// Inhibit sending for the given time.
 			router.sendMu.Lock()
-			time.AfterFunc(msg.WaitTime, router.sendMu.Unlock)
 
-			// TODO: Slow down pace after busy indication.
+			// TODO: Add timer to Router in case of receiving multiple RoutingBusy.
+			time.AfterFunc(msg.WaitTime+trandom, router.sendMu.Unlock)
 
 		case *knxnet.RoutingLost:
 			// Resend the last msg.Count messages.
@@ -124,14 +135,16 @@ func (router *Router) serve() {
 // NewRouter creates a new Router that joins the given multicast group. You may pass a
 // zero-initialized value as parameter config, the default values will be set up.
 func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
-	sock, err := knxnet.ListenRouterOnInterface(config.Interface, multicastAddress)
+	config = checkRouterConfig(config)
+
+	sock, err := knxnet.ListenRouterOnInterface(config.Interface, multicastAddress, config.MulticastLoopbackEnabled)
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Router{
 		sock:     sock,
-		config:   checkRouterConfig(config),
+		config:   config,
 		inbound:  make(chan cemi.Message),
 		retainer: list.New(),
 	}
@@ -150,6 +163,11 @@ func (router *Router) Send(data cemi.Message) error {
 	// We lock this before doing any sending so the server goroutine can adjust the flow control.
 	router.sendMu.Lock()
 	defer router.sendMu.Unlock()
+
+	// According to the specification, we may choose to always pause for 20 ms
+	// after transmitting, bu we should always pause for at least 5 ms on a multicast address.
+	// Use the safer variant, pause for 20 ms.
+	time.Sleep(20 * time.Millisecond)
 
 	err := router.sock.Send(&knxnet.RoutingInd{Payload: data})
 

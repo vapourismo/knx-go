@@ -26,12 +26,17 @@ type RouterConfig struct {
 	Interface *net.Interface
 	// Specifies if Multicast Loopback should be enabled.
 	MulticastLoopbackEnabled bool
+	// Pause duration after sending. 0 means disabled.
+	// According to the specification, we may choose to always pause for 20 ms // after transmitting,
+	// bu we should always pause for at least 5 ms on a multicast address.
+	PostSendPauseDuration time.Duration
 }
 
 // DefaultRouterConfig is a good default configuration for a Router client.
 var DefaultRouterConfig = RouterConfig{
 	RetainCount:              32,
 	MulticastLoopbackEnabled: false,
+	PostSendPauseDuration:    20 * time.Millisecond,
 }
 
 // checkRouterConfig validates the given RouterConfig.
@@ -46,11 +51,12 @@ func checkRouterConfig(config RouterConfig) RouterConfig {
 // A Router provides the means to communicate with KNXnet/IP routers in a IP multicast group.
 // It supports sending and receiving CEMI-encoded frames, aswell as basic flow control.
 type Router struct {
-	sock     knxnet.Socket
-	config   RouterConfig
-	inbound  chan cemi.Message
-	sendMu   sync.Mutex
-	retainer *list.List
+	sock          knxnet.Socket
+	config        RouterConfig
+	inbound       chan cemi.Message
+	sendMu        sync.Mutex
+	retainer      *list.List
+	postSendPause time.Duration
 }
 
 // sendMultiple sends each message from the slice. Doesn't matter if one fails, all will be tried.
@@ -143,10 +149,11 @@ func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
 	}
 
 	r := &Router{
-		sock:     sock,
-		config:   config,
-		inbound:  make(chan cemi.Message),
-		retainer: list.New(),
+		sock:          sock,
+		config:        config,
+		inbound:       make(chan cemi.Message),
+		retainer:      list.New(),
+		postSendPause: config.PostSendPauseDuration,
 	}
 
 	go r.serve()
@@ -155,21 +162,26 @@ func NewRouter(multicastAddress string, config RouterConfig) (*Router, error) {
 }
 
 // Send transmits a packet.
-func (router *Router) Send(data cemi.Message) error {
+func (router *Router) Send(data cemi.Message) (err error) {
 	if data == nil {
 		return errors.New("nil-pointers are not sendable")
 	}
 
 	// We lock this before doing any sending so the server goroutine can adjust the flow control.
 	router.sendMu.Lock()
-	defer router.sendMu.Unlock()
 
-	// According to the specification, we may choose to always pause for 20 ms
-	// after transmitting, bu we should always pause for at least 5 ms on a multicast address.
-	// Use the safer variant, pause for 20 ms.
-	time.Sleep(20 * time.Millisecond)
+	defer func() {
+		// This is called as a goroutine in order to not block the return of Send.
+		go func() {
+			if err == nil && router.postSendPause > 0 {
+				time.Sleep(router.postSendPause)
+			}
 
-	err := router.sock.Send(&knxnet.RoutingInd{Payload: data})
+			router.sendMu.Unlock()
+		}()
+	}()
+
+	err = router.sock.Send(&knxnet.RoutingInd{Payload: data})
 
 	if err == nil {
 		// Store this for potential resending.

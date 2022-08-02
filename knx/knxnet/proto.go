@@ -100,8 +100,8 @@ func AllocAndPack(srv ServicePackable) []byte {
 
 // These are errors that might occur during unpacking of the header.
 var (
-	ErrHeaderLength  = errors.New("header length is not 0x6")
-	ErrHeaderVersion = errors.New("protocol version is not 0x10")
+	ErrHeaderLength  = errors.New("header length is not 6")
+	ErrHeaderVersion = errors.New("protocol version is not 16")
 )
 
 type serviceUnpackable interface {
@@ -141,11 +141,11 @@ func Unpack(data []byte, srv *Service) (uint, error) {
 		return n, err
 	}
 
-	if headerLen != 0x6 {
+	if headerLen != 6 {
 		return n, ErrHeaderLength
 	}
 
-	if version != 0x10 {
+	if version != 16 {
 		return n, ErrHeaderVersion
 	}
 

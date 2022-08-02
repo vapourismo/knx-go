@@ -168,7 +168,7 @@ func main() {
 	util.Logger = log.New(os.Stdout, "", log.LstdFlags)
 
 	// Describe KNXnet/IP server at given address and default port
-	servers, err := knx.Describe("192.168.1.254:3671", time.Millisecond*750)
+	servers, err := knx.DescribeTunnel("192.168.1.254:3671", time.Millisecond*750)
 	if err != nil {
 		log.Fatal(err)
 	}

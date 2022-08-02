@@ -9,10 +9,10 @@ import (
 	"github.com/vapourismo/knx-go/knx/knxnet"
 )
 
-// Describe a single KNXnet/IP server.
-func Describe(Address string, searchTimeout time.Duration) (*knxnet.DescriptionRes, error) {
+// Describe a single KNXnet/IP server. Uses unicast UDP, address format is "ip:port".
+func DescribeTunnel(address string, searchTimeout time.Duration) (*knxnet.DescriptionRes, error) {
 	// Uses a UDP socket.
-	socket, err := knxnet.DialTunnel(Address)
+	socket, err := knxnet.DialTunnel(address)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,6 @@ func Describe(Address string, searchTimeout time.Duration) (*knxnet.DescriptionR
 
 	timeout := time.After(searchTimeout)
 
-loop:
 	for {
 		select {
 		case msg := <-socket.Inbound():
@@ -41,9 +40,7 @@ loop:
 			}
 
 		case <-timeout:
-			break loop
+			return nil, nil
 		}
 	}
-
-	return nil, nil
 }

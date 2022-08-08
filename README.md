@@ -145,3 +145,34 @@ func main() {
 	util.Logger.Printf("%# v", pretty.Formatter(servers))
 }
 ```
+
+### Describe a Single KNXnet/IP Server
+
+The following example shows how to get a description from a single server.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	"time"
+
+	"github.com/kr/pretty"
+
+	"github.com/vapourismo/knx-go/knx"
+	"github.com/vapourismo/knx-go/knx/util"
+)
+
+func main() {
+	util.Logger = log.New(os.Stdout, "", log.LstdFlags)
+
+	// Describe KNXnet/IP server at given address and default port
+	servers, err := knx.DescribeTunnel("192.168.1.254:3671", time.Millisecond*750)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	util.Logger.Printf("%# v", pretty.Formatter(servers))
+}
+```

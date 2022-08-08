@@ -15,15 +15,17 @@ import (
 // ServiceID identifies the service that is contained in a packet.
 type ServiceID uint16
 
-// String generates a string representation.
+// String generates a string representation of the service.
 func (srv ServiceID) String() string {
 	return fmt.Sprintf("%#04x", uint16(srv))
 }
 
-// These are supported services.
+// Currently supported services.
 const (
 	SearchReqService    ServiceID = 0x0201
 	SearchResService    ServiceID = 0x0202
+	DescrReqService     ServiceID = 0x0203
+	DescrResService     ServiceID = 0x0204
 	ConnReqService      ServiceID = 0x0205
 	ConnResService      ServiceID = 0x0206
 	ConnStateReqService ServiceID = 0x0207
@@ -96,7 +98,7 @@ func AllocAndPack(srv ServicePackable) []byte {
 	return buffer
 }
 
-// These are errors that might occur during unpacking.
+// These are errors that might occur during unpacking of the header.
 var (
 	ErrHeaderLength  = errors.New("header length is not 6")
 	ErrHeaderVersion = errors.New("protocol version is not 16")
@@ -154,6 +156,12 @@ func Unpack(data []byte, srv *Service) (uint, error) {
 
 	case SearchResService:
 		body = &SearchRes{}
+
+	case DescrReqService:
+		body = &DescriptionReq{}
+
+	case DescrResService:
+		body = &DescriptionRes{}
 
 	case ConnReqService:
 		body = &ConnReq{}

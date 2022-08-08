@@ -14,7 +14,7 @@ const (
 	friendlyNameMaxLen = 30
 )
 
-// DescriptionType describes the type of a DeviceInformationBlock
+// DescriptionType describes the type of a DeviceInformationBlock.
 type DescriptionType uint8
 
 const (
@@ -24,20 +24,20 @@ const (
 	// DescriptionTypeSupportedServiceFamilies describes Service families supported by the device.
 	DescriptionTypeSupportedServiceFamilies DescriptionType = 0x02
 
-	// DescriptionTypeIPConfig describes IP configuration
+	// DescriptionTypeIPConfig describes IP configuration.
 	DescriptionTypeIPConfig DescriptionType = 0x03
 
-	// DescriptionTypeIPCurrentConfig describes current IP configuration
+	// DescriptionTypeIPCurrentConfig describes current IP configuration.
 	DescriptionTypeIPCurrentConfig DescriptionType = 0x04
 
-	// DescriptionTypeKNXAddresses describes KNX addresses
+	// DescriptionTypeKNXAddresses describes KNX addresses.
 	DescriptionTypeKNXAddresses DescriptionType = 0x05
 
 	// DescriptionTypeManufacturerData describes a DIB structure for further data defined by device manufacturer.
 	DescriptionTypeManufacturerData DescriptionType = 0xfe
 )
 
-// KNXMedium describes the KNX medium type
+// KNXMedium describes the KNX medium type.
 type KNXMedium uint8
 
 const (
@@ -51,13 +51,13 @@ const (
 	KNXMediumIP KNXMedium = 0x20
 )
 
-// ProjectInstallationIdentifier describes a KNX project installation identifier
+// ProjectInstallationIdentifier describes a KNX project installation identifier.
 type ProjectInstallationIdentifier uint16
 
-// DeviceStatus describes the device status
+// DeviceStatus describes the device status.
 type DeviceStatus uint8
 
-// DeviceSerialNumber desribes the serial number of a device
+// DeviceSerialNumber desribes the serial number of a device.
 type DeviceSerialNumber [6]byte
 
 // DeviceInformationBlock contains information about a device.
@@ -127,7 +127,7 @@ func (info *DeviceInformationBlock) Unpack(data []byte) (n uint, err error) {
 	return
 }
 
-// SupportedServicesDIB contains information about the supported services of a device
+// SupportedServicesDIB contains information about the supported services of a device.
 type SupportedServicesDIB struct {
 	Type     DescriptionType
 	Families []ServiceFamily
@@ -179,33 +179,33 @@ func (sdib *SupportedServicesDIB) Unpack(data []byte) (n uint, err error) {
 	}
 
 	if length != uint8(sdib.Size()) {
-		return n, errors.New("supported Services structure length is invalid")
+		return n, errors.New("invalid length for Supported Services structure")
 	}
 
 	return
 }
 
-// ServiceFamilyType describes a KNXnet service family type
+// ServiceFamilyType describes a KNXnet service family type.
 type ServiceFamilyType uint8
 
 const (
-	// ServiceFamilyTypeIPCore is the KNXnet/IP Core family type
+	// ServiceFamilyTypeIPCore is the KNXnet/IP Core family type.
 	ServiceFamilyTypeIPCore = 0x02
-	// ServiceFamilyTypeIPDeviceManagement is the KNXnet/IP Device Management family type
+	// ServiceFamilyTypeIPDeviceManagement is the KNXnet/IP Device Management family type.
 	ServiceFamilyTypeIPDeviceManagement = 0x03
-	// ServiceFamilyTypeIPTunnelling is the KNXnet/IP Tunnelling family type
+	// ServiceFamilyTypeIPTunnelling is the KNXnet/IP Tunnelling family type.
 	ServiceFamilyTypeIPTunnelling = 0x04
-	// ServiceFamilyTypeIPRouting is the KNXnet/IP Routing family type
+	// ServiceFamilyTypeIPRouting is the KNXnet/IP Routing family type.
 	ServiceFamilyTypeIPRouting = 0x05
-	// ServiceFamilyTypeIPRemoteLogging is the KNXnet/IP Remote Logging family type
+	// ServiceFamilyTypeIPRemoteLogging is the KNXnet/IP Remote Logging family type.
 	ServiceFamilyTypeIPRemoteLogging = 0x06
-	// ServiceFamilyTypeIPRemoteConfigurationAndDiagnosis is the KNXnet/IP Remote Configuration and Diagnosis family type
+	// ServiceFamilyTypeIPRemoteConfigurationAndDiagnosis is the KNXnet/IP Remote Configuration and Diagnosis family type.
 	ServiceFamilyTypeIPRemoteConfigurationAndDiagnosis = 0x07
-	// ServiceFamilyTypeIPObjectServer is the KNXnet/IP Object Server family type
+	// ServiceFamilyTypeIPObjectServer is the KNXnet/IP Object Server family type.
 	ServiceFamilyTypeIPObjectServer = 0x08
 )
 
-// ServiceFamily describes a KNXnet service supported by a device
+// ServiceFamily describes a KNXnet service supported by a device.
 type ServiceFamily struct {
 	Type    ServiceFamilyType
 	Version uint8
@@ -227,4 +227,76 @@ func (f *ServiceFamily) Pack(buffer []byte) {
 // Unpack parses the given data in order to initialize the structure.
 func (f *ServiceFamily) Unpack(data []byte) (n uint, err error) {
 	return util.UnpackSome(data, (*uint8)(&f.Type), &f.Version)
+}
+
+// DescriptionBlock is returned by a Search Request or a Description Request.
+type DescriptionBlock struct {
+	DeviceHardware    DeviceInformationBlock
+	SupportedServices SupportedServicesDIB
+	UnknownBlocks     []UnknownDescriptionBlock
+}
+
+// Unpack parses the given service payload in order to initialize the Description Block.
+// It can cope with not in sequence and unknown Device Information Blocks (DIB).
+func (di *DescriptionBlock) Unpack(data []byte) (n uint, err error) {
+	var length uint8
+	var ty DescriptionType
+
+	n = 0
+	for n < uint(len(data)) {
+		// DIBs should always have a length and a type.
+		_, err := util.UnpackSome(data[n:], &length, (*uint8)(&ty))
+		if err != nil {
+			return 0, err
+		}
+
+		switch ty {
+		case DescriptionTypeDeviceInfo:
+			_, err = di.DeviceHardware.Unpack(data[n : n+uint(length)])
+			if err != nil {
+				return 0, err
+			}
+			n += uint(length)
+
+		case DescriptionTypeSupportedServiceFamilies:
+			_, err = di.SupportedServices.Unpack(data[n : n+uint(length)])
+			if err != nil {
+				return 0, err
+			}
+			n += uint(length)
+
+		case DescriptionTypeIPConfig, DescriptionTypeIPCurrentConfig,
+			DescriptionTypeKNXAddresses, DescriptionTypeManufacturerData:
+			u := UnknownDescriptionBlock{Type: ty}
+
+			// known DIBs without data will be silently ignored.
+			if length > 2 {
+				_, err = u.Unpack(data[n+2 : n+uint(length)-2])
+				if err != nil {
+					return 0, err
+				}
+				di.UnknownBlocks = append(di.UnknownBlocks, u)
+				util.Log(di, "DIB not parsed: 0x%02x", ty)
+			}
+			n += uint(length)
+
+		default:
+			util.Log(di, "Found unsupported DIB with code: 0x%02x", ty)
+			n += uint(length)
+		}
+	}
+
+	return n, err
+}
+
+// UnknownDescriptionBlock is a placeholder for unknown DIBs.
+type UnknownDescriptionBlock struct {
+	Type DescriptionType
+	Data []byte
+}
+
+// Unpack Unknown Description Blocks into a buffer.
+func (u *UnknownDescriptionBlock) Unpack(data []byte) (n uint, err error) {
+	u.Data = make([]byte, len(data))
+	return util.UnpackSome(data, u.Data)
 }

@@ -130,7 +130,6 @@ type serviceUnpackable interface {
 //
 //		// ...
 //	}
-//
 func Unpack(data []byte, srv *Service) (uint, error) {
 	var headerLen, version uint8
 	var srvID ServiceID

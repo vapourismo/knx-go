@@ -104,6 +104,8 @@ func (router *Router) pushInbound(msg cemi.Message) {
 	}
 }
 
+const maxWaitTime = 50 * time.Millisecond
+
 // serve listens for incoming routing-related packets.
 func (router *Router) serve() {
 	util.Log(router, "Started worker")
@@ -129,8 +131,8 @@ func (router *Router) serve() {
 			router.sendMu.Lock()
 
 			waitTime := msg.WaitTime + trandom
-			if waitTime > 50*time.Millisecond {
-				waitTime = 50 * time.Millisecond
+			if waitTime > maxWaitTime {
+				waitTime = maxWaitTime
 			}
 
 			time.AfterFunc(waitTime, router.sendMu.Unlock)

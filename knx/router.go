@@ -128,8 +128,12 @@ func (router *Router) serve() {
 			// Inhibit sending for the given time.
 			router.sendMu.Lock()
 
-			// TODO: Add timer to Router in case of receiving multiple RoutingBusy.
-			time.AfterFunc(msg.WaitTime+trandom, router.sendMu.Unlock)
+			waitTime := msg.WaitTime + trandom
+			if waitTime > 50*time.Millisecond {
+				waitTime = 50 * time.Millisecond
+			}
+
+			time.AfterFunc(waitTime, router.sendMu.Unlock)
 
 		case *knxnet.RoutingLost:
 			// Resend the last msg.Count messages.

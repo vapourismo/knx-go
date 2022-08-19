@@ -71,9 +71,12 @@ func HostInfoFromAddress(address net.Addr) (HostInfo, error) {
 	switch address.Network() {
 	case "udp":
 		hostinfo.Protocol = UDP4
+	case "tcp":
+		hostinfo.Protocol = TCP4
 	default:
 		return hostinfo, fmt.Errorf("unsupported network")
 	}
+
 	return hostinfo, nil
 }
 

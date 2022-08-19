@@ -18,7 +18,7 @@ func DescribeTunnel(address string, searchTimeout time.Duration) (*knxnet.Descri
 	}
 	defer socket.Close()
 
-	addr, _ := socket.LocalAddr()
+	addr := socket.LocalAddr()
 
 	req, err := knxnet.NewDescriptionReq(addr)
 	if err != nil {

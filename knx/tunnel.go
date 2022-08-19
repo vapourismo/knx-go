@@ -84,16 +84,18 @@ type Tunnel struct {
 }
 
 func (conn *Tunnel) hostInfo() (knxnet.HostInfo, error) {
+	addr := conn.sock.LocalAddr()
 	if conn.config.SendLocalAddress {
-		localAddr, err := conn.sock.LocalAddr()
-
-		if err != nil {
-			return knxnet.HostInfo{}, err
-		}
-
-		return knxnet.HostInfoFromAddress(localAddr)
+		return knxnet.HostInfoFromAddress(addr)
 	} else {
-		return knxnet.HostInfo{Protocol: knxnet.UDP4}, nil
+		switch addr.Network() {
+		case "udp":
+			return knxnet.HostInfo{Protocol: knxnet.UDP4}, nil
+		case "tcp":
+			return knxnet.HostInfo{Protocol: knxnet.TCP4}, nil
+		default:
+			return knxnet.HostInfo{}, fmt.Errorf("Unknown socket address network %s", addr.Network())
+		}
 	}
 }
 

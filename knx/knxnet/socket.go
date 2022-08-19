@@ -17,7 +17,7 @@ type Socket interface {
 	Send(payload ServicePackable) error
 	Inbound() <-chan Service
 	Close() error
-	LocalAddr() (*net.UDPAddr, error)
+	LocalAddr() net.Addr
 }
 
 // TunnelSocket is a UDP socket for KNXnet/IP packet exchange.
@@ -72,9 +72,8 @@ func (sock *TunnelSocket) Close() error {
 }
 
 // LocalAddr returns the local UDP address.
-func (sock *TunnelSocket) LocalAddr() (localAddr *net.UDPAddr, err error) {
-	localAddr, err = net.ResolveUDPAddr("udp4", sock.conn.LocalAddr().String())
-	return
+func (sock *TunnelSocket) LocalAddr() net.Addr {
+	return sock.conn.LocalAddr()
 }
 
 // RouterSocket is a UDP socket for KNXnet/IP packet exchange.
@@ -154,9 +153,8 @@ func (sock *RouterSocket) Close() error {
 }
 
 // LocalAddr returns the local UDP address.
-func (sock *RouterSocket) LocalAddr() (localAddr *net.UDPAddr, err error) {
-	localAddr, err = net.ResolveUDPAddr("udp4", sock.conn.LocalAddr().String())
-	return
+func (sock *RouterSocket) LocalAddr() net.Addr {
+	return sock.conn.LocalAddr()
 }
 
 // serveUDPSocket is the receiver worker for a UDP socket.

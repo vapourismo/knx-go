@@ -99,11 +99,11 @@ func (sock *dummySocket) Close() error {
 	return nil
 }
 
-func (sock *dummySocket) LocalAddr() (*net.UDPAddr, error) {
+func (sock *dummySocket) LocalAddr() net.Addr {
 	return &net.UDPAddr{
 		IP:   net.IPv4(192, 168, 1, 82),
 		Port: 4321,
-	}, nil
+	}
 }
 
 func newDummySockets() (*dummySocket, *dummySocket) {

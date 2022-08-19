@@ -4,7 +4,9 @@
 package knxnet
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -22,13 +24,13 @@ type Socket interface {
 
 // TunnelSocket is a UDP socket for KNXnet/IP packet exchange.
 type TunnelSocket struct {
-	conn    *net.UDPConn
+	conn    net.Conn
 	inbound <-chan Service
 }
 
-// DialTunnel creates a new Socket which can used to exchange KNXnet/IP packets with a single
-// endpoint.
-func DialTunnel(address string) (*TunnelSocket, error) {
+// DialTunnelUDP creates a new Socket which can used to exchange KNXnet/IP packets with a single
+// endpoint through UDP.
+func DialTunnelUDP(address string) (*TunnelSocket, error) {
 	addr, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
 		return nil, err
@@ -47,6 +49,31 @@ func DialTunnel(address string) (*TunnelSocket, error) {
 
 	inbound := make(chan Service)
 	go serveUDPSocket(conn, addr, inbound)
+
+	return &TunnelSocket{conn, inbound}, nil
+}
+
+// DialTunnelTCP creates a new Socket which can used to exchange KNXnet/IP packets with a single
+// endpoint through TCP.
+func DialTunnelTCP(address string) (*TunnelSocket, error) {
+	addr, err := net.ResolveTCPAddr("tcp4", address)
+	if err != nil {
+		return nil, err
+	}
+
+	if addr.IP.IsMulticast() {
+		return nil, fmt.Errorf("cannot tunnel to multicast address")
+	}
+
+	conn, err := net.DialTCP("tcp4", nil, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	conn.SetDeadline(time.Time{})
+
+	inbound := make(chan Service)
+	go serveTCPSocket(conn, addr, inbound)
 
 	return &TunnelSocket{conn, inbound}, nil
 }
@@ -183,6 +210,56 @@ func serveUDPSocket(conn *net.UDPConn, addr *net.UDPAddr, inbound chan<- Service
 		// Validate sender origin if necessary.
 		if addr != nil && (!addr.IP.Equal(sender.IP) || addr.Port != sender.Port) {
 			util.Log(conn, "Origin validation failed: %v != %v", addr, sender)
+			continue
+		}
+
+		var payload Service
+		_, err = Unpack(buffer[:len], &payload)
+		if err != nil {
+			util.Log(conn, "Error during Unpack: %v", err)
+			continue
+		}
+
+		inbound <- payload
+	}
+}
+
+// serveTCPSocket is the receiver worker for a TCP socket.
+func serveTCPSocket(conn *net.TCPConn, addr *net.TCPAddr, inbound chan<- Service) {
+	util.Log(conn, "Started worker")
+	defer util.Log(conn, "Worker exited")
+
+	// A closed inbound channel indicates to its readers that the worker has terminated.
+	defer close(inbound)
+
+	connBuffer := bufio.NewReader(conn)
+
+	for {
+		header, err := connBuffer.Peek(6) // KNXnet/IP headers are 6 bytes long
+		if err != nil {
+			util.Log(conn, "Error during peeking header: %v", err)
+			return
+		}
+
+		var serviceID ServiceID
+		var totalLen uint16
+
+		_, err = UnpackHeader(header, &serviceID, &totalLen)
+		if err != nil {
+			util.Log(conn, "Error during header inspection: %v", err)
+			return
+		}
+
+		buffer := make([]byte, totalLen)
+		len, err := io.ReadFull(connBuffer, buffer)
+		if err != nil {
+			util.Log(conn, "Error during ReadFull: %v", err)
+			return
+		}
+
+		// Discard empty frames
+		if len == 0 {
+			util.Log(conn, "Empty frame discarded")
 			continue
 		}
 

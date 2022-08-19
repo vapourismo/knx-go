@@ -27,6 +27,9 @@ type TunnelConfig struct {
 
 	// SendLocalAddress specifies if local address should be sent on connection request.
 	SendLocalAddress bool
+
+	// UseTCP configures whether to connect to the gateway using TCP.
+	UseTCP bool
 }
 
 // DefaultTunnelConfig is a good default configuration for a Tunnel client.
@@ -35,6 +38,7 @@ var DefaultTunnelConfig = TunnelConfig{
 	HeartbeatInterval: 10 * time.Second,
 	ResponseTimeout:   10 * time.Second,
 	SendLocalAddress:  false,
+	UseTCP:            false,
 }
 
 // checkTunnelConfig makes sure that the configuration is actually usable.
@@ -551,9 +555,20 @@ func (conn *Tunnel) serve() {
 
 // NewTunnel establishes a connection to a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func NewTunnel(gatewayAddr string, layer knxnet.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
+func NewTunnel(
+	gatewayAddr string,
+	layer knxnet.TunnelLayer,
+	config TunnelConfig,
+) (tunnel *Tunnel, err error) {
+	var sock knxnet.Socket
+
 	// Create socket which will be used for communication.
-	sock, err := knxnet.DialTunnel(gatewayAddr)
+	if config.UseTCP {
+		sock, err = knxnet.DialTunnelTCP(gatewayAddr)
+	} else {
+		sock, err = knxnet.DialTunnelUDP(gatewayAddr)
+	}
+
 	if err != nil {
 		return nil, err
 	}

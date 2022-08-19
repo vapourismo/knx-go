@@ -1,6 +1,9 @@
 name: Check
 on:
-  push: {}
+  push:
+    branches:
+      - master
+      - feature/*
   pull_request:
     branches:
       - master

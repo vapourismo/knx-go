@@ -98,7 +98,7 @@ func (conn *Tunnel) hostInfo() (knxnet.HostInfo, error) {
 		case "tcp":
 			return knxnet.HostInfo{Protocol: knxnet.TCP4}, nil
 		default:
-			return knxnet.HostInfo{}, fmt.Errorf("Unknown socket address network %s", addr.Network())
+			return knxnet.HostInfo{}, fmt.Errorf("unknown socket address network %s", addr.Network())
 		}
 	}
 }

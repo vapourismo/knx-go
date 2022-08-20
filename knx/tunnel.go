@@ -239,9 +239,16 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 	conn.seqMu.Lock()
 	defer conn.seqMu.Unlock()
 
+	var seqNumber uint8
+
+	if !conn.config.UseTCP {
+		// The sequence number is only important in non-TCP mode.
+		seqNumber = conn.seqNumber
+	}
+
 	req := &knxnet.TunnelReq{
 		Channel:   conn.channel,
-		SeqNumber: conn.seqNumber,
+		SeqNumber: seqNumber,
 		Payload:   data,
 	}
 
@@ -249,6 +256,12 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 	err := conn.sock.Send(req)
 	if err != nil {
 		return err
+	}
+
+	if conn.config.UseTCP {
+		// In TCP mode there are no acknowledegments at the KNXnet/IP level. Hence we skip the tail of
+		// this function given we don't require dealing with resending and other failure scenarios.
+		return nil
 	}
 
 	// Start the resend timer.

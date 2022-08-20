@@ -365,6 +365,15 @@ func (conn *Tunnel) handleTunnelReq(req *knxnet.TunnelReq, seqNumber *uint8) err
 		return errors.New("invalid communication channel in tunnel request")
 	}
 
+	// In TCP connections, we don't need to check the sequence number and we don't to acknowledge the
+	// tunnelling request.
+	if conn.config.UseTCP {
+		// Send tunnel data to the client without blocking this goroutine to long.
+		conn.pushInbound(req.Payload)
+
+		return nil
+	}
+
 	expected := *seqNumber
 
 	// Is the sequence number what we expected?

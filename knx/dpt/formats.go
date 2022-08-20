@@ -170,6 +170,20 @@ func unpackU32(data []byte, i *uint32) error {
 	return nil
 }
 
+func packV8(i int8) []byte {
+	return []byte{0, byte(i)}
+}
+
+func unpackV8(data []byte, i *int8) error {
+	if len(data) != 2 {
+		return ErrInvalidLength
+	}
+
+	*i = int8(data[1])
+
+	return nil
+}
+
 func packV32(i int32) []byte {
 	b := make([]byte, 5)
 

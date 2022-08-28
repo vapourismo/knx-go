@@ -89,7 +89,7 @@ type Tunnel struct {
 
 func (conn *Tunnel) hostInfo() (knxnet.HostInfo, error) {
 	addr := conn.sock.LocalAddr()
-	if conn.config.SendLocalAddress {
+	if conn.config.SendLocalAddress && !conn.config.UseTCP {
 		return knxnet.HostInfoFromAddress(addr)
 	} else {
 		switch addr.Network() {

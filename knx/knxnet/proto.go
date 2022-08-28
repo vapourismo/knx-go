@@ -109,6 +109,26 @@ type serviceUnpackable interface {
 	Service
 }
 
+// UnpackHeader extracts information from the KNXnet/IP packet header.
+func UnpackHeader(data []byte, serviceID *ServiceID, totalLen *uint16) (uint, error) {
+	var headerLen, version uint8
+
+	n, err := util.UnpackSome(data, &headerLen, &version, (*uint16)(serviceID), totalLen)
+	if err != nil {
+		return n, err
+	}
+
+	if headerLen != 6 {
+		return n, ErrHeaderLength
+	}
+
+	if version != 16 {
+		return n, ErrHeaderVersion
+	}
+
+	return n, nil
+}
+
 // Unpack parses a KNXnet/IP packet and retrieves its service payload.
 //
 // On success, the variable pointed to by srv will contain a pointer to a service type.
@@ -131,21 +151,12 @@ type serviceUnpackable interface {
 //		// ...
 //	}
 func Unpack(data []byte, srv *Service) (uint, error) {
-	var headerLen, version uint8
 	var srvID ServiceID
 	var totalLen uint16
 
-	n, err := util.UnpackSome(data, &headerLen, &version, (*uint16)(&srvID), &totalLen)
+	n, err := UnpackHeader(data, &srvID, &totalLen)
 	if err != nil {
 		return n, err
-	}
-
-	if headerLen != 6 {
-		return n, ErrHeaderLength
-	}
-
-	if version != 16 {
-		return n, ErrHeaderVersion
 	}
 
 	var body serviceUnpackable

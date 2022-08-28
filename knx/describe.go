@@ -12,13 +12,13 @@ import (
 // Describe a single KNXnet/IP server. Uses unicast UDP, address format is "ip:port".
 func DescribeTunnel(address string, searchTimeout time.Duration) (*knxnet.DescriptionRes, error) {
 	// Uses a UDP socket.
-	socket, err := knxnet.DialTunnel(address)
+	socket, err := knxnet.DialTunnelUDP(address)
 	if err != nil {
 		return nil, err
 	}
 	defer socket.Close()
 
-	addr, _ := socket.LocalAddr()
+	addr := socket.LocalAddr()
 
 	req, err := knxnet.NewDescriptionReq(addr)
 	if err != nil {

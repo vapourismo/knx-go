@@ -27,6 +27,9 @@ type TunnelConfig struct {
 
 	// SendLocalAddress specifies if local address should be sent on connection request.
 	SendLocalAddress bool
+
+	// UseTCP configures whether to connect to the gateway using TCP.
+	UseTCP bool
 }
 
 // DefaultTunnelConfig is a good default configuration for a Tunnel client.
@@ -35,6 +38,7 @@ var DefaultTunnelConfig = TunnelConfig{
 	HeartbeatInterval: 10 * time.Second,
 	ResponseTimeout:   10 * time.Second,
 	SendLocalAddress:  false,
+	UseTCP:            false,
 }
 
 // checkTunnelConfig makes sure that the configuration is actually usable.
@@ -84,16 +88,18 @@ type Tunnel struct {
 }
 
 func (conn *Tunnel) hostInfo() (knxnet.HostInfo, error) {
-	if conn.config.SendLocalAddress {
-		localAddr, err := conn.sock.LocalAddr()
-
-		if err != nil {
-			return knxnet.HostInfo{}, err
-		}
-
-		return knxnet.HostInfoFromAddress(localAddr)
+	addr := conn.sock.LocalAddr()
+	if conn.config.SendLocalAddress && !conn.config.UseTCP {
+		return knxnet.HostInfoFromAddress(addr)
 	} else {
-		return knxnet.HostInfo{Protocol: knxnet.UDP4}, nil
+		switch addr.Network() {
+		case "udp":
+			return knxnet.HostInfo{Protocol: knxnet.UDP4}, nil
+		case "tcp":
+			return knxnet.HostInfo{Protocol: knxnet.TCP4}, nil
+		default:
+			return knxnet.HostInfo{}, fmt.Errorf("unknown socket address network %s", addr.Network())
+		}
 	}
 }
 
@@ -233,9 +239,16 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 	conn.seqMu.Lock()
 	defer conn.seqMu.Unlock()
 
+	var seqNumber uint8
+
+	if !conn.config.UseTCP {
+		// The sequence number is only important in non-TCP mode.
+		seqNumber = conn.seqNumber
+	}
+
 	req := &knxnet.TunnelReq{
 		Channel:   conn.channel,
-		SeqNumber: conn.seqNumber,
+		SeqNumber: seqNumber,
 		Payload:   data,
 	}
 
@@ -243,6 +256,12 @@ func (conn *Tunnel) requestTunnel(data cemi.Message) error {
 	err := conn.sock.Send(req)
 	if err != nil {
 		return err
+	}
+
+	if conn.config.UseTCP {
+		// In TCP mode there are no acknowledegments at the KNXnet/IP level. Hence we skip the tail of
+		// this function given we don't require dealing with resending and other failure scenarios.
+		return nil
 	}
 
 	// Start the resend timer.
@@ -357,6 +376,15 @@ func (conn *Tunnel) handleTunnelReq(req *knxnet.TunnelReq, seqNumber *uint8) err
 	// Validate the request channel.
 	if req.Channel != conn.channel {
 		return errors.New("invalid communication channel in tunnel request")
+	}
+
+	// In TCP connections, we don't need to check the sequence number and we don't to acknowledge the
+	// tunnelling request.
+	if conn.config.UseTCP {
+		// Send tunnel data to the client without blocking this goroutine to long.
+		conn.pushInbound(req.Payload)
+
+		return nil
 	}
 
 	expected := *seqNumber
@@ -549,9 +577,20 @@ func (conn *Tunnel) serve() {
 
 // NewTunnel establishes a connection to a gateway. You can pass a zero initialized ClientConfig;
 // the function will take care of filling in the default values.
-func NewTunnel(gatewayAddr string, layer knxnet.TunnelLayer, config TunnelConfig) (*Tunnel, error) {
+func NewTunnel(
+	gatewayAddr string,
+	layer knxnet.TunnelLayer,
+	config TunnelConfig,
+) (tunnel *Tunnel, err error) {
+	var sock knxnet.Socket
+
 	// Create socket which will be used for communication.
-	sock, err := knxnet.DialTunnel(gatewayAddr)
+	if config.UseTCP {
+		sock, err = knxnet.DialTunnelTCP(gatewayAddr)
+	} else {
+		sock, err = knxnet.DialTunnelUDP(gatewayAddr)
+	}
+
 	if err != nil {
 		return nil, err
 	}

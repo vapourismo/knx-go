@@ -49,7 +49,7 @@ func (d DPT_10001) Unit() string {
 }
 
 func (d DPT_10001) IsValid() bool {
-	return (d.Weekday <= 7 && d.Hour <= 23 && d.Minutes <= 59 && d.Hour <= 59)
+	return (d.Weekday <= 7 && d.Hour <= 23 && d.Minutes <= 59 && d.Seconds <= 59)
 }
 
 func (d DPT_10001) String() string {

@@ -1,5 +1,13 @@
 package dpt
 
+const (
+	HVACMode_Auto DPT_20102 = iota
+	HVACMode_Comfort
+	HVACMode_Standby
+	HVACMode_Economy
+	HVACMode_BuildingProtection
+)
+
 // DPT_20102 represents DPT 20.102 / HVAC Mode.
 type DPT_20102 uint8
 
@@ -17,17 +25,17 @@ func (d DPT_20102) Unit() string {
 
 func (d DPT_20102) String() string {
 	switch d {
-	case 0:
+	case HVACMode_Auto:
 		return "Auto"
-	case 1:
+	case HVACMode_Comfort:
 		return "Comfort"
-	case 2:
+	case HVACMode_Standby:
 		return "Standby"
-	case 3:
+	case HVACMode_Economy:
 		return "Economy"
-	case 4:
+	case HVACMode_BuildingProtection:
 		return "Building Protection"
 	default:
-		return ""
+		return "unknown"
 	}
 }

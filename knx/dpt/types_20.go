@@ -36,6 +36,6 @@ func (d DPT_20102) String() string {
 	case HVACMode_BuildingProtection:
 		return "Building Protection"
 	default:
-		return "unknown"
+		return "reserved"
 	}
 }

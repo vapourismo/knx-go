@@ -20,7 +20,7 @@ func (d *DPT_17001) Unpack(data []byte) error {
 		return err
 	}
 
-	if *d <= 63 {
+	if value <= 63 {
 		*d = DPT_17001(value)
 		return nil
 	} else {

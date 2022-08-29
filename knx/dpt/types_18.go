@@ -20,7 +20,7 @@ func (d *DPT_18001) Unpack(data []byte) error {
 		return err
 	}
 
-	if *d <= 63 || (*d >= 128 && *d <= 191) {
+	if value <= 63 || (value >= 128 && value <= 191) {
 		*d = DPT_18001(value)
 		return nil
 	} else {

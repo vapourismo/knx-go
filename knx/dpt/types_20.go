@@ -103,5 +103,5 @@ func (d DPT_20105) String() string {
 	case 20:
 		return "NoDem"
 	}
-	return ""
+	return "reserved"
 }

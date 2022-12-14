@@ -34,6 +34,29 @@ func unpackB1(data []byte, b *bool) error {
 	return nil
 }
 
+func packB2(bs [2]bool) byte {
+	var b byte = 0
+	if bs[0] {
+		b |= 1 << 0
+	}
+	if bs[1] {
+		b |= 1 << 1
+	}
+	return byte(b)
+}
+
+func unpackB2(data byte, b0 *bool, b1 *bool) error {
+
+	if uint8(data) > 15 {
+		return ErrBadReservedBits
+	}
+
+	*b0 = ((data >> 0) & 1) != 0
+	*b1 = ((data >> 1) & 1) != 0
+
+	return nil
+}
+
 func packB4(bs [4]bool) byte {
 	var b byte = 0
 	if bs[0] {

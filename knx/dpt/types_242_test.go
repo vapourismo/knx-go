@@ -11,9 +11,9 @@ func TestDPT_242600(t *testing.T) {
 	var dst DPT_242600
 	sources := []DPT_242600{
 		{X: 0, Y: 0, YBrightness: 1, ColorValid: true, BrightnessValid: true},
-		{X: 1, Y: 1, YBrightness: 255, ColorValid: true, BrightnessValid: true},
-		{X: 0.5, Y: 0.5, YBrightness: 127, ColorValid: true, BrightnessValid: true},
-		{X: 0.1, Y: 0.9, YBrightness: 127, ColorValid: true, BrightnessValid: true},
+		{X: 65535, Y: 1, YBrightness: 255, ColorValid: true, BrightnessValid: true},
+		{X: 32767, Y: 32767, YBrightness: 127, ColorValid: true, BrightnessValid: true},
+		{X: 6553, Y: 58981, YBrightness: 127, ColorValid: true, BrightnessValid: true},
 	}
 
 	for _, src := range sources {

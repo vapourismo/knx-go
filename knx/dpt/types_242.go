@@ -3,13 +3,14 @@ package dpt
 import (
 	"errors"
 	"fmt"
-	"math"
 )
 
-// DPT_242600 represents DPT 242.600 (DPT_Colour_xyY) / Colour xyY - x: 0-1 (= 0 - 65535) y: 0-1 (= 0 - 65535) / U16 U16 U8 r6B2
+// DPT_242600 represents DPT 242.600 (DPT_Colour_xyY)
+// Colour xyY - x: 0-1 (= 0 - 65535) y: 0-1 (= 0 - 65535)
+// U16 U16 U8 r6B2
 type DPT_242600 struct {
-	X               float64
-	Y               float64
+	X               uint16
+	Y               uint16
 	YBrightness     uint8
 	ColorValid      bool
 	BrightnessValid bool
@@ -18,8 +19,8 @@ type DPT_242600 struct {
 func (d DPT_242600) Pack() []byte {
 	validBits := packB2([2]bool{d.ColorValid, d.BrightnessValid})
 
-	x := packU16(uint16(d.X * 65535))
-	y := packU16(uint16(d.Y * 65535))
+	x := packU16(uint16(d.X))
+	y := packU16(uint16(d.Y))
 
 	return []byte{0, x[1], x[2], y[1], y[2], d.YBrightness, validBits}
 }
@@ -58,26 +59,14 @@ func (d *DPT_242600) Unpack(data []byte) error {
 
 	}
 
-	var xF, yF float64
-
-	xF = 0
-	if x != 0 {
-		xF = math.Round((float64(x)/65535)*10000) / 10000
-	}
-
-	yF = 0
-	if y != 0 {
-		yF = math.Round((float64(y)/65535)*10000) / 10000
-
-	}
-
 	*d = DPT_242600{
-		X:               xF,
-		Y:               yF,
+		X:               x,
+		Y:               y,
 		YBrightness:     uint8(data[5]),
 		ColorValid:      colorValid,
 		BrightnessValid: brightnessValid,
 	}
+
 	return nil
 }
 
@@ -86,5 +75,5 @@ func (d DPT_242600) Unit() string {
 }
 
 func (d DPT_242600) String() string {
-	return fmt.Sprintf("x: %0.4f y: %0.4f Y: %d ColorValid: %t, BrightnessValid: %t", d.X, d.Y, d.YBrightness, d.ColorValid, d.BrightnessValid)
+	return fmt.Sprintf("x: %d y: %d Y: %d ColorValid: %t, BrightnessValid: %t", d.X, d.Y, d.YBrightness, d.ColorValid, d.BrightnessValid)
 }

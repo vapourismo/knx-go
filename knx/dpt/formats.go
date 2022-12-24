@@ -16,12 +16,12 @@ var (
 	ErrBadReservedBits = errors.New("reserved bits in the input data have been populated")
 )
 
-func packB1(b bool) []byte {
+func packB1(b bool) byte {
 	if b {
-		return []byte{1}
+		return 1
 	}
 
-	return []byte{0}
+	return 0
 }
 
 func unpackB1(data []byte, b *bool) error {
@@ -34,19 +34,19 @@ func unpackB1(data []byte, b *bool) error {
 	return nil
 }
 
-func packB2(bs [2]bool) byte {
-	var b byte = 0
+func packB2(bs [2]bool) (b byte) {
 	if bs[0] {
 		b |= 1 << 0
 	}
+
 	if bs[1] {
 		b |= 1 << 1
 	}
-	return byte(b)
+
+	return
 }
 
 func unpackB2(data byte, b0 *bool, b1 *bool) error {
-
 	if uint8(data) > 15 {
 		return ErrBadReservedBits
 	}
@@ -57,26 +57,27 @@ func unpackB2(data byte, b0 *bool, b1 *bool) error {
 	return nil
 }
 
-func packB4(bs [4]bool) byte {
-	var b byte = 0
+func packB4(bs [4]bool) (b byte) {
 	if bs[0] {
 		b |= 1 << 0
 	}
+
 	if bs[1] {
 		b |= 1 << 1
 	}
+
 	if bs[2] {
 		b |= 1 << 2
 	}
+
 	if bs[3] {
 		b |= 1 << 3
 	}
 
-	return byte(b)
+	return
 }
 
 func unpackB4(data byte, b0 *bool, b1 *bool, b2 *bool, b3 *bool) error {
-
 	if uint8(data) > 15 {
 		return ErrBadReservedBits
 	}

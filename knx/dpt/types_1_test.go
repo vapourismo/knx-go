@@ -48,12 +48,12 @@ func TestDPT_1(t *testing.T) {
 			t.Errorf("%#v has wrong default value [%v]. Should be [%s].", e.Dpv, e.Dpv, e.OnFalse)
 		}
 
-		e.Dpv.Unpack(packB1(false))
+		e.Dpv.Unpack([]byte{packB1(false)})
 		if fmt.Sprintf("%s", e.Dpv) != e.OnFalse {
 			t.Errorf("%#v has wrong false value [%v]. Should be [%s].", e.Dpv, e.Dpv, e.OnFalse)
 		}
 
-		e.Dpv.Unpack(packB1(true))
+		e.Dpv.Unpack([]byte{packB1(true)})
 		if fmt.Sprintf("%s", e.Dpv) != e.OnTrue {
 			t.Errorf("%#v has wrong true value [%v]. Should be [%s].", e.Dpv, e.Dpv, e.OnTrue)
 		}

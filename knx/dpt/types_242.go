@@ -16,18 +16,15 @@ type DPT_242600 struct {
 }
 
 func (d DPT_242600) Pack() []byte {
-
 	validBits := packB2([2]bool{d.ColorValid, d.BrightnessValid})
 
 	x := packU16(uint16(d.X * 65535))
 	y := packU16(uint16(d.Y * 65535))
 
 	return []byte{0, x[1], x[2], y[1], y[2], d.YBrightness, validBits}
-
 }
 
 func (d *DPT_242600) Unpack(data []byte) error {
-
 	if len(data) != 7 {
 		return ErrInvalidLength
 	}

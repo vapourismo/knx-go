@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	types = [...]DatapointValue{
+	types = [...]Datapoint{
 		// 1.xxx
 		new(DPT_1001),
 		new(DPT_1002),
@@ -248,14 +248,14 @@ func ListSupportedTypes() []string {
 }
 
 // Produce creates a new instance of the given datapoint-type name e.g. "1.001".
-func Produce(name string) (d DatapointValue, ok bool) {
+func Produce(name string) (d Datapoint, ok bool) {
 	// Setup the registry
 	setup()
 
 	// Lookup the given type and create a new instance of that type
 	x, ok := registry[name]
 	if ok {
-		d = reflect.New(x).Interface().(DatapointValue)
+		d = reflect.New(x).Interface().(Datapoint)
 	}
 	return d, ok
 }

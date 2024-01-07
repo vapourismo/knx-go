@@ -22,3 +22,9 @@ type DatapointMeta interface {
 	// fmt.Stringer provides a string representation of the datapoint.
 	fmt.Stringer
 }
+
+// Datapoint represents a datapoint with both its value and metadata.
+type Datapoint interface {
+	DatapointValue
+	DatapointMeta
+}

@@ -3,6 +3,8 @@
 
 package dpt
 
+import "fmt"
+
 // A DatapointValue is a value of a datapoint.
 type DatapointValue interface {
 	// Pack the datapoint to a byte array.
@@ -16,4 +18,13 @@ type DatapointValue interface {
 type DatapointMeta interface {
 	// Unit returns the unit of this datapoint type or empty string if it doesn't have a unit.
 	Unit() string
+
+	// fmt.Stringer provides a string representation of the datapoint.
+	fmt.Stringer
+}
+
+// Datapoint represents a datapoint with both its value and metadata.
+type Datapoint interface {
+	DatapointValue
+	DatapointMeta
 }

@@ -2166,3 +2166,30 @@ func (d DPT_14079) Unit() string {
 func (d DPT_14079) String() string {
 	return fmt.Sprintf("%.2f J", float32(d))
 }
+
+// DPT_141200 represents DPT 14.1200 / Volume_Flux_Meter
+type DPT_141200 float32
+
+func (d DPT_141200) Pack() []byte {
+	return packF32(float32(d))
+}
+
+func (d *DPT_141200) Unpack(data []byte) error {
+	var value float32
+
+	if err := unpackF32(data, &value); err != nil {
+		return err
+	}
+
+	*d = DPT_141200(value)
+
+	return nil
+}
+
+func (d DPT_141200) Unit() string {
+	return "m³/h"
+}
+
+func (d DPT_141200) String() string {
+	return fmt.Sprintf("%.2f m³/h", float32(d))
+}

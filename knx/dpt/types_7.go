@@ -215,3 +215,22 @@ func (d DPT_7013) Unit() string {
 func (d DPT_7013) String() string {
 	return fmt.Sprintf("%d lux", uint16(d))
 }
+
+// DPT_7600 represents DPT 7.600 / Absolute Colour Temperature K.
+type DPT_7600 uint16
+
+func (d DPT_7600) Pack() []byte {
+	return packU16(uint16(d))
+}
+
+func (d *DPT_7600) Unpack(data []byte) error {
+	return unpackU16(data, (*uint16)(d))
+}
+
+func (d DPT_7600) Unit() string {
+	return "K"
+}
+
+func (d DPT_7600) String() string {
+	return fmt.Sprintf("%d K", uint16(d))
+}

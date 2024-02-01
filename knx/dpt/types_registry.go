@@ -6,6 +6,7 @@ package dpt
 import (
 	"reflect"
 	"sync"
+	"strings"
 )
 
 var (
@@ -224,6 +225,7 @@ func setup() {
 
 			// Convert the name into KNX yy.xxx (e.g. DPT_1001 --> 1.001) format
 			name = name[4:len(name)-3] + "." + name[len(name)-3:]
+			name = strings.Replace(name, "141.200", "14.1200", -1) // Workaround for DPT_141200
 
 			// Register the type
 			registry[name] = d_type

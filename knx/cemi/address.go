@@ -96,11 +96,11 @@ func NewGroupAddr3(a, b, c uint8) GroupAddr {
 	return GroupAddr(a&0x1F)<<11 | GroupAddr(b&0x7)<<8 | GroupAddr(c)
 }
 
-// NewGroupAddr2 generates a group address from and "a/b"
+// NewGroupAddr2 generates a group address from an "a/b"
 // representation, where a is the Main Group [0..31] and b is
 // the Sub Group [0..2047].
 func NewGroupAddr2(a uint8, b uint16) GroupAddr {
-	return GroupAddr(a)<<8 | GroupAddr(b&0x7FF)
+	return GroupAddr(a&0x1F)<<11 | GroupAddr(b&0x7FF)
 }
 
 // NewGroupAddrString parses the given string to a group address.

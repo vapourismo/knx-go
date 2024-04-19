@@ -18,7 +18,6 @@ func TestDPT_242600(t *testing.T) {
 
 	for _, src := range sources {
 		buf = src.Pack()
-		fmt.Printf("==> %v\n", buf)
 		err := dst.Unpack(buf)
 
 		if err != nil {

@@ -592,3 +592,33 @@ func TestDPT_9028(t *testing.T) {
 		}
 	}
 }
+
+// Test DPT 9.029 (Absolute air humidity) with values within range
+func TestDPT_9029(t *testing.T) {
+	var buf []byte
+	var src, dst DPT_9029
+
+	for i := 1; i <= 10; i++ {
+		value := rand.Float32()
+
+		// Scale the random number to the given range
+		value *= 670760
+
+		// Calculate the quantization error we expect
+		Q := get_float_quantization_error(value, 0.01, 2047)
+
+		// Pack and unpack to test value
+		src = DPT_9029(value)
+		if abs(float32(src)-value) > epsilon {
+			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_9029! Has value \"%s\".", value, src)
+		}
+		buf = src.Pack()
+		dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
+		if abs(float32(dst)-value) > (Q + epsilon) {
+			t.Errorf("Value \"%s\" after pack/unpack above quantization noise! Original value was \"%v\", noise is \"%f\"", dst, value, Q)
+		}
+	}
+}

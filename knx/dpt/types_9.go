@@ -645,7 +645,7 @@ func (d *DPT_9027) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < -459.6 || value > 670760 {
-		return fmt.Errorf("rain amount \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("rain amount \"%.2f\" outside range [-459.6, 670760]", value)
 	}
 
 	*d = DPT_9027(value)
@@ -681,7 +681,7 @@ func (d *DPT_9028) Unpack(data []byte) error {
 
 	// Check the value for valid range
 	if value < 0 || value > 670760 {
-		return fmt.Errorf("wind speed \"%.2f\" outside range [-670760, 670760]", value)
+		return fmt.Errorf("wind speed \"%.2f\" outside range [0, 670760]", value)
 	}
 
 	*d = DPT_9028(value)
@@ -694,4 +694,40 @@ func (d DPT_9028) Unit() string {
 
 func (d DPT_9028) String() string {
 	return fmt.Sprintf("%.2f km/h", float32(d))
+}
+
+// DPT_9029 represents DPT 9.029 / Absolute air humidity g/m3.
+type DPT_9029 float32
+
+func (d DPT_9029) Pack() []byte {
+	if d <= 0 {
+		return packF16(0)
+	} else if d >= 670760 {
+		return packF16(670760)
+	} else {
+		return packF16(float32(d))
+	}
+}
+
+func (d *DPT_9029) Unpack(data []byte) error {
+	var value float32
+	if err := unpackF16(data, &value); err != nil {
+		return err
+	}
+
+	// Check the value for valid range
+	if value < 0 || value > 670760 {
+		return fmt.Errorf("absolute air humidity \"%.2f\" outside range [0, 670760]", value)
+	}
+
+	*d = DPT_9029(value)
+	return nil
+}
+
+func (d DPT_9029) Unit() string {
+	return "g/m³"
+}
+
+func (d DPT_9029) String() string {
+	return fmt.Sprintf("%.2f g/m³", float32(d))
 }

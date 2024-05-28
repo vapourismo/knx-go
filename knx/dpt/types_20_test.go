@@ -23,9 +23,10 @@ func TestDPT_20105(t *testing.T) {
 	knxValue := []byte{0, 9}
 	dptValue := DPT_20105(9)
 
-	var tmpDPT DPT_20105
+	tmpDPT, ok := Produce("20.105")
+	assert.True(t, ok)
 	assert.NoError(t, tmpDPT.Unpack(knxValue))
-	assert.Equal(t, dptValue, tmpDPT)
+	assert.Equal(t, &dptValue, tmpDPT)
 
 	assert.Equal(t, knxValue, dptValue.Pack())
 

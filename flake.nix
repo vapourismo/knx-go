@@ -6,11 +6,14 @@
     nixpkgs.url = github:NixOS/nixpkgs;
   };
 
-  outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachDefaultSystem (system:
-    let
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-    in
-    {
+    in {
       devShell = pkgs.mkShell {
         packages =
           # go tooling
@@ -21,8 +24,8 @@
           ++
           # Nix tooling
           (with pkgs; [
-            nixpkgs-fmt
-            rnix-lsp
+            nil
+            alejandra
           ]);
       };
     });

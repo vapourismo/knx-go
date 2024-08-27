@@ -45,42 +45,42 @@ func (d DPT_8002) String() string {
 	return fmt.Sprintf("%d ms", int16(d))
 }
 
-// DPT_8003 represents DPT 8.003 / delta time centiseconds
-type DPT_8003 int16
+// DPT_8003 represents DPT 8.003 / delta time seconds with two decimal places
+type DPT_8003 float32
 
 func (d DPT_8003) Pack() []byte {
-	return packV16(int16(d))
+	return packFloat32AsV16(float32(d), 2)
 }
 
 func (d *DPT_8003) Unpack(data []byte) error {
-	return unpackV16(data, (*int16)(d))
+	return unpackV16AsFloat32(data, 2, (*float32)(d))
 }
 
 func (d DPT_8003) Unit() string {
-	return "cs"
+	return "s"
 }
 
 func (d DPT_8003) String() string {
-	return fmt.Sprintf("%d cs", int16(d))
+	return fmt.Sprintf("%.2f s", float32(d))
 }
 
-// DPT_8004 represents DPT 8.004 / delta time deciseconds
-type DPT_8004 int16
+// DPT_8004 represents DPT 8.004 / delta time seconds with one decimal place
+type DPT_8004 float32
 
 func (d DPT_8004) Pack() []byte {
-	return packV16(int16(d))
+	return packFloat32AsV16(float32(d), 1)
 }
 
 func (d *DPT_8004) Unpack(data []byte) error {
-	return unpackV16(data, (*int16)(d))
+	return unpackV16AsFloat32(data, 1, (*float32)(d))
 }
 
 func (d DPT_8004) Unit() string {
-	return "ds"
+	return "s"
 }
 
 func (d DPT_8004) String() string {
-	return fmt.Sprintf("%d ds", int16(d))
+	return fmt.Sprintf("%.1f s", float32(d))
 }
 
 // DPT_8005 represents DPT 8.005 / delta time seconds
@@ -141,14 +141,14 @@ func (d DPT_8007) String() string {
 }
 
 // DPT_8010 represents DPT 8.010 / percentage
-type DPT_8010 int16
+type DPT_8010 float32
 
 func (d DPT_8010) Pack() []byte {
-	return packV16(int16(d))
+	return packFloat32AsV16(float32(d), 2)
 }
 
 func (d *DPT_8010) Unpack(data []byte) error {
-	return unpackV16(data, (*int16)(d))
+	return unpackV16AsFloat32(data, 2, (*float32)(d))
 }
 
 func (d DPT_8010) Unit() string {
@@ -156,7 +156,7 @@ func (d DPT_8010) Unit() string {
 }
 
 func (d DPT_8010) String() string {
-	return fmt.Sprintf("%d %%", int16(d))
+	return fmt.Sprintf("%.2f %%", float32(d))
 }
 
 // DPT_8011 represents DPT 8.011 / Rotation angle °.

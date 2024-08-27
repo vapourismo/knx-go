@@ -228,6 +228,25 @@ func unpackV16(data []byte, i *int16) error {
 	return nil
 }
 
+func packFloat32AsV16(f float32, decimalPlaces int) []byte {
+	return packV16(int16(math.Round(float64(f * float32(math.Pow10(int(decimalPlaces)))))))
+}
+
+func unpackV16AsFloat32(data []byte, decimalPlaces int, f *float32) error {
+	if len(data) != 3 {
+		return ErrInvalidLength
+	}
+
+	var i int16
+	if err := unpackV16(data, &i); err != nil {
+		return err
+	}
+
+	*f = float32(i) / float32(math.Pow10(decimalPlaces))
+
+	return nil
+}
+
 func packV32(i int32) []byte {
 	b := make([]byte, 5)
 

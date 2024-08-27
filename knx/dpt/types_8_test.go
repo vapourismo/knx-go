@@ -4,6 +4,7 @@
 package dpt
 
 import (
+	"fmt"
 	"testing"
 
 	"math"
@@ -58,17 +59,20 @@ func TestDPT_8003(t *testing.T) {
 	var src, dst DPT_8003
 
 	for i := 1; i <= 10; i++ {
-		value := int16(rand.Uint32() % math.MaxInt16)
 
-		// Pack and unpack to test value
+		value := float32(int16(rand.Uint32()%math.MaxInt16)) / 100
+
 		src = DPT_8003(value)
-		if int16(src) != value {
+		if abs(float32(src)-value) > epsilon {
 			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_8003! Has value \"%s\".", value, src)
 		}
 		buf = src.Pack()
-		dst.Unpack(buf)
-		if int16(dst) != value {
-			t.Errorf("Value \"%s\" after pack/unpack different from Original value. Was \"%v\"", dst, value)
+		_ = dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
+		if fmt.Sprintf("%.2f", dst) != fmt.Sprintf("%.2f", value) {
+			t.Errorf("Value \"%f\" after pack/unpack different from Original value. Was \"%f\"", dst, value)
 		}
 	}
 }
@@ -79,17 +83,20 @@ func TestDPT_8004(t *testing.T) {
 	var src, dst DPT_8004
 
 	for i := 1; i <= 10; i++ {
-		value := int16(rand.Uint32() % math.MaxInt16)
 
-		// Pack and unpack to test value
+		value := float32(int16(rand.Uint32()%math.MaxInt16)) / 10
+
 		src = DPT_8004(value)
-		if int16(src) != value {
+		if abs(float32(src)-value) > epsilon {
 			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_8004! Has value \"%s\".", value, src)
 		}
 		buf = src.Pack()
-		dst.Unpack(buf)
-		if int16(dst) != value {
-			t.Errorf("Value \"%s\" after pack/unpack different from Original value. Was \"%v\"", dst, value)
+		_ = dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
+		}
+		if fmt.Sprintf("%.1f", dst) != fmt.Sprintf("%.1f", value) {
+			t.Errorf("Value \"%f\" after pack/unpack different from Original value. Was \"%f\"", dst, value)
 		}
 	}
 }
@@ -163,18 +170,23 @@ func TestDPT_8010(t *testing.T) {
 	var src, dst DPT_8010
 
 	for i := 1; i <= 10; i++ {
-		value := int16(rand.Uint32() % math.MaxInt16)
 
-		// Pack and unpack to test value
+		iValue := int16(rand.Uint32() % math.MaxInt16)
+		value := float32(iValue) / 100
+
 		src = DPT_8010(value)
-		if int16(src) != value {
+		if abs(float32(src)-value) > epsilon {
 			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_8010! Has value \"%s\".", value, src)
 		}
 		buf = src.Pack()
-		dst.Unpack(buf)
-		if int16(dst) != value {
-			t.Errorf("Value \"%s\" after pack/unpack different from Original value. Was \"%v\"", dst, value)
+		_ = dst.Unpack(buf)
+		if math.IsNaN(float64(dst)) {
+			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
 		}
+		if fmt.Sprintf("%.2f", dst) != fmt.Sprintf("%.2f", value) {
+			t.Errorf("Value \"%f\" after pack/unpack different from Original value. Was \"%f\"", dst, value)
+		}
+		fmt.Printf("Original value: %d, dpt.String(): %s\n", iValue, dst.String())
 	}
 }
 

@@ -208,6 +208,63 @@ func unpackV8(data []byte, i *int8) error {
 	return nil
 }
 
+func packV16(i int16) []byte {
+	b := make([]byte, 3)
+
+	b[0] = 0
+	b[1] = byte((i >> 8) & 0xff)
+	b[2] = byte(i & 0xff)
+
+	return b
+}
+
+func unpackV16(data []byte, i *int16) error {
+	if len(data) != 3 {
+		return ErrInvalidLength
+	}
+
+	*i = int16(data[1])<<8 | int16(data[2])
+
+	return nil
+}
+
+func packV32AsV16(i int32, resolution int32) []byte {
+	return packV16(int16(i / resolution))
+}
+
+func unpackV16AsV32(data []byte, i *int32, resolution int32) error {
+	if len(data) != 3 {
+		return ErrInvalidLength
+	}
+	var i16 int16
+	err := unpackV16(data, &i16)
+	if err != nil {
+		return err
+	}
+
+	*i = int32(i16) * resolution
+	return nil
+}
+
+func packFloat32AsV16(f float32, resolution float32) []byte {
+	return packV16(int16(math.Round(float64(f / resolution))))
+}
+
+func unpackV16AsFloat32(data []byte, f *float32, resolution float32) error {
+	if len(data) != 3 {
+		return ErrInvalidLength
+	}
+
+	var i int16
+	if err := unpackV16(data, &i); err != nil {
+		return err
+	}
+
+	*f = float32(i) * resolution
+
+	return nil
+}
+
 func packV32(i int32) []byte {
 	b := make([]byte, 5)
 

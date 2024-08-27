@@ -19,11 +19,11 @@ func (d *DPT_8001) Unpack(data []byte) error {
 }
 
 func (d DPT_8001) Unit() string {
-	return ""
+	return "pulses"
 }
 
 func (d DPT_8001) String() string {
-	return fmt.Sprintf("%d °", int16(d))
+	return fmt.Sprintf("%d pulses", int16(d))
 }
 
 // DPT_8002 represents DPT 8.002 / delta time ms.

@@ -5,6 +5,7 @@ package dpt
 
 import (
 	"fmt"
+	"math"
 )
 
 // DPT_8001 represents DPT 8.001 / Counter.
@@ -49,11 +50,16 @@ func (d DPT_8002) String() string {
 type DPT_8003 int32
 
 func (d DPT_8003) Pack() []byte {
-	return packV32AsV16(int32(d), 10)
+	return packV16(int16(int32(d) / 10))
 }
 
 func (d *DPT_8003) Unpack(data []byte) error {
-	return unpackV16AsV32(data, (*int32)(d), 10)
+	var i int16
+	if err := unpackV16(data, &i); err != nil {
+		return nil
+	}
+	*d = DPT_8003(int32(i) * 10)
+	return nil
 }
 
 func (d DPT_8003) Unit() string {
@@ -68,11 +74,16 @@ func (d DPT_8003) String() string {
 type DPT_8004 int32
 
 func (d DPT_8004) Pack() []byte {
-	return packV32AsV16(int32(d), 100)
+	return packV16(int16(int32(d) / 100))
 }
 
 func (d *DPT_8004) Unpack(data []byte) error {
-	return unpackV16AsV32(data, (*int32)(d), 100)
+	var i int16
+	if err := unpackV16(data, &i); err != nil {
+		return nil
+	}
+	*d = DPT_8004(int32(i) * 100)
+	return nil
 }
 
 func (d DPT_8004) Unit() string {
@@ -144,11 +155,16 @@ func (d DPT_8007) String() string {
 type DPT_8010 float32
 
 func (d DPT_8010) Pack() []byte {
-	return packFloat32AsV16(float32(d), 0.01)
+	return packV16(int16(math.Round(float64(d) / 0.01)))
 }
 
 func (d *DPT_8010) Unpack(data []byte) error {
-	return unpackV16AsFloat32(data, (*float32)(d), 0.01)
+	var i int16
+	if err := unpackV16(data, &i); err != nil {
+		return nil
+	}
+	*d = DPT_8010(float32(i) * 0.01)
+	return nil
 }
 
 func (d DPT_8010) Unit() string {

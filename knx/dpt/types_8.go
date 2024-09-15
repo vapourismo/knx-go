@@ -5,7 +5,6 @@ package dpt
 
 import (
 	"fmt"
-	"math"
 )
 
 // DPT_8001 represents DPT 8.001 / Counter.
@@ -47,18 +46,21 @@ func (d DPT_8002) String() string {
 }
 
 // DPT_8003 represents DPT 8.003 / delta time ms (range -327.68 s ... 327.67 s)
-type DPT_8003 int32
+type DPT_8003 float32
 
 func (d DPT_8003) Pack() []byte {
-	return packV16(int16(int32(d) / 10))
+	return packV16(int16(d * 100))
 }
 
 func (d *DPT_8003) Unpack(data []byte) error {
-	var i int16
-	if err := unpackV16(data, &i); err != nil {
-		return nil
+	var value int16
+
+	if err := unpackV16(data, &value); err != nil {
+		return err
 	}
-	*d = DPT_8003(int32(i) * 10)
+
+	*d = DPT_8003(float32(value) / 100)
+
 	return nil
 }
 
@@ -67,22 +69,25 @@ func (d DPT_8003) Unit() string {
 }
 
 func (d DPT_8003) String() string {
-	return fmt.Sprintf("%d ms", int32(d))
+	return fmt.Sprintf("%f ms", d)
 }
 
 // DPT_8004 represents DPT 8.004 / delta time ms (range -3276.8 s ... 3276.7 s)
-type DPT_8004 int32
+type DPT_8004 float32
 
 func (d DPT_8004) Pack() []byte {
-	return packV16(int16(int32(d) / 100))
+	return packV16(int16(d * 10))
 }
 
 func (d *DPT_8004) Unpack(data []byte) error {
-	var i int16
-	if err := unpackV16(data, &i); err != nil {
-		return nil
+	var value int16
+
+	if err := unpackV16(data, &value); err != nil {
+		return err
 	}
-	*d = DPT_8004(int32(i) * 100)
+
+	*d = DPT_8004(float32(value) / 10)
+
 	return nil
 }
 
@@ -91,7 +96,7 @@ func (d DPT_8004) Unit() string {
 }
 
 func (d DPT_8004) String() string {
-	return fmt.Sprintf("%d ms", int32(d))
+	return fmt.Sprintf("%f ms", d)
 }
 
 // DPT_8005 represents DPT 8.005 / delta time seconds
@@ -113,7 +118,7 @@ func (d DPT_8005) String() string {
 	return fmt.Sprintf("%d s", int16(d))
 }
 
-// DPT_8006 represents DPT 8.005 / delta time minutes
+// DPT_8006 represents DPT 8.006 / delta time minutes
 type DPT_8006 int16
 
 func (d DPT_8006) Pack() []byte {
@@ -155,15 +160,18 @@ func (d DPT_8007) String() string {
 type DPT_8010 float32
 
 func (d DPT_8010) Pack() []byte {
-	return packV16(int16(math.Round(float64(d) / 0.01)))
+	return packV16(int16(d * 100))
 }
 
 func (d *DPT_8010) Unpack(data []byte) error {
-	var i int16
-	if err := unpackV16(data, &i); err != nil {
-		return nil
+	var value int16
+
+	if err := unpackV16(data, &value); err != nil {
+		return err
 	}
-	*d = DPT_8010(float32(i) * 0.01)
+
+	*d = DPT_8010(float32(value) / 100)
+
 	return nil
 }
 
@@ -172,7 +180,7 @@ func (d DPT_8010) Unit() string {
 }
 
 func (d DPT_8010) String() string {
-	return fmt.Sprintf("%f %%", float32(d))
+	return fmt.Sprintf("%f %%", d)
 }
 
 // DPT_8011 represents DPT 8.011 / Rotation angle °.

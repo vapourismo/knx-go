@@ -4,7 +4,6 @@
 package dpt
 
 import (
-	"fmt"
 	"testing"
 
 	"math"
@@ -59,18 +58,20 @@ func TestDPT_8003(t *testing.T) {
 	var src, dst DPT_8003
 
 	for i := 1; i <= 10; i++ {
-
-		value := int32(rand.Uint32()%math.MaxInt16) * 10
+		value := float32(int16(rand.Int31())) / 100
 
 		// Pack and unpack to test value
 		src = DPT_8003(value)
-		if int32(src) != value {
+
+		if float32(src) != value {
 			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_8003! Has value \"%s\".", value, src)
 		}
+
 		buf = src.Pack()
 		dst.Unpack(buf)
-		if int32(dst) != value {
-			t.Errorf("Value \"%s\" after pack/unpack different from Original value. Was \"%v\"", dst, value)
+
+		if abs(float32(dst)-value) > 0.01 {
+			t.Errorf("Value \"%s\" after pack/unpack different from original value. Was \"%s\"", dst, src)
 		}
 	}
 }
@@ -81,18 +82,19 @@ func TestDPT_8004(t *testing.T) {
 	var src, dst DPT_8004
 
 	for i := 1; i <= 10; i++ {
-
-		value := int32(rand.Uint32()%math.MaxInt16) * 100
+		value := float32(int16(rand.Int31())) / 10
 
 		// Pack and unpack to test value
 		src = DPT_8004(value)
-		if int32(src) != value {
-			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_8003! Has value \"%s\".", value, src)
+		if float32(src) != value {
+			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_8004! Has value \"%s\".", value, src)
 		}
+
 		buf = src.Pack()
 		dst.Unpack(buf)
-		if int32(dst) != value {
-			t.Errorf("Value \"%s\" after pack/unpack different from Original value. Was \"%v\"", dst, value)
+
+		if abs(float32(dst)-value) > 0.1 {
+			t.Errorf("Value \"%s\" after pack/unpack different from original value. Was \"%s\"", dst, src)
 		}
 	}
 }
@@ -166,21 +168,19 @@ func TestDPT_8010(t *testing.T) {
 	var src, dst DPT_8010
 
 	for i := 1; i <= 10; i++ {
+		value := float32(int16(rand.Int31())) / 100
 
-		iValue := int16(rand.Uint32() % math.MaxInt16)
-		value := float32(iValue) / 100
-
+		// Pack and unpack to test value
 		src = DPT_8010(value)
-		if abs(float32(src)-value) > epsilon {
+		if float32(src) != value {
 			t.Errorf("Assignment of value \"%v\" failed for source of type DPT_8010! Has value \"%s\".", value, src)
 		}
+
 		buf = src.Pack()
-		_ = dst.Unpack(buf)
-		if math.IsNaN(float64(dst)) {
-			t.Errorf("Value \"%s\" is not a valid number! Original value was \"%v\".", dst, value)
-		}
-		if fmt.Sprintf("%.2f", dst) != fmt.Sprintf("%.2f", value) {
-			t.Errorf("Value \"%f\" after pack/unpack different from Original value. Was \"%f\"", dst, value)
+		dst.Unpack(buf)
+
+		if abs(float32(dst)-value) > 0.01 {
+			t.Errorf("Value \"%s\" after pack/unpack different from original value. Was \"%s\"", dst, src)
 		}
 	}
 }

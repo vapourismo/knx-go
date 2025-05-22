@@ -5,7 +5,6 @@ linters:
     - govet      # Included by default in 'go vet'
     - errcheck   # Check for unchecked errors
     - ineffassign # Detects unused assignments
-    - typecheck  # Go type checker
   disable-all: true
 
 linters-settings:

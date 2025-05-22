@@ -1,16 +1,25 @@
+# This file contains the configuration for golangci-lint
+# See: https://golangci-lint.run/usage/configuration/
+
+# Define the configuration version
 version: "2"
 
+# Configure which linters to run
 linters:
+  # Disable all linters and only enable specified ones
+  disable-all: true
   enable:
     - staticcheck
     - govet      # Included by default in 'go vet'
     - errcheck   # Check for unchecked errors
     - ineffassign # Detects unused assignments
-  disable-all: true
 
-run:
-  timeout: 5m
-
+# Configure linter-specific settings
 linters-settings:
   staticcheck:
     checks: ["all"]
+
+# Configure runtime settings
+run:
+  timeout: 5m
+  go: '1.16'

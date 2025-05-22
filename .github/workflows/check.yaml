@@ -27,8 +27,8 @@ jobs:
           - false
     continue-on-error: ${{ matrix.may-fail }}
     steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: actions/setup-go@v5.0.0
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-go@v5.5.0
         with:
           go-version: "${{ matrix.go }}"
           check-latest: true
@@ -38,8 +38,8 @@ jobs:
   Format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: actions/setup-go@v5.0.0
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-go@v5.5.0
         with:
           go-version: stable
       - run: |
@@ -53,17 +53,17 @@ jobs:
   Staticcheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 1
-      - uses: dominikh/staticcheck-action@v1.3.0
+      - uses: dominikh/staticcheck-action@v1.3.1
         with:
           version: "2022.1.1"
   Vet:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: actions/setup-go@v5.0.0
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-go@v5.5.0
         with:
           go-version: stable
       - run: go vet ./...

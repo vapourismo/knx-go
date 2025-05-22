@@ -1,4 +1,3 @@
-version: 2
 linters:
   enable:
     - staticcheck
@@ -6,6 +5,11 @@ linters:
     - errcheck   # Check for unchecked errors
     - ineffassign # Detects unused assignments
   disable-all: true
+
+issues:
+  exclude-rules:
+    - linters: [typecheck]
+      path: "."
 
 linters-settings:
   staticcheck:

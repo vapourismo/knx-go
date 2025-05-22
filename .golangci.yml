@@ -1,8 +1,4 @@
-version: 2
-
-run:
-  go: '1.16'  # Minimum Go version from go.mod
-  timeout: 5m
+version: "2"
 
 linters:
   enable:
@@ -12,10 +8,8 @@ linters:
     - ineffassign # Detects unused assignments
   disable-all: true
 
-issues:
-  exclude-rules:
-    - linters: [typecheck]
-      path: "."
+run:
+  timeout: 5m
 
 linters-settings:
   staticcheck:

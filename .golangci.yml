@@ -1,0 +1,11 @@
+linters:
+  enable:
+    - staticcheck
+  disable-all: true
+
+linters-settings:
+  staticcheck:
+    checks: ["all"]
+
+run:
+  timeout: 5m

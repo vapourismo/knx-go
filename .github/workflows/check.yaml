@@ -52,7 +52,7 @@ jobs:
             git diff
             exit 1
           fi
-  GolangCI-Lint:
+  Lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2

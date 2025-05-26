@@ -9,6 +9,9 @@ on:
       - master
   schedule:
     - cron: "0 8 * * *"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 jobs:
   Build:
     runs-on: ubuntu-latest

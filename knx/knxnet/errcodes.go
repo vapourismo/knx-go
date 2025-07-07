@@ -89,7 +89,7 @@ func (err ErrCode) String() string {
 		return "Unsupported tunnelling layer"
 
 	default:
-		return fmt.Sprintf("Unknown error code %#x", err)
+		return fmt.Sprintf("Unknown error code %#x", uint8(err))
 	}
 }
 

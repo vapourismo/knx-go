@@ -5,6 +5,7 @@ package knxnet
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"fmt"
 	"math/rand"
 	"net"
@@ -17,7 +18,7 @@ func TestAddress_String(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			buffer := [4]byte{}
-			rand.Read(buffer[:])
+			crand.Read(buffer[:])
 
 			addr := Address(buffer)
 			result := addr.String()
@@ -46,7 +47,7 @@ func TestAddress_String(t *testing.T) {
 
 func makeRandBuffer(size int) []byte {
 	buffer := make([]byte, size)
-	rand.Read(buffer)
+	crand.Read(buffer)
 	return buffer
 }
 

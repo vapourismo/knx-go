@@ -5,18 +5,19 @@ package cemi
 
 import (
 	"bytes"
-	"crypto/rand"
+	crand "crypto/rand"
+	"math/rand"
 	"testing"
 )
 
 func makeRandInfoSegment() []byte {
 	var b [1]byte
-	rand.Read(b[:])
+	crand.Read(b[:])
 	n := int(b[0])
 
 	buffer := make([]byte, n+1)
 	buffer[0] = byte(n)
-	rand.Read(buffer[1:])
+	crand.Read(buffer[1:])
 
 	return buffer
 }

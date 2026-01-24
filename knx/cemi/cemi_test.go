@@ -12,12 +12,16 @@ import (
 
 func makeRandInfoSegment() []byte {
 	var b [1]byte
-	crand.Read(b[:])
+	if _, err := crand.Read(b[:]); err != nil {
+		panic(err)
+	}
 	n := int(b[0])
 
 	buffer := make([]byte, n+1)
 	buffer[0] = byte(n)
-	crand.Read(buffer[1:])
+	if _, err := crand.Read(buffer[1:]); err != nil {
+		panic(err)
+	}
 
 	return buffer
 }

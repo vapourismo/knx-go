@@ -12,7 +12,9 @@ import (
 
 func makeRandBuffer(n int) []byte {
 	buffer := make([]byte, n)
-	crand.Read(buffer)
+	if _, err := crand.Read(buffer); err != nil {
+		panic(err)
+	}
 	return buffer
 }
 

@@ -1,6 +1,6 @@
 module github.com/vapourismo/knx-go
 
-go 1.21
+go 1.24.0
 
 toolchain go1.24.12
 

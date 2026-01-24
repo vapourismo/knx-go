@@ -147,7 +147,9 @@ func TestUnpackTransportUnit(t *testing.T) {
 	t.Run("App", func(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			data := make([]byte, 3+rand.Int()%255)
-			crand.Read(data[1:])
+			if _, err := crand.Read(data[1:]); err != nil {
+				panic(err)
+			}
 
 			data[0] = byte(len(data) - 2)
 			data[1] &= ^(byte(1) << 7)

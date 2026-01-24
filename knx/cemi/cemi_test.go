@@ -5,12 +5,14 @@ package cemi
 
 import (
 	"bytes"
-	"math/rand"
+	"crypto/rand"
 	"testing"
 )
 
 func makeRandInfoSegment() []byte {
-	n := rand.Int() % 256
+	var b [1]byte
+	rand.Read(b[:])
+	n := int(b[0])
 
 	buffer := make([]byte, n+1)
 	buffer[0] = byte(n)

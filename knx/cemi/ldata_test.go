@@ -5,8 +5,8 @@ package cemi
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
-	"math/rand"
 	"testing"
 )
 

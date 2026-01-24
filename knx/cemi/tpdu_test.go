@@ -5,6 +5,7 @@ package cemi
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"math/rand"
 	"testing"
 
@@ -146,7 +147,7 @@ func TestUnpackTransportUnit(t *testing.T) {
 	t.Run("App", func(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			data := make([]byte, 3+rand.Int()%255)
-			rand.Read(data[1:])
+			crand.Read(data[1:])
 
 			data[0] = byte(len(data) - 2)
 			data[1] &= ^(byte(1) << 7)

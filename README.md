@@ -1,3 +1,9 @@
+**This repository is no longer maintained.**
+
+<!-- List forks? -->
+
+---
+
 [![Check](https://github.com/vapourismo/knx-go/actions/workflows/check.yaml/badge.svg?branch=master)](https://github.com/vapourismo/knx-go/actions/workflows/check.yaml)
 [![GoDoc](https://godoc.org/github.com/vapourismo/knx-go?status.svg)](https://godoc.org/github.com/vapourismo/knx-go)
 
